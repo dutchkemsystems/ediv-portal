@@ -1,0 +1,85 @@
+services:
+  - type: web
+    name: ediv-portal
+    runtime: python
+    pythonVersion: "3.11"
+    buildCommand: |
+      pip install -r backend/requirements/prod.txt
+      cd backend && python manage.py collectstatic --noinput
+    startCommand: |
+      cd backend && python manage.py migrate --noinput
+      cd backend && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 120
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.production
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_ALLOWED_HOSTS
+        value: "*.onrender.com,localhost,127.0.0.1"
+      - key: FRONTEND_URL
+        value: https://ediv-portal.onrender.com
+      - key: POSTGRES_HOST
+        fromDatabase:
+          name: ediv-db
+          property: host
+      - key: POSTGRES_PORT
+        fromDatabase:
+          name: ediv-db
+          property: port
+      - key: POSTGRES_DB
+        fromDatabase:
+          name: ediv-db
+          property: database
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: ediv-db
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: ediv-db
+          property: password
+      - key: REDIS_URL
+        fromKVPair:
+          name: ediv-redis
+          property: URL
+      - key: CELERY_BROKER_URL
+        fromKVPair:
+          name: ediv-redis
+          property: URL
+      - key: CELERY_RESULT_BACKEND
+        fromKVPair:
+          name: ediv-redis
+          property: URL
+      - key: KORA_PAY_PUBLIC_KEY
+        sync: false
+      - key: KORA_PAY_SECRET_KEY
+        sync: false
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+    healthCheckPath: /health
+    autoDeploy: true
+
+  - type: static_site
+    name: ediv-frontend-static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        value: /api
+
+databases:
+  - name: ediv-db
+    plan: free
+    databaseName: education_district_iv
+    ipAllowList: []
+
+  - name: ediv-redis
+    plan: free
