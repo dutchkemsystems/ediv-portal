@@ -36,6 +36,7 @@ import StatCard from '../components/common/StatCard'
 import Loading from '../components/common/Loading'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 import api from '../api/client'
+import { notify } from '../utils/notifications'
 
 function Files() {
   const [files, setFiles] = useState([])
@@ -65,7 +66,7 @@ function Files() {
       const response = await api.get('/files/files/')
       setFiles(response.data.results || response.data)
     } catch (error) {
-      console.error('Error fetching files:', error)
+      notify.error('Failed to load files')
     } finally {
       setLoading(false)
     }
@@ -76,7 +77,7 @@ function Files() {
       const response = await api.get('/files/movements/')
       setMovements(response.data.results || response.data)
     } catch (error) {
-      console.error('Error fetching movements:', error)
+      notify.error('Failed to load file movements')
     }
   }
 

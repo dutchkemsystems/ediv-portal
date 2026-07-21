@@ -24,6 +24,7 @@ import StatCard from '../components/common/StatCard'
 import Loading from '../components/common/Loading'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 import api from '../api/client'
+import { notify } from '../utils/notifications'
 
 function Students() {
   const [students, setStudents] = useState([])
@@ -41,7 +42,7 @@ function Students() {
       const response = await api.get('/students/students/')
       setStudents(response.data.results || response.data)
     } catch (error) {
-      console.error('Error fetching students:', error)
+      notify.error('Failed to load students')
     } finally {
       setLoading(false)
     }
@@ -50,10 +51,11 @@ function Students() {
   const handleDelete = async () => {
     try {
       await api.delete(`/students/students/${selectedStudent.id}/`)
+      notify.success('Student deleted successfully')
       setOpenDeleteDialog(false)
       fetchStudents()
     } catch (error) {
-      console.error('Error deleting student:', error)
+      notify.error('Failed to delete student')
     }
   }
 

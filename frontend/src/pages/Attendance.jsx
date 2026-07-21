@@ -34,6 +34,7 @@ import StatCard from '../components/common/StatCard'
 import Loading from '../components/common/Loading'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 import api from '../api/client'
+import { notify } from '../utils/notifications'
 
 function Attendance() {
   const [tab, setTab] = useState(0)
@@ -67,7 +68,7 @@ function Attendance() {
       const response = await api.get(endpoint)
       setRecords(response.data.results || response.data)
     } catch (error) {
-      console.error('Error fetching attendance:', error)
+      notify.error('Failed to load attendance records')
     } finally {
       setLoading(false)
     }

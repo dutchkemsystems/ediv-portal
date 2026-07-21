@@ -30,6 +30,7 @@ import Loading from '../components/common/Loading'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 import KoraPayCheckout from '../components/KoraPayCheckout'
 import api from '../api/client'
+import { notify } from '../utils/notifications'
 
 function Finance() {
   const [payments, setPayments] = useState([])
@@ -62,7 +63,7 @@ function Finance() {
       setStudentFees(feesRes.data.results || feesRes.data || [])
       setFeeStructures(structuresRes.data.results || structuresRes.data || [])
     } catch (error) {
-      console.error('Error fetching finance data:', error)
+      notify.error('Failed to load finance data')
     } finally {
       setLoading(false)
     }

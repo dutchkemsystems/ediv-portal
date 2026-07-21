@@ -24,6 +24,7 @@ import StatCard from '../components/common/StatCard'
 import Loading from '../components/common/Loading'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 import api from '../api/client'
+import { notify } from '../utils/notifications'
 
 function Staff() {
   const [staff, setStaff] = useState([])
@@ -41,7 +42,7 @@ function Staff() {
       const response = await api.get('/staff/staff/')
       setStaff(response.data.results || response.data)
     } catch (error) {
-      console.error('Error fetching staff:', error)
+      notify.error('Failed to load staff')
     } finally {
       setLoading(false)
     }
@@ -50,10 +51,11 @@ function Staff() {
   const handleDelete = async () => {
     try {
       await api.delete(`/staff/staff/${selectedStaff.id}/`)
+      notify.success('Staff deleted successfully')
       setOpenDeleteDialog(false)
       fetchStaff()
     } catch (error) {
-      console.error('Error deleting staff:', error)
+      notify.error('Failed to delete staff')
     }
   }
 
