@@ -48,6 +48,7 @@ function Schools() {
     phone: '',
     email: '',
   })
+  const [formErrors, setFormErrors] = useState({})
 
   useEffect(() => {
     fetchSchools()
@@ -107,7 +108,21 @@ function Schools() {
     setOpenDeleteDialog(true)
   }
 
+  const validateForm = () => {
+    const errors = {}
+    if (!formData.name.trim()) errors.name = 'School name is required'
+    if (!formData.code.trim()) errors.code = 'School code is required'
+    if (!formData.school_type) errors.school_type = 'School type is required'
+    if (!formData.lga) errors.lga = 'LGA is required'
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
   const handleSubmit = async () => {
+    if (!validateForm()) {
+      notify.warning('Please fill in all required fields')
+      return
+    }
     try {
       if (selectedSchool) {
         await api.put(`/schools/schools/${selectedSchool.id}/`, formData)
@@ -117,6 +132,7 @@ function Schools() {
         notify.success('School created successfully')
       }
       setOpenDialog(false)
+      setFormErrors({})
       fetchSchools()
     } catch (error) {
       notify.error('Failed to save school')
@@ -218,44 +234,54 @@ function Schools() {
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="School Name"
+                label="School Name *"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                error={!!formErrors.name}
+                helperText={formErrors.name}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="School Code"
+                label="School Code *"
                 value={formData.code}
                 onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                error={!!formErrors.code}
+                helperText={formErrors.code}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>School Type</InputLabel>
+              <FormControl fullWidth error={!!formErrors.school_type}>
+                <InputLabel>School Type *</InputLabel>
                 <Select
                   value={formData.school_type}
                   onChange={(e) => setFormData({ ...formData, school_type: e.target.value })}
-                  label="School Type"
+                  label="School Type *"
                 >
                   <MenuItem value="JUNIOR">Junior Secondary</MenuItem>
                   <MenuItem value="SENIOR">Senior Secondary</MenuItem>
                 </Select>
+                {formErrors.school_type && (
+                  <Typography variant="caption" color="error">{formErrors.school_type}</Typography>
+                )}
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>LGA</InputLabel>
+              <FormControl fullWidth error={!!formErrors.lga}>
+                <InputLabel>LGA *</InputLabel>
                 <Select
                   value={formData.lga}
                   onChange={(e) => setFormData({ ...formData, lga: e.target.value })}
-                  label="LGA"
+                  label="LGA *"
                 >
                   <MenuItem value="APAPA">Apapa</MenuItem>
                   <MenuItem value="MAINLAND">Mainland</MenuItem>
                   <MenuItem value="SURULERE">Surulere</MenuItem>
                 </Select>
+                {formErrors.lga && (
+                  <Typography variant="caption" color="error">{formErrors.lga}</Typography>
+                )}
               </FormControl>
             </Grid>
             <Grid item xs={12}>

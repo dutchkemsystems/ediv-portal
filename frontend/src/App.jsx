@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { CircularProgress, Box } from '@mui/material'
 import Layout from './components/common/Layout'
+import ErrorBoundary from './components/common/ErrorBoundary'
 
 const Login = lazy(() => import('./pages/Login'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -50,53 +51,55 @@ function Loading() {
 
 function App() {
   return (
-    <Suspense fallback={<Loading />}>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        {[
-          { path: '/', element: Dashboard },
-          { path: '/schools', element: Schools },
-          { path: '/staff', element: Staff },
-          { path: '/students', element: Students },
-          { path: '/attendance', element: Attendance },
-          { path: '/academics', element: Academics },
-          { path: '/finance', element: Finance },
-          { path: '/hr', element: HR },
-          { path: '/registry', element: Registry },
-          { path: '/files', element: Files },
-          { path: '/workflows', element: Workflows },
-          { path: '/communication', element: Communication },
-          { path: '/notifications', element: Notifications },
-          { path: '/timetable', element: Timetable },
-          { path: '/transport', element: Transport },
-          { path: '/assets', element: Assets },
-          { path: '/discipline', element: Discipline },
-          { path: '/library', element: Library },
-          { path: '/e-learning', element: ELearning },
-          { path: '/wellness', element: Wellness },
-          { path: '/alumni', element: Alumni },
-          { path: '/infrastructure', element: Infrastructure },
-          { path: '/inspection', element: Inspection },
-          { path: '/french', element: French },
-          { path: '/co-curricular', element: CoCurricular },
-          { path: '/cpd', element: CPD },
-          { path: '/reports', element: Reports },
-        ].map(({ path, element: Page }) => (
-          <Route
-            key={path}
-            path={path}
-            element={
-              <ProtectedRoute>
-                <Layout><Page /></Layout>
-              </ProtectedRoute>
-            }
-          />
-        ))}
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<Loading />}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          {[
+            { path: '/', element: Dashboard },
+            { path: '/schools', element: Schools },
+            { path: '/staff', element: Staff },
+            { path: '/students', element: Students },
+            { path: '/attendance', element: Attendance },
+            { path: '/academics', element: Academics },
+            { path: '/finance', element: Finance },
+            { path: '/hr', element: HR },
+            { path: '/registry', element: Registry },
+            { path: '/files', element: Files },
+            { path: '/workflows', element: Workflows },
+            { path: '/communication', element: Communication },
+            { path: '/notifications', element: Notifications },
+            { path: '/timetable', element: Timetable },
+            { path: '/transport', element: Transport },
+            { path: '/assets', element: Assets },
+            { path: '/discipline', element: Discipline },
+            { path: '/library', element: Library },
+            { path: '/e-learning', element: ELearning },
+            { path: '/wellness', element: Wellness },
+            { path: '/alumni', element: Alumni },
+            { path: '/infrastructure', element: Infrastructure },
+            { path: '/inspection', element: Inspection },
+            { path: '/french', element: French },
+            { path: '/co-curricular', element: CoCurricular },
+            { path: '/cpd', element: CPD },
+            { path: '/reports', element: Reports },
+          ].map(({ path, element: Page }) => (
+            <Route
+              key={path}
+              path={path}
+              element={
+                <ProtectedRoute>
+                  <Layout><Page /></Layout>
+                </ProtectedRoute>
+              }
+            />
+          ))}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </Suspense>
+    </ErrorBoundary>
   )
 }
 
