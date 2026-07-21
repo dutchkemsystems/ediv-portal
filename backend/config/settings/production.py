@@ -1,8 +1,17 @@
 import os
 from .base import *
 
+# Debug - MUST be False in production
+DEBUG = False
+
+# Allowed hosts - restrict to known domains
+ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(',')
+if not ALLOWED_HOSTS or ALLOWED_HOSTS == ['']:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+
 # Security
 SECURE_SSL_REDIRECT = False  # Render handles SSL termination
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # Trust Render's proxy
 SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
@@ -20,7 +29,7 @@ CORS_ALLOW_CREDENTIALS = True
 # Static files
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Database
+# Database - Use SSL for production
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -30,7 +39,7 @@ DATABASES = {
         'HOST': os.environ.get('POSTGRES_HOST'),
         'PORT': os.environ.get('POSTGRES_PORT', '5432'),
         'OPTIONS': {
-            'sslmode': 'disable',
+            'sslmode': 'require',  # Require SSL for production
         },
     }
 }

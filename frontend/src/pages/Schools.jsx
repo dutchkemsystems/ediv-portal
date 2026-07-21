@@ -30,6 +30,7 @@ import StatCard from '../components/common/StatCard'
 import Loading from '../components/common/Loading'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 import api from '../api/client'
+import { notify } from '../utils/notifications'
 
 function Schools() {
   const [schools, setSchools] = useState([])
@@ -58,7 +59,7 @@ function Schools() {
       const response = await api.get('/schools/schools/')
       setSchools(response.data.results || response.data)
     } catch (error) {
-      console.error('Error fetching schools:', error)
+      notify.error('Failed to load schools')
     } finally {
       setLoading(false)
     }
@@ -69,7 +70,7 @@ function Schools() {
       const response = await api.get('/analytics/stats/school_stats/')
       setStats(response.data)
     } catch (error) {
-      console.error('Error fetching stats:', error)
+      notify.error('Failed to load statistics')
     }
   }
 
@@ -110,23 +111,26 @@ function Schools() {
     try {
       if (selectedSchool) {
         await api.put(`/schools/schools/${selectedSchool.id}/`, formData)
+        notify.success('School updated successfully')
       } else {
         await api.post('/schools/schools/', formData)
+        notify.success('School created successfully')
       }
       setOpenDialog(false)
       fetchSchools()
     } catch (error) {
-      console.error('Error saving school:', error)
+      notify.error('Failed to save school')
     }
   }
 
   const handleConfirmDelete = async () => {
     try {
       await api.delete(`/schools/schools/${selectedSchool.id}/`)
+      notify.success('School deleted successfully')
       setOpenDeleteDialog(false)
       fetchSchools()
     } catch (error) {
-      console.error('Error deleting school:', error)
+      notify.error('Failed to delete school')
     }
   }
 

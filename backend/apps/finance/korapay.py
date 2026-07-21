@@ -49,8 +49,9 @@ class KoraPayService:
         }
 
     def verify_webhook_signature(self, payload_body, signature_header):
+        """Verify webhook signature. Raises ValueError if webhook secret not configured."""
         if not self.webhook_secret:
-            return False
+            raise ValueError('KORA_PAY_WEBHOOK_SECRET not configured - webhook verification disabled')
         if not signature_header:
             return False
 

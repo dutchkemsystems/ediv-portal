@@ -16,7 +16,7 @@ import api from '../api/client'
 
 const KORAPAY_SCRIPT_URL = 'https://korablobstorage.blob.core.windows.net/modal-bucket/korapay-collections.min.js'
 
-function KoraPayCheckout({ open, onClose, onSuccess, studentFeeId, amount, studentName, studentEmail, feeName }) {
+function KoraPayCheckout({ open, onClose, onSuccess, onFailed, studentFeeId, amount, studentName, studentEmail, feeName }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [status, setStatus] = useState('idle') // idle, loading, success, failed

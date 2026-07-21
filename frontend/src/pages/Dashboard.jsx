@@ -25,6 +25,7 @@ import {
   Task as TaskIcon,
 } from '@mui/icons-material'
 import api from '../api/client'
+import { notify } from '../utils/notifications'
 
 function Dashboard() {
   const { user } = useSelector((state) => state.auth)
@@ -43,7 +44,7 @@ function Dashboard() {
         setStats(statsRes.data)
         setActivity(activityRes.data)
       } catch (error) {
-        console.error('Error fetching dashboard:', error)
+        notify.error('Failed to load dashboard data')
       } finally {
         setLoading(false)
       }

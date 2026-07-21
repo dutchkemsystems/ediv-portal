@@ -42,7 +42,7 @@ class User(AbstractUser):
     failed_login_attempts = models.IntegerField(default=0)
     locked_until = models.DateTimeField(null=True, blank=True)
     mfa_enabled = models.BooleanField(default=False)
-    mfa_secret = models.CharField(max_length=32, blank=True)
+    mfa_secret = models.CharField(max_length=64, blank=True)  # Base32 encoded 32 bytes = 52 chars
     
     objects = UserManager()
     
