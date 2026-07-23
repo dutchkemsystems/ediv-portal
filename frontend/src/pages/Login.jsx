@@ -35,7 +35,11 @@ function Login() {
     e.preventDefault()
     const result = await dispatch(login({ email, password }))
     if (login.fulfilled.match(result)) {
-      navigate('/dashboard')
+      if (result.payload.mfa_required) {
+        navigate('/mfa-verify')
+      } else {
+        navigate('/dashboard')
+      }
     }
   }
 

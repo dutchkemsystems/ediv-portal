@@ -16,6 +16,9 @@ const Academics = lazy(() => import('./pages/Academics'))
 const Finance = lazy(() => import('./pages/Finance'))
 const Grants = lazy(() => import('./pages/Grants'))
 const Privileges = lazy(() => import('./pages/Privileges'))
+const Departments = lazy(() => import('./pages/Departments'))
+const Audit = lazy(() => import('./pages/Audit'))
+const ParentTeacher = lazy(() => import('./pages/ParentTeacher'))
 const HR = lazy(() => import('./pages/HR'))
 const Registry = lazy(() => import('./pages/Registry'))
 const Files = lazy(() => import('./pages/Files'))
@@ -38,6 +41,8 @@ const CPD = lazy(() => import('./pages/CPD'))
 const Reports = lazy(() => import('./pages/Reports'))
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
 const ResetPassword = lazy(() => import('./pages/ResetPassword'))
+const MFAVerify = lazy(() => import('./pages/MFAVerify'))
+const MFASetup = lazy(() => import('./pages/MFASetup'))
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useSelector((state) => state.auth)
@@ -62,6 +67,8 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/mfa-verify" element={<MFAVerify />} />
+          <Route path="/mfa-setup" element={<MFASetup />} />
 
           {/* Protected Routes */}
           {[
@@ -73,6 +80,9 @@ function App() {
             { path: '/academics', element: Academics },
             { path: '/finance', element: Finance },
             { path: '/grants', element: Grants },
+            { path: '/departments', element: Departments },
+            { path: '/audit', element: Audit },
+            { path: '/parent-teacher', element: ParentTeacher },
             { path: '/privileges', element: Privileges },
             { path: '/hr', element: HR },
             { path: '/registry', element: Registry },

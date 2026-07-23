@@ -47,6 +47,8 @@ urlpatterns = [
     path('api/transport/', include('apps.transport.urls')),
     path('api/cpd/', include('apps.cpd.urls')),
     path('api/analytics/', include('apps.analytics.urls')),
+    path('api/audit/', include('apps.audit.urls')),
+    path('api/parent-teacher/', include('apps.parent_teacher.urls')),
 ]
 
 if settings.DEBUG:

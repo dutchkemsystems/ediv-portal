@@ -48,6 +48,8 @@ INSTALLED_APPS = [
     'apps.timetable',
     'apps.transport',
     'apps.cpd',
+    'apps.audit',
+    'apps.parent_teacher',
     'apps.analytics',
 ]
 

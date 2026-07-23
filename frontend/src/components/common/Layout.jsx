@@ -51,6 +51,9 @@ import {
   TrendingUp as AnalyticsIcon,
   AccountBalanceWallet as GrantsIcon,
   AdminPanelSettings as PrivilegesIcon,
+  Domain as DepartmentIcon,
+  Security as AuditIcon,
+  Handshake as ParentTeacherIcon,
 } from '@mui/icons-material'
 import { logout } from '../../store/authSlice'
 
@@ -69,6 +72,9 @@ const getMenuItems = (role) => {
     { text: 'Academics', icon: <LibraryIcon />, path: '/academics' },
     { text: 'Finance', icon: <FinanceIcon />, path: '/finance' },
     { text: 'Grants', icon: <GrantsIcon />, path: '/grants' },
+    { text: 'Departments', icon: <DepartmentIcon />, path: '/departments' },
+    { text: 'Audit & Compliance', icon: <AuditIcon />, path: '/audit' },
+    { text: 'Parent-Teacher', icon: <ParentTeacherIcon />, path: '/parent-teacher' },
     { text: 'Privileges', icon: <PrivilegesIcon />, path: '/privileges' },
     { text: 'HR & Recruitment', icon: <WorkIcon />, path: '/hr' },
     { text: 'E-Registry', icon: <AssignmentIcon />, path: '/registry' },
@@ -98,20 +104,26 @@ const getMenuItems = (role) => {
     PS: allItems.map(i => i.path),
     HR: ['/dashboard', '/staff', '/hr', '/grants', '/reports', '/notifications'],
     FIN: ['/dashboard', '/finance', '/grants', '/reports', '/notifications'],
-    AUDIT: ['/dashboard', '/finance', '/grants', '/reports', '/notifications'],
+    AUDIT: ['/dashboard', '/audit', '/reports', '/notifications'],
     QA: ['/dashboard', '/reports', '/notifications', '/inspection'],
-    CC: ['/dashboard', '/co-curricular', '/reports', '/notifications'],
+    CC: ['/dashboard', '/co-curricular', '/french', '/reports', '/notifications'],
     EMIS: ['/dashboard', '/reports', '/analytics', '/notifications'],
     PLAN: ['/dashboard', '/reports', '/analytics', '/notifications'],
+    PROC: ['/dashboard', '/reports', '/notifications'],
+    PA: ['/dashboard', '/communication', '/reports', '/notifications'],
+    SA: ['/dashboard', '/schools', '/students', '/reports', '/notifications'],
+    FRENCH: ['/dashboard', '/french', '/co-curricular', '/reports', '/notifications'],
     REG: ['/dashboard', '/registry', '/files', '/workflows', '/notifications'],
+    REG_OFF: ['/dashboard', '/registry', '/files', '/workflows', '/notifications'],
+    SA_OFF: ['/dashboard', '/schools', '/students', '/reports', '/notifications'],
     PRI: ['/dashboard', '/schools', '/students', '/staff', '/academics', '/attendance', '/timetable', '/reports', '/discipline', '/library', '/notifications'],
     VP: ['/dashboard', '/students', '/staff', '/academics', '/attendance', '/timetable', '/reports', '/discipline', '/notifications'],
     TCH: ['/dashboard', '/students', '/academics', '/attendance', '/timetable', '/e-learning', '/discipline', '/notifications'],
     STD: ['/dashboard', '/academics', '/attendance', '/library', '/e-learning', '/notifications'],
-    PAR: ['/dashboard', '/students', '/finance', '/communication', '/notifications'],
+    PAR: ['/dashboard', '/students', '/finance', '/communication', '/parent-teacher', '/notifications'],
   }
 
-  const allowedPaths = roleAccess[role] || roleAccess.TG
+  const allowedPaths = roleAccess[role] || ['/dashboard']
   return allItems.filter(i => allowedPaths.includes(i.path))
 }
 
