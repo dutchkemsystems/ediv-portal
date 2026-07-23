@@ -11,7 +11,7 @@ media/
 *.log
 .mimocode/
 .git-rewrite/
-frontend/dist/
+# frontend/dist/ - kept in git for Render deployment
 scripts/cleanup_github.py
 scripts/recreate_repo.py
 scripts/new_repo.py
