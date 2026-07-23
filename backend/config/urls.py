@@ -20,9 +20,10 @@ def serve_frontend(request, path=''):
     """Serve the React frontend for all non-API routes"""
     # Try multiple possible locations for the frontend build
     possible_dirs = [
+        os.path.join(settings.BASE_DIR, '..', 'frontend', 'dist'),
+        os.path.join(settings.BASE_DIR, 'frontend', 'dist'),
         os.path.join(settings.BASE_DIR, 'staticfiles', 'frontend'),
         os.path.join(settings.BASE_DIR, 'static', 'frontend'),
-        os.path.join(settings.BASE_DIR, '..', 'frontend', 'dist'),
     ]
 
     for frontend_dir in possible_dirs:

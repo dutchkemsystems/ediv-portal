@@ -6,10 +6,6 @@ services:
     buildCommand: |
       pip install -r backend/requirements/render.txt
       cd frontend && npm install && npm run build
-      ls -la dist/
-      ls -la dist/assets/
-      cp -rv dist/ ../backend/staticfiles/frontend/
-      ls -la ../backend/staticfiles/frontend/
       cd ../backend && python manage.py collectstatic --noinput
     startCommand: cd backend && python manage.py migrate --noinput && python manage.py ensure_admin && python manage.py seed_departments && python manage.py seed_schools && python manage.py seed_users ; cd backend && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 120
     envVars:
