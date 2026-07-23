@@ -1,10 +1,9 @@
 from django.contrib import admin
-from django.urls import path, include, re_path
+from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from django.http import JsonResponse, FileResponse
+from django.http import JsonResponse
 from django.db import connection
-import os
 
 
 def health_check(request):
@@ -14,30 +13,6 @@ def health_check(request):
         return JsonResponse({'status': 'healthy', 'database': 'connected'})
     except Exception as e:
         return JsonResponse({'status': 'unhealthy', 'error': str(e)}, status=503)
-
-
-def serve_frontend(request, path=''):
-    """Serve the React frontend for all non-API routes"""
-    # Try multiple possible locations for the frontend build
-    possible_dirs = [
-        os.path.join(settings.BASE_DIR, 'static', 'frontend'),
-        os.path.join(settings.BASE_DIR, '..', 'frontend', 'dist'),
-        os.path.join(settings.BASE_DIR, 'frontend', 'dist'),
-    ]
-
-    for frontend_dir in possible_dirs:
-        # Try to serve the specific file first
-        if path:
-            file_path = os.path.join(frontend_dir, path)
-            if os.path.isfile(file_path):
-                return FileResponse(open(file_path, 'rb'))
-
-        # For all other routes, serve index.html (SPA fallback)
-        index_path = os.path.join(frontend_dir, 'index.html')
-        if os.path.isfile(index_path):
-            return FileResponse(open(index_path, 'rb'))
-
-    return JsonResponse({'error': 'Frontend not built', 'checked': possible_dirs}, status=404)
 
 
 urlpatterns = [
@@ -74,8 +49,6 @@ urlpatterns = [
     path('api/analytics/', include('apps.analytics.urls')),
     path('api/audit/', include('apps.audit.urls')),
     path('api/parent-teacher/', include('apps.parent_teacher.urls')),
-    # Serve static frontend files
-    re_path(r'^(?P<path>.*)$', serve_frontend, {'path': ''}),
 ]
 
 if settings.DEBUG:
