@@ -16,6 +16,30 @@ def health_check(request):
         return JsonResponse({'status': 'unhealthy', 'error': str(e)}, status=503)
 
 
+def debug_files(request):
+    """Debug endpoint to see what files exist"""
+    import os
+    base = settings.BASE_DIR
+    results = {}
+    # Check various paths
+    for name, path in [
+        ('BASE_DIR', str(base)),
+        ('frontend_dist_1', os.path.join(base, '..', 'frontend', 'dist')),
+        ('frontend_dist_2', os.path.join(base, 'frontend', 'dist')),
+        ('staticfiles', os.path.join(base, 'staticfiles')),
+        ('static', os.path.join(base, 'static')),
+    ]:
+        if os.path.exists(path):
+            try:
+                files = os.listdir(path)[:20]
+                results[name] = {'exists': True, 'files': files}
+            except:
+                results[name] = {'exists': True, 'error': 'cannot list'}
+        else:
+            results[name] = {'exists': False}
+    return JsonResponse(results)
+
+
 def serve_frontend(request, path=''):
     """Serve the React frontend for all non-API routes"""
     # Try multiple possible locations for the frontend build
@@ -52,6 +76,7 @@ def serve_frontend(request, path=''):
 
 urlpatterns = [
     path('health/', health_check),
+    path('debug/files/', debug_files),
     path('admin/', admin.site.urls),
     path('api/users/', include('apps.users.urls')),
     path('api/schools/', include('apps.schools.urls')),
