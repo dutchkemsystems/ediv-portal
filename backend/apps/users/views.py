@@ -370,7 +370,13 @@ class AuthViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny])
     def seed(self, request):
-        """Seed admin user - for initial deployment only"""
+        """Seed all data - departments, schools, users"""
+        import io
+        from django.core.management import call_command
+
+        results = {}
+
+        # 1. Seed admin user
         email = 'admin@ediv.gov.ng'
         password = 'Admin@12345678'
         user, created = User.objects.get_or_create(
@@ -389,10 +395,48 @@ class AuthViewSet(viewsets.ViewSet):
         user.is_superuser = True
         user.role = 'SYSADMIN'
         user.save()
-        return Response({
-            'message': f'Admin user {"created" if created else "updated"}',
-            'email': email,
-        })
+        results['admin_user'] = 'created' if created else 'updated'
+
+        # 2. Seed departments
+        try:
+            out = io.StringIO()
+            call_command('seed_departments', stdout=out)
+            results['departments'] = out.getvalue()[:200]
+        except Exception as e:
+            results['departments'] = f'error: {str(e)[:100]}'
+
+        # 3. Seed schools
+        try:
+            out = io.StringIO()
+            call_command('seed_schools', stdout=out)
+            results['schools'] = out.getvalue()[:200]
+        except Exception as e:
+            results['schools'] = f'error: {str(e)[:100]}'
+
+        # 4. Seed users (depends on schools existing)
+        try:
+            out = io.StringIO()
+            call_command('seed_users', stdout=out)
+            results['users'] = out.getvalue()[:200]
+        except Exception as e:
+            results['users'] = f'error: {str(e)[:100]}'
+
+        # 5. Count totals
+        results['totals'] = {
+            'users': User.objects.count(),
+        }
+        try:
+            from apps.schools.models import School
+            results['totals']['schools'] = School.objects.count()
+        except Exception:
+            results['totals']['schools'] = 'unavailable'
+        try:
+            from apps.departments.models import Department
+            results['totals']['departments'] = Department.objects.count()
+        except Exception:
+            results['totals']['departments'] = 'unavailable'
+
+        return Response(results)
 
 
 class PrivilegeViewSet(viewsets.ModelViewSet):
