@@ -18,20 +18,26 @@ def health_check(request):
 
 def serve_frontend(request, path=''):
     """Serve the React frontend for all non-API routes"""
-    frontend_dir = os.path.join(settings.BASE_DIR, 'static', 'frontend')
+    # Try multiple possible locations for the frontend build
+    possible_dirs = [
+        os.path.join(settings.BASE_DIR, 'static', 'frontend'),
+        os.path.join(settings.BASE_DIR, '..', 'frontend', 'dist'),
+        os.path.join(settings.BASE_DIR, 'frontend', 'dist'),
+    ]
 
-    # Try to serve the specific file first
-    if path:
-        file_path = os.path.join(frontend_dir, path)
-        if os.path.isfile(file_path):
-            return FileResponse(open(file_path, 'rb'))
+    for frontend_dir in possible_dirs:
+        # Try to serve the specific file first
+        if path:
+            file_path = os.path.join(frontend_dir, path)
+            if os.path.isfile(file_path):
+                return FileResponse(open(file_path, 'rb'))
 
-    # For all other routes, serve index.html (SPA fallback)
-    index_path = os.path.join(frontend_dir, 'index.html')
-    if os.path.isfile(index_path):
-        return FileResponse(open(index_path, 'rb'))
+        # For all other routes, serve index.html (SPA fallback)
+        index_path = os.path.join(frontend_dir, 'index.html')
+        if os.path.isfile(index_path):
+            return FileResponse(open(index_path, 'rb'))
 
-    return JsonResponse({'error': 'Frontend not built'}, status=404)
+    return JsonResponse({'error': 'Frontend not built', 'checked': possible_dirs}, status=404)
 
 
 urlpatterns = [
