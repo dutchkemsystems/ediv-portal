@@ -17,7 +17,7 @@ services:
       - key: DJANGO_ALLOWED_HOSTS
         value: "*.onrender.com,localhost,127.0.0.1"
       - key: FRONTEND_URL
-        value: https://ediv-frontend.onrender.com
+        value: https://ediv-frontend-static.onrender.com
       - key: POSTGRES_HOST
         fromDatabase:
           name: ediv-db
@@ -53,17 +53,6 @@ services:
       - key: EMAIL_HOST_PASSWORD
         sync: false
     healthCheckPath: /health
-    autoDeploy: true
-
-  - type: web
-    name: ediv-frontend
-    runtime: node
-    buildCommand: cd frontend && npm install && npm run build && cd ../frontend-server && npm install
-    startCommand: cd frontend-server && node server.js
-    envVars:
-      - key: NODE_ENV
-        value: production
-    healthCheckPath: /
     autoDeploy: true
 
 databases:
