@@ -18,7 +18,7 @@ def health_check(request):
 
 def serve_frontend(request, path=''):
     """Serve the React frontend for all non-API routes"""
-    frontend_dir = os.path.join(settings.BASE_DIR, '..', 'frontend', 'dist')
+    frontend_dir = os.path.join(settings.BASE_DIR, 'frontend', 'dist')
 
     # Try to serve the specific file first
     if path:
