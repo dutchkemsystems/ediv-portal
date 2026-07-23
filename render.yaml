@@ -5,7 +5,10 @@ services:
     pythonVersion: "3.11"
     buildCommand: |
       pip install -r backend/requirements/render.txt
-      cd backend && python manage.py collectstatic --noinput
+      cd frontend && npm install && npm run build
+      mkdir -p ../backend/staticfiles/frontend
+      cp -r dist/* ../backend/staticfiles/frontend/
+      cd ../backend && python manage.py collectstatic --noinput
     startCommand: cd backend && python manage.py migrate --noinput && python manage.py ensure_admin && python manage.py seed_departments && python manage.py seed_schools && python manage.py seed_users ; cd backend && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 120
     envVars:
       - key: DJANGO_SETTINGS_MODULE
