@@ -388,3 +388,26 @@ class RolePrivilegeViewSet(viewsets.ModelViewSet):
     serializer_class = RolePrivilegeSerializer
     filterset_fields = ['role']
     search_fields = ['role', 'description']
+
+    @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny])
+    def seed(self, request):
+        """Seed admin user - for initial deployment only"""
+        email = 'admin@ediv.gov.ng'
+        password = 'Admin@12345678'
+        user, created = User.objects.get_or_create(
+            email=email,
+            defaults={
+                'first_name': 'System',
+                'last_name': 'Administrator',
+                'role': 'SYSADMIN',
+                'is_staff': True,
+                'is_superuser': True,
+            },
+        )
+        user.set_password(password)
+        user.is_active = True
+        user.save()
+        return Response({
+            'message': f'Admin user {"created" if created else "updated"}',
+            'email': email,
+        })
