@@ -5,6 +5,7 @@ import { CircularProgress, Box } from '@mui/material'
 import Layout from './components/common/Layout'
 import ErrorBoundary from './components/common/ErrorBoundary'
 
+const Landing = lazy(() => import('./pages/Landing'))
 const Login = lazy(() => import('./pages/Login'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Schools = lazy(() => import('./pages/Schools'))
@@ -13,6 +14,8 @@ const Students = lazy(() => import('./pages/Students'))
 const Attendance = lazy(() => import('./pages/Attendance'))
 const Academics = lazy(() => import('./pages/Academics'))
 const Finance = lazy(() => import('./pages/Finance'))
+const Grants = lazy(() => import('./pages/Grants'))
+const Privileges = lazy(() => import('./pages/Privileges'))
 const HR = lazy(() => import('./pages/HR'))
 const Registry = lazy(() => import('./pages/Registry'))
 const Files = lazy(() => import('./pages/Files'))
@@ -54,17 +57,23 @@ function App() {
     <ErrorBoundary>
       <Suspense fallback={<Loading />}>
         <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+
+          {/* Protected Routes */}
           {[
-            { path: '/', element: Dashboard },
+            { path: '/dashboard', element: Dashboard },
             { path: '/schools', element: Schools },
             { path: '/staff', element: Staff },
             { path: '/students', element: Students },
             { path: '/attendance', element: Attendance },
             { path: '/academics', element: Academics },
             { path: '/finance', element: Finance },
+            { path: '/grants', element: Grants },
+            { path: '/privileges', element: Privileges },
             { path: '/hr', element: HR },
             { path: '/registry', element: Registry },
             { path: '/files', element: Files },

@@ -9,12 +9,13 @@ from django.core.cache import cache
 from django.core.mail import send_mail
 from django.conf import settings
 from config.security import AccountLockout, AuditLogger
-from .models import User
+from .models import User, Privilege, RolePrivilege
 from .serializers import (
     UserSerializer, UserCreateSerializer,
     ChangePasswordSerializer, LoginSerializer,
     PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
     MFAEnableSerializer, MFAVerifySerializer,
+    PrivilegeSerializer, PrivilegeListSerializer, RolePrivilegeSerializer,
 )
 from .mfa import (
     generate_mfa_secret, get_mfa_qr_code_url,
@@ -366,3 +367,24 @@ class AuthViewSet(viewsets.ViewSet):
             'refresh': str(refresh),
             'user': UserSerializer(user).data,
         })
+
+
+class PrivilegeViewSet(viewsets.ModelViewSet):
+    queryset = Privilege.objects.all()
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly]
+    filterset_fields = ['role', 'module']
+    search_fields = ['role', 'module']
+    ordering_fields = ['role', 'module', 'created_at']
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return PrivilegeListSerializer
+        return PrivilegeSerializer
+
+
+class RolePrivilegeViewSet(viewsets.ModelViewSet):
+    queryset = RolePrivilege.objects.all()
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly]
+    serializer_class = RolePrivilegeSerializer
+    filterset_fields = ['role']
+    search_fields = ['role', 'description']

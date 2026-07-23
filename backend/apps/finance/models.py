@@ -198,3 +198,67 @@ class Budget(models.Model):
         if self.allocated_amount > 0:
             return (self.spent_amount / self.allocated_amount) * 100
         return 0
+
+
+class GrantStatus(models.TextChoices):
+    DRAFT = 'DRAFT', 'Draft'
+    PENDING = 'PENDING', 'Pending Approval'
+    APPROVED = 'APPROVED', 'Approved'
+    ACTIVE = 'ACTIVE', 'Active'
+    COMPLETED = 'COMPLETED', 'Completed'
+    REJECTED = 'REJECTED', 'Rejected'
+
+
+class Grant(models.Model):
+    name = models.CharField(max_length=200)
+    funding_source = models.CharField(max_length=200, help_text='Organization or government body providing the grant')
+    amount = models.DecimalField(max_digits=15, decimal_places=2)
+    purpose = models.TextField()
+    status = models.CharField(max_length=20, choices=GrantStatus.choices, default='DRAFT')
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='grants', null=True, blank=True)
+    department = models.ForeignKey('departments.Department', on_delete=models.SET_NULL, null=True, blank=True, related_name='grants')
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    academic_year = models.CharField(max_length=9, blank=True)
+    amount_disbursed = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    amount_utilized = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    conditions = models.TextField(blank=True, help_text='Terms and conditions of the grant')
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='approved_grants'
+    )
+    approval_date = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_grants'
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['status']),
+            models.Index(fields=['funding_source']),
+            models.Index(fields=['academic_year']),
+        ]
+
+    def __str__(self):
+        return f"{self.name} - {self.funding_source} (₦{self.amount})"
+
+    @property
+    def remaining_amount(self):
+        return self.amount - self.amount_utilized
+
+    @property
+    def utilization_rate(self):
+        if self.amount > 0:
+            return (self.amount_utilized / self.amount) * 100
+        return 0

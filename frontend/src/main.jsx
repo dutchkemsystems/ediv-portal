@@ -10,34 +10,50 @@ import App from './App'
 import { store } from './store'
 import './styles/index.css'
 
+const lagosRed = '#C8102E'
+const lagosGreen = '#00843D'
+const lagosDarkRed = '#8B0000'
+
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#1a237e',
-      light: '#534bae',
-      dark: '#000051',
+      main: lagosRed,
+      light: '#E8334D',
+      dark: lagosDarkRed,
+      contrastText: '#ffffff',
     },
     secondary: {
-      main: '#f57c00',
-      light: '#ffad42',
-      dark: '#bb4d00',
+      main: lagosGreen,
+      light: '#33A867',
+      dark: '#005C2B',
+      contrastText: '#ffffff',
     },
     background: {
-      default: '#f5f5f5',
+      default: '#F8F9FA',
       paper: '#ffffff',
+    },
+    error: {
+      main: '#D32F2F',
+    },
+    warning: {
+      main: '#F9A825',
+    },
+    success: {
+      main: lagosGreen,
+    },
+    info: {
+      main: '#1565C0',
     },
   },
   typography: {
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-    h4: {
-      fontWeight: 600,
-    },
-    h5: {
-      fontWeight: 600,
-    },
-    h6: {
-      fontWeight: 600,
-    },
+    h4: { fontWeight: 700 },
+    h5: { fontWeight: 600 },
+    h6: { fontWeight: 600 },
+    subtitle1: { fontWeight: 500 },
+  },
+  shape: {
+    borderRadius: 10,
   },
   components: {
     MuiButton: {
@@ -45,6 +61,14 @@ const theme = createTheme({
         root: {
           textTransform: 'none',
           borderRadius: 8,
+          fontWeight: 600,
+          padding: '8px 24px',
+        },
+        containedPrimary: {
+          boxShadow: '0 2px 8px rgba(200, 16, 46, 0.3)',
+          '&:hover': {
+            boxShadow: '0 4px 16px rgba(200, 16, 46, 0.4)',
+          },
         },
       },
     },
@@ -52,7 +76,29 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 12,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+          border: '1px solid rgba(0,0,0,0.05)',
+        },
+      },
+    },
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+        },
+      },
+    },
+    MuiDrawer: {
+      styleOverrides: {
+        paper: {
+          borderRight: 'none',
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          fontWeight: 500,
         },
       },
     },

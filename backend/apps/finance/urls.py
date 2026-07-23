@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import FeeStructureViewSet, StudentFeeViewSet, PaymentViewSet, BudgetViewSet
+from .views import FeeStructureViewSet, StudentFeeViewSet, PaymentViewSet, BudgetViewSet, GrantViewSet
 from .payment_views import InitializePaymentView, KoraPayWebhookView, VerifyPaymentView
 
 router = DefaultRouter()
@@ -8,6 +8,7 @@ router.register('fee-structures', FeeStructureViewSet)
 router.register('student-fees', StudentFeeViewSet)
 router.register('payments', PaymentViewSet)
 router.register('budgets', BudgetViewSet)
+router.register('grants', GrantViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

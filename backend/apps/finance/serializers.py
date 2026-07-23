@@ -1,5 +1,5 @@
-﻿from rest_framework import serializers
-from .models import FeeStructure, StudentFee, Payment, Budget
+from rest_framework import serializers
+from .models import FeeStructure, StudentFee, Payment, Budget, Grant
 
 
 class FeeStructureSerializer(serializers.ModelSerializer):
@@ -70,7 +70,7 @@ class BudgetSerializer(serializers.ModelSerializer):
     school_name = serializers.SerializerMethodField()
     remaining_budget = serializers.ReadOnlyField()
     utilization_rate = serializers.ReadOnlyField()
-    
+
     class Meta:
         model = Budget
         fields = ['id', 'school', 'school_name', 'category', 'description',
@@ -78,7 +78,56 @@ class BudgetSerializer(serializers.ModelSerializer):
                   'academic_year', 'term', 'approved_by', 'approval_date', 'is_approved',
                   'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
-    
+
     def get_school_name(self, obj):
         return obj.school.name
+
+
+class GrantSerializer(serializers.ModelSerializer):
+    school_name = serializers.SerializerMethodField()
+    department_name = serializers.SerializerMethodField()
+    approved_by_name = serializers.SerializerMethodField()
+    created_by_name = serializers.SerializerMethodField()
+    remaining_amount = serializers.ReadOnlyField()
+    utilization_rate = serializers.ReadOnlyField()
+
+    class Meta:
+        model = Grant
+        fields = ['id', 'name', 'funding_source', 'amount', 'purpose', 'status',
+                  'school', 'school_name', 'department', 'department_name',
+                  'start_date', 'end_date', 'academic_year',
+                  'amount_disbursed', 'amount_utilized', 'remaining_amount', 'utilization_rate',
+                  'conditions', 'approved_by', 'approved_by_name', 'approval_date',
+                  'notes', 'created_by', 'created_by_name', 'is_active',
+                  'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_school_name(self, obj):
+        return obj.school.name if obj.school else None
+
+    def get_department_name(self, obj):
+        return obj.department.name if obj.department else None
+
+    def get_approved_by_name(self, obj):
+        if obj.approved_by:
+            return obj.approved_by.get_full_name()
+        return None
+
+    def get_created_by_name(self, obj):
+        if obj.created_by:
+            return obj.created_by.get_full_name()
+        return None
+
+
+class GrantListSerializer(serializers.ModelSerializer):
+    school_name = serializers.SerializerMethodField()
+    remaining_amount = serializers.ReadOnlyField()
+
+    class Meta:
+        model = Grant
+        fields = ['id', 'name', 'funding_source', 'amount', 'status',
+                  'school_name', 'academic_year', 'remaining_amount', 'is_active']
+
+    def get_school_name(self, obj):
+        return obj.school.name if obj.school else None
 

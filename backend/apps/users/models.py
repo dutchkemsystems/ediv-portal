@@ -87,3 +87,75 @@ class User(AbstractUser):
             'reports': ['SYSADMIN', 'TG', 'PS', 'HR', 'FIN', 'AUDIT', 'QA', 'CC', 'EMIS', 'PLAN', 'PROC', 'PA', 'SA', 'FRENCH', 'REG', 'PRI', 'VP', 'TCH', 'STD', 'PAR'],
         }
         return module in permissions and self.role in permissions[module]
+
+
+class Module(models.TextChoices):
+    DASHBOARD = 'dashboard', 'Dashboard'
+    SCHOOLS = 'schools', 'Schools'
+    STAFF = 'staff', 'Staff Management'
+    STUDENTS = 'students', 'Students'
+    ATTENDANCE = 'attendance', 'Attendance'
+    ACADEMICS = 'academics', 'Academics'
+    FINANCE = 'finance', 'Finance'
+    GRANTS = 'grants', 'Grants'
+    HR = 'hr', 'HR & Recruitment'
+    REGISTRY = 'registry', 'E-Registry'
+    FILES = 'files', 'Files'
+    WORKFLOWS = 'workflows', 'Workflows'
+    COMMUNICATION = 'communication', 'Communication'
+    NOTIFICATIONS = 'notifications', 'Notifications'
+    TIMETABLE = 'timetable', 'Timetable'
+    TRANSPORT = 'transport', 'Transport'
+    ASSETS = 'assets', 'Assets'
+    DISCIPLINE = 'discipline', 'Discipline'
+    LIBRARY = 'library', 'Library'
+    E_LEARNING = 'e_learning', 'E-Learning'
+    WELLNESS = 'wellness', 'Wellness'
+    ALUMNI = 'alumni', 'Alumni'
+    INFRASTRUCTURE = 'infrastructure', 'Infrastructure'
+    INSPECTION = 'inspection', 'Inspection'
+    FRENCH = 'french', 'French Unit'
+    CO_CURRICULAR = 'co_curricular', 'Co-Curricular'
+    CPD = 'cpd', 'CPD'
+    REPORTS = 'reports', 'Reports'
+    ANALYTICS = 'analytics', 'Analytics'
+    PRIVILEGES = 'privileges', 'Privileges'
+
+
+class Privilege(models.Model):
+    """Role-based module access privileges."""
+    role = models.CharField(max_length=15, choices=User.Role.choices)
+    module = models.CharField(max_length=30, choices=Module.choices)
+    can_view = models.BooleanField(default=True)
+    can_create = models.BooleanField(default=False)
+    can_edit = models.BooleanField(default=False)
+    can_delete = models.BooleanField(default=False)
+    can_approve = models.BooleanField(default=False)
+    can_export = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['role', 'module']
+        ordering = ['role', 'module']
+        indexes = [
+            models.Index(fields=['role']),
+            models.Index(fields=['module']),
+        ]
+
+    def __str__(self):
+        return f"{self.role} - {self.module} (View: {self.can_view}, Edit: {self.can_edit})"
+
+
+class RolePrivilege(models.Model):
+    """Default privilege template for a role."""
+    role = models.CharField(max_length=15, choices=User.Role.choices, unique=True)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['role']
+
+    def __str__(self):
+        return f"Privilege Template: {self.role}"

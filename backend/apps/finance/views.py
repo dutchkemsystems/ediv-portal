@@ -1,9 +1,9 @@
 from rest_framework import viewsets, permissions, filters
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import FeeStructure, StudentFee, Payment, Budget
+from .models import FeeStructure, StudentFee, Payment, Budget, Grant
 from .serializers import (
     FeeStructureSerializer, StudentFeeSerializer,
-    PaymentSerializer, BudgetSerializer
+    PaymentSerializer, BudgetSerializer, GrantSerializer, GrantListSerializer
 )
 
 
@@ -44,3 +44,19 @@ class BudgetViewSet(viewsets.ModelViewSet):
     filterset_fields = ['school', 'category', 'academic_year', 'term', 'is_approved']
     search_fields = ['description', 'school__name']
     ordering_fields = ['allocated_amount', 'created_at']
+
+
+class GrantViewSet(viewsets.ModelViewSet):
+    queryset = Grant.objects.select_related('school', 'department', 'approved_by', 'created_by').all()
+    permission_classes = [permissions.IsAuthenticated]
+    filterset_fields = ['status', 'school', 'department', 'academic_year', 'is_active']
+    search_fields = ['name', 'funding_source', 'purpose']
+    ordering_fields = ['amount', 'created_at', 'status']
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return GrantListSerializer
+        return GrantSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)

@@ -18,6 +18,7 @@ import {
   MenuItem,
   Divider,
   Badge,
+  Chip,
 } from '@mui/material'
 import {
   Menu as MenuIcon,
@@ -48,20 +49,27 @@ import {
   Translate as FrenchIcon,
   EmojiEvents as CoCurIcon,
   TrendingUp as AnalyticsIcon,
+  AccountBalanceWallet as GrantsIcon,
+  AdminPanelSettings as PrivilegesIcon,
 } from '@mui/icons-material'
 import { logout } from '../../store/authSlice'
 
 const drawerWidth = 260
 
+const lagosRed = '#C8102E'
+const lagosGreen = '#00843D'
+
 const getMenuItems = (role) => {
   const allItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
+    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { text: 'Schools', icon: <SchoolIcon />, path: '/schools' },
     { text: 'Staff', icon: <PeopleIcon />, path: '/staff' },
     { text: 'Students', icon: <PersonIcon />, path: '/students' },
     { text: 'Attendance', icon: <CalendarIcon />, path: '/attendance' },
     { text: 'Academics', icon: <LibraryIcon />, path: '/academics' },
     { text: 'Finance', icon: <FinanceIcon />, path: '/finance' },
+    { text: 'Grants', icon: <GrantsIcon />, path: '/grants' },
+    { text: 'Privileges', icon: <PrivilegesIcon />, path: '/privileges' },
     { text: 'HR & Recruitment', icon: <WorkIcon />, path: '/hr' },
     { text: 'E-Registry', icon: <AssignmentIcon />, path: '/registry' },
     { text: 'Files', icon: <AssignmentIcon />, path: '/files' },
@@ -88,19 +96,19 @@ const getMenuItems = (role) => {
     SYSADMIN: allItems.map(i => i.path),
     TG: allItems.map(i => i.path),
     PS: allItems.map(i => i.path),
-    HR: ['/', '/staff', '/hr', '/reports', '/notifications'],
-    FIN: ['/', '/finance', '/reports', '/notifications'],
-    AUDIT: ['/', '/finance', '/reports', '/notifications'],
-    QA: ['/', '/reports', '/notifications', '/inspection'],
-    CC: ['/', '/co-curricular', '/reports', '/notifications'],
-    EMIS: ['/', '/reports', '/analytics', '/notifications'],
-    PLAN: ['/', '/reports', '/analytics', '/notifications'],
-    REG: ['/', '/registry', '/files', '/workflows', '/notifications'],
-    PRI: ['/', '/schools', '/students', '/staff', '/academics', '/attendance', '/timetable', '/reports', '/discipline', '/library', '/notifications'],
-    VP: ['/', '/students', '/staff', '/academics', '/attendance', '/timetable', '/reports', '/discipline', '/notifications'],
-    TCH: ['/', '/students', '/academics', '/attendance', '/timetable', '/e-learning', '/discipline', '/notifications'],
-    STD: ['/', '/academics', '/attendance', '/library', '/e-learning', '/notifications'],
-    PAR: ['/', '/students', '/finance', '/communication', '/notifications'],
+    HR: ['/dashboard', '/staff', '/hr', '/grants', '/reports', '/notifications'],
+    FIN: ['/dashboard', '/finance', '/grants', '/reports', '/notifications'],
+    AUDIT: ['/dashboard', '/finance', '/grants', '/reports', '/notifications'],
+    QA: ['/dashboard', '/reports', '/notifications', '/inspection'],
+    CC: ['/dashboard', '/co-curricular', '/reports', '/notifications'],
+    EMIS: ['/dashboard', '/reports', '/analytics', '/notifications'],
+    PLAN: ['/dashboard', '/reports', '/analytics', '/notifications'],
+    REG: ['/dashboard', '/registry', '/files', '/workflows', '/notifications'],
+    PRI: ['/dashboard', '/schools', '/students', '/staff', '/academics', '/attendance', '/timetable', '/reports', '/discipline', '/library', '/notifications'],
+    VP: ['/dashboard', '/students', '/staff', '/academics', '/attendance', '/timetable', '/reports', '/discipline', '/notifications'],
+    TCH: ['/dashboard', '/students', '/academics', '/attendance', '/timetable', '/e-learning', '/discipline', '/notifications'],
+    STD: ['/dashboard', '/academics', '/attendance', '/library', '/e-learning', '/notifications'],
+    PAR: ['/dashboard', '/students', '/finance', '/communication', '/notifications'],
   }
 
   const allowedPaths = roleAccess[role] || roleAccess.TG
@@ -122,33 +130,51 @@ function Layout({ children }) {
   const handleLogout = () => { dispatch(logout()); navigate('/login') }
 
   const drawer = (
-    <Box>
-      <Box sx={{ p: 2, textAlign: 'center' }}>
-        <Avatar sx={{ width: 50, height: 50, bgcolor: '#1a237e', mx: 'auto', mb: 1 }}>EDIV</Avatar>
-        <Typography variant="h6" sx={{ color: '#1a237e', fontWeight: 'bold', fontSize: '1rem' }}>
-          EDIV Portal
-        </Typography>
-        <Typography variant="body2" color="text.secondary" fontSize="0.75rem">
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ p: 2, textAlign: 'center', bgcolor: lagosRed, color: 'white' }}>
+        <Avatar sx={{ width: 56, height: 56, bgcolor: 'white', color: lagosRed, mx: 'auto', mb: 1, fontWeight: 700, fontSize: '1.1rem' }}>
+          EDIV
+        </Avatar>
+        <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>
           Education District IV
         </Typography>
+        <Typography variant="caption" sx={{ opacity: 0.85 }}>
+          Lagos State Ministry of Education
+        </Typography>
       </Box>
       <Divider />
-      <Box sx={{ px: 2, py: 1, bgcolor: '#f5f5f5' }}>
-        <Typography variant="subtitle2" noWrap fontSize="0.8rem">
+      <Box sx={{ px: 2, py: 1.5, bgcolor: '#FFF5F5' }}>
+        <Typography variant="subtitle2" noWrap sx={{ fontWeight: 600 }}>
           {user?.first_name} {user?.last_name}
         </Typography>
-        <Typography variant="caption" color="text.secondary">{user?.role}</Typography>
+        <Chip
+          label={user?.role}
+          size="small"
+          sx={{
+            mt: 0.5,
+            bgcolor: lagosRed,
+            color: 'white',
+            fontWeight: 500,
+            fontSize: '0.7rem',
+            height: 22,
+          }}
+        />
       </Box>
       <Divider />
-      <List sx={{ py: 0.5 }}>
+      <List sx={{ py: 0.5, flex: 1, overflow: 'auto' }}>
         {menuItems.map((item) => (
           <ListItem key={item.text} disablePadding>
             <ListItemButton
               onClick={() => { navigate(item.path); setMobileOpen(false) }}
-              sx={{ py: 0.75, px: 2 }}
+              sx={{
+                py: 0.8,
+                px: 2,
+                '&:hover': { bgcolor: 'rgba(200, 16, 46, 0.08)' },
+                '&.Mui-selected': { bgcolor: 'rgba(200, 16, 46, 0.12)' },
+              }}
             >
-              <ListItemIcon sx={{ minWidth: 36 }}>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.text} primaryTypographyProps={{ variant: 'body2' }} />
+              <ListItemIcon sx={{ minWidth: 36, color: lagosRed }}>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.text} primaryTypographyProps={{ variant: 'body2', fontWeight: 500 }} />
             </ListItemButton>
           </ListItem>
         ))}
@@ -156,9 +182,9 @@ function Layout({ children }) {
       <Divider />
       <List sx={{ py: 0.5 }}>
         <ListItem disablePadding>
-          <ListItemButton onClick={handleLogout} sx={{ py: 0.75, px: 2 }}>
-            <ListItemIcon sx={{ minWidth: 36 }}><LogoutIcon /></ListItemIcon>
-            <ListItemText primary="Logout" primaryTypographyProps={{ variant: 'body2' }} />
+          <ListItemButton onClick={handleLogout} sx={{ py: 0.8, px: 2, '&:hover': { bgcolor: 'rgba(211, 47, 47, 0.08)' } }}>
+            <ListItemIcon sx={{ minWidth: 36, color: '#D32F2F' }}><LogoutIcon /></ListItemIcon>
+            <ListItemText primary="Logout" primaryTypographyProps={{ variant: 'body2', color: '#D32F2F' }} />
           </ListItemButton>
         </ListItem>
       </List>
@@ -167,22 +193,28 @@ function Layout({ children }) {
 
   return (
     <Box sx={{ display: 'flex' }}>
-      <AppBar position="fixed" sx={{ bgcolor: '#1a237e' }}>
+      <AppBar position="fixed" sx={{ bgcolor: lagosRed }}>
         <Toolbar>
           <IconButton color="inherit" edge="start" onClick={handleDrawerToggle} sx={{ mr: 2, display: { sm: 'none' } }}>
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap sx={{ flexGrow: 1 }}>Education District IV Portal</Typography>
+          <SchoolIcon sx={{ mr: 1.5 }} />
+          <Typography variant="h6" noWrap sx={{ flexGrow: 1, fontWeight: 600 }}>
+            Education District IV Portal
+          </Typography>
           <IconButton onClick={handleMenuOpen} sx={{ ml: 2 }}>
             <Badge color="error" variant="dot">
-              <Avatar sx={{ bgcolor: '#f57c00', width: 36, height: 36 }}>
+              <Avatar sx={{ bgcolor: 'white', color: lagosRed, width: 36, height: 36, fontWeight: 600 }}>
                 {user?.first_name?.[0] || 'U'}
               </Avatar>
             </Badge>
           </IconButton>
           <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
             <MenuItem disabled>
-              <Typography variant="body2">{user?.email}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 500 }}>{user?.first_name} {user?.last_name}</Typography>
+            </MenuItem>
+            <MenuItem disabled>
+              <Typography variant="caption" color="text.secondary">{user?.email}</Typography>
             </MenuItem>
             <Divider />
             <MenuItem onClick={handleLogout}>
@@ -211,7 +243,7 @@ function Layout({ children }) {
         </Drawer>
       </Box>
 
-      <Box component="main" sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - ${drawerWidth}px)` }, overflow: 'auto' }}>
+      <Box component="main" sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - ${drawerWidth}px)` }, overflow: 'auto', bgcolor: '#F8F9FA' }}>
         <Toolbar />
         {children}
       </Box>
