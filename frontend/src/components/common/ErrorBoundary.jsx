@@ -9,11 +9,17 @@ class ErrorBoundary extends React.Component {
   }
 
   static getDerivedStateFromError(error) {
+    // Don't catch network/API errors
+    if (error?.message?.includes('Network Error') || error?.code === 'ERR_NETWORK') {
+      return { hasError: false }
+    }
     return { hasError: true, error }
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo)
+    if (!error?.message?.includes('Network Error')) {
+      console.error('Render error:', error)
+    }
   }
 
   render() {
@@ -26,7 +32,7 @@ class ErrorBoundary extends React.Component {
               Something went wrong
             </Typography>
             <Typography color="text.secondary" gutterBottom>
-              An unexpected error occurred. Please try refreshing the page.
+              {this.state.error?.message || 'An unexpected error occurred.'}
             </Typography>
             <Button
               variant="contained"

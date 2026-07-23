@@ -57,6 +57,20 @@ services:
     healthCheckPath: /health
     autoDeploy: true
 
+  - type: static_site
+    name: ediv-frontend-static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        value: https://ediv-portal.onrender.com/api
+      - key: VITE_BACKEND_URL
+        value: https://ediv-portal.onrender.com
+
 databases:
   - name: ediv-db
     plan: free
