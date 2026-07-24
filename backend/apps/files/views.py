@@ -3,7 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db import models
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import File, FileMovement, FileAttachment, FileComment
+from .models import File, FileMovement, FileAttachment, FileComment, FileStatus
 from .serializers import (
     FileSerializer, FileListSerializer,
     FileMovementSerializer, FileAttachmentSerializer, FileCommentSerializer
@@ -91,9 +91,19 @@ class FileViewSet(viewsets.ModelViewSet):
             expected_return_date=expected_return if expected_return else None,
         )
 
+        import datetime as dt
+        timeline_entry = {
+            'timestamp': dt.datetime.now(dt.timezone.utc).isoformat(),
+            'status': 'IN_TRANSIT',
+            'changed_by_id': request.user.id,
+            'changed_by_name': request.user.get_full_name(),
+            'notes': f"Moved to {to_holder.get_full_name()}: {action_type}",
+        }
+        file_obj.status_timeline = (file_obj.status_timeline or []) + [timeline_entry]
+
         file_obj.current_holder = to_holder
         file_obj.status = 'IN_TRANSIT'
-        file_obj.save(update_fields=['current_holder', 'status', 'updated_at'])
+        file_obj.save(update_fields=['current_holder', 'status', 'status_timeline', 'updated_at'])
 
         from config.security import AuditLogger
         AuditLogger.log_action(
@@ -132,9 +142,22 @@ class FileViewSet(viewsets.ModelViewSet):
 
         last_movement = FileMovement.objects.filter(file=file_obj).order_by('-movement_date').first()
         if last_movement and not last_movement.is_returned:
+            completion_notes = request.data.get('completion_notes', '')
             last_movement.actual_return_date = __import__('datetime').date.today()
             last_movement.is_returned = True
-            last_movement.save(update_fields=['actual_return_date', 'is_returned'])
+            last_movement.completion_notes = completion_notes
+            last_movement.save(update_fields=['actual_return_date', 'is_returned', 'completion_notes'])
+
+        import datetime as dt
+        timeline_entry = {
+            'timestamp': dt.datetime.now(dt.timezone.utc).isoformat(),
+            'status': 'ACTIVE',
+            'changed_by_id': request.user.id,
+            'changed_by_name': request.user.get_full_name(),
+            'notes': f"Received by {request.user.get_full_name()}",
+        }
+        file_obj.status_timeline = (file_obj.status_timeline or []) + [timeline_entry]
+        file_obj.save(update_fields=['status_timeline'])
 
         from config.security import AuditLogger
         AuditLogger.log_action(
@@ -162,6 +185,17 @@ class FileViewSet(viewsets.ModelViewSet):
         file_obj.status = 'ARCHIVED'
         file_obj.save(update_fields=['status', 'updated_at'])
 
+        import datetime as dt
+        timeline_entry = {
+            'timestamp': dt.datetime.now(dt.timezone.utc).isoformat(),
+            'status': 'ARCHIVED',
+            'changed_by_id': user.id,
+            'changed_by_name': user.get_full_name(),
+            'notes': f"File closed/archived by {user.get_full_name()}",
+        }
+        file_obj.status_timeline = (file_obj.status_timeline or []) + [timeline_entry]
+        file_obj.save(update_fields=['status_timeline'])
+
         from config.security import AuditLogger
         AuditLogger.log_action(
             user=user,
@@ -172,6 +206,53 @@ class FileViewSet(viewsets.ModelViewSet):
         )
 
         return Response({'message': f"File {file_obj.file_number} has been archived."})
+
+    @action(detail=True, methods=['post'], url_path='log-status')
+    def log_status_change(self, request, pk=None):
+        """Log a manual status change with notes. Only current holder or creator can do this."""
+        file_obj = self.get_object()
+        user = request.user
+
+        if file_obj.current_holder != user and file_obj.created_by != user and user.role not in ('SYSADMIN', 'TG', 'PS'):
+            return Response(
+                {'error': 'Only the current holder, file creator, or Admin can log status changes.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        new_status = request.data.get('status')
+        notes = request.data.get('notes', '')
+        valid_statuses = [choice[0] for choice in FileStatus.choices]
+        if new_status and new_status not in valid_statuses:
+            return Response({'error': f'Invalid status. Choose from: {valid_statuses}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if new_status:
+            file_obj.status = new_status
+            file_obj.save(update_fields=['status', 'updated_at'])
+
+        import datetime as dt
+        timeline_entry = {
+            'timestamp': dt.datetime.now(dt.timezone.utc).isoformat(),
+            'status': new_status or file_obj.status,
+            'changed_by_id': user.id,
+            'changed_by_name': user.get_full_name(),
+            'notes': notes,
+        }
+        file_obj.status_timeline = (file_obj.status_timeline or []) + [timeline_entry]
+        file_obj.save(update_fields=['status_timeline'])
+
+        from config.security import AuditLogger
+        AuditLogger.log_action(
+            user=user,
+            action='UPDATE',
+            resource_type='File',
+            resource_id=file_obj.id,
+            description=f"File {file_obj.file_number} status logged: {new_status or file_obj.status}",
+        )
+
+        return Response({
+            'message': f"Status change logged for {file_obj.file_number}.",
+            'timeline': file_obj.status_timeline,
+        })
 
 
 class FileMovementViewSet(viewsets.ModelViewSet):

@@ -266,3 +266,85 @@ class CloseFileTest(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.other_token.access_token}')
         response = self.client.post(f'/api/files/files/{self.file.id}/close/')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_close_logs_status_timeline(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.creator_token.access_token}')
+        self.client.post(f'/api/files/files/{self.file.id}/close/')
+        self.file.refresh_from_db()
+        self.assertEqual(len(self.file.status_timeline), 1)
+        self.assertEqual(self.file.status_timeline[0]['status'], 'ARCHIVED')
+
+
+class LogStatusChangeTest(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email='holder@ediv.gov.ng', password='Test123!@#',
+            first_name='Holder', last_name='User', role='TCH'
+        )
+        self.other = User.objects.create_user(
+            email='other@ediv.gov.ng', password='Test123!@#',
+            first_name='Other', last_name='User', role='TCH'
+        )
+        self.file = File.objects.create(
+            file_number='EDIV-2024-GEN-001', title='Timeline File',
+            file_type='REPORT', created_by=self.user, current_holder=self.user,
+            status='ACTIVE', classification='PUBLIC',
+        )
+        self.user_token = RefreshToken.for_user(self.user)
+        self.other_token = RefreshToken.for_user(self.other)
+
+    def test_current_holder_can_log_status(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.user_token.access_token}')
+        response = self.client.post(
+            f'/api/files/files/{self.file.id}/log-status/',
+            {'status': 'PENDING', 'notes': 'Awaiting review'}, format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.file.refresh_from_db()
+        self.assertEqual(self.file.status, 'PENDING')
+        self.assertEqual(len(self.file.status_timeline), 1)
+        self.assertEqual(self.file.status_timeline[0]['status'], 'PENDING')
+        self.assertEqual(self.file.status_timeline[0]['notes'], 'Awaiting review')
+
+    def test_other_user_cannot_log_status(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.other_token.access_token}')
+        response = self.client.post(
+            f'/api/files/files/{self.file.id}/log-status/',
+            {'status': 'PENDING', 'notes': 'test'}, format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_invalid_status_rejected(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.user_token.access_token}')
+        response = self.client.post(
+            f'/api/files/files/{self.file.id}/log-status/',
+            {'status': 'INVALID_STATUS'}, format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_multiple_timeline_entries(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.user_token.access_token}')
+        self.client.post(
+            f'/api/files/files/{self.file.id}/log-status/',
+            {'status': 'PENDING', 'notes': 'step 1'}, format='json'
+        )
+        self.client.post(
+            f'/api/files/files/{self.file.id}/log-status/',
+            {'status': 'IN_TRANSIT', 'notes': 'step 2'}, format='json'
+        )
+        self.file.refresh_from_db()
+        self.assertEqual(len(self.file.status_timeline), 2)
+        self.assertEqual(self.file.status_timeline[0]['status'], 'PENDING')
+        self.assertEqual(self.file.status_timeline[1]['status'], 'IN_TRANSIT')
+
+    def test_move_logs_status_timeline(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.user_token.access_token}')
+        response = self.client.post(
+            f'/api/files/files/{self.file.id}/move/',
+            {'to_holder_id': self.other.id, 'action': 'Forwarded', 'remarks': 'Please review'},
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.file.refresh_from_db()
+        self.assertGreaterEqual(len(self.file.status_timeline), 1)
+        self.assertEqual(self.file.status_timeline[0]['status'], 'IN_TRANSIT')

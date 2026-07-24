@@ -51,6 +51,8 @@ INSTALLED_APPS = [
     'apps.audit',
     'apps.parent_teacher',
     'apps.analytics',
+    'apps.data_import_export',
+    'apps.mail_workflow',
 ]
 
 MIDDLEWARE = [

@@ -129,3 +129,72 @@ class DocumentVersion(models.Model):
     
     def __str__(self):
         return f"{self.document.reference_number} - v{self.version_number}"
+
+
+class MemoWorkflow(models.Model):
+    class WorkflowType(models.TextChoices):
+        MEMO = 'MEMO', 'Memo'
+        CIRCULAR = 'CIRCULAR', 'Circular'
+
+    class Status(models.TextChoices):
+        DRAFT = 'DRAFT', 'Draft'
+        REGISTERED = 'REGISTERED', 'Registered'
+        UNDER_APPROVAL = 'UNDER_APPROVAL', 'Under Approval'
+        CIRCULATING = 'CIRCULATING', 'Circulating'
+        ACKNOWLEDGED = 'ACKNOWLEDGED', 'Acknowledged'
+        IN_ACTION = 'IN_ACTION', 'In Action'
+        REPORTED = 'REPORTED', 'Reported'
+        ARCHIVED = 'ARCHIVED', 'Archived'
+
+    document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name='memo_workflows')
+    workflow_type = models.CharField(max_length=20, choices=WorkflowType.choices)
+    status = models.CharField(max_length=20, choices=Status.choices, default='DRAFT')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.workflow_type} - {self.document.reference_number}"
+
+
+class MemoApproval(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', 'Pending'
+        APPROVED = 'APPROVED', 'Approved'
+        REJECTED = 'REJECTED', 'Rejected'
+
+    memo_workflow = models.ForeignKey(MemoWorkflow, on_delete=models.CASCADE, related_name='approvals')
+    approver = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='memo_approvals')
+    approval_order = models.IntegerField(default=1)
+    status = models.CharField(max_length=20, choices=Status.choices, default='PENDING')
+    comments = models.TextField(blank=True)
+    approved_date = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['approval_order']
+
+    def __str__(self):
+        return f"{self.memo_workflow} - {self.approver.get_full_name()}"
+
+
+class MemoCirculation(models.Model):
+    class Status(models.TextChoices):
+        SENT = 'SENT', 'Sent'
+        ACKNOWLEDGED = 'ACKNOWLEDGED', 'Acknowledged'
+        ACTION_TAKEN = 'ACTION_TAKEN', 'Action Taken'
+        REPORTED = 'REPORTED', 'Reported'
+
+    memo_workflow = models.ForeignKey(MemoWorkflow, on_delete=models.CASCADE, related_name='circulations')
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='memo_circulations')
+    date_sent = models.DateTimeField(auto_now_add=True)
+    date_acknowledged = models.DateTimeField(null=True, blank=True)
+    acknowledgement_notes = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default='SENT')
+
+    class Meta:
+        ordering = ['-date_sent']
+
+    def __str__(self):
+        return f"{self.memo_workflow} -> {self.recipient.get_full_name()}"

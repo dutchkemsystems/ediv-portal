@@ -1,5 +1,8 @@
-﻿from rest_framework import serializers
-from .models import Document, Correspondence, Filing, DocumentVersion
+from rest_framework import serializers
+from .models import (
+    Document, Correspondence, Filing, DocumentVersion,
+    MemoWorkflow, MemoApproval, MemoCirculation
+)
 
 
 class DocumentVersionSerializer(serializers.ModelSerializer):
@@ -73,4 +76,47 @@ class DocumentListSerializer(serializers.ModelSerializer):
     
     def get_created_by_name(self, obj):
         return obj.created_by.get_full_name()
+
+
+class MemoWorkflowSerializer(serializers.ModelSerializer):
+    document_reference = serializers.SerializerMethodField()
+    created_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MemoWorkflow
+        fields = ['id', 'document', 'document_reference', 'workflow_type', 'status',
+                  'created_by_name', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_document_reference(self, obj):
+        return obj.document.reference_number
+
+    def get_created_by_name(self, obj):
+        return obj.document.created_by.get_full_name()
+
+
+class MemoApprovalSerializer(serializers.ModelSerializer):
+    approver_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MemoApproval
+        fields = ['id', 'memo_workflow', 'approver', 'approver_name', 'approval_order',
+                  'status', 'comments', 'approved_date']
+        read_only_fields = ['id', 'approved_date']
+
+    def get_approver_name(self, obj):
+        return obj.approver.get_full_name()
+
+
+class MemoCirculationSerializer(serializers.ModelSerializer):
+    recipient_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MemoCirculation
+        fields = ['id', 'memo_workflow', 'recipient', 'recipient_name', 'date_sent',
+                  'date_acknowledged', 'acknowledgement_notes', 'status']
+        read_only_fields = ['id', 'date_sent']
+
+    def get_recipient_name(self, obj):
+        return obj.recipient.get_full_name()
 

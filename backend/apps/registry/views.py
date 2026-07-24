@@ -1,12 +1,23 @@
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.db import models as db_models
+from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import Document, Correspondence, Filing, DocumentVersion
+import datetime as dt
+
+from config.security import AuditLogger
+from .models import (
+    Document, Correspondence, Filing, DocumentVersion,
+    MemoWorkflow, MemoApproval, MemoCirculation
+)
 from .serializers import (
     DocumentSerializer, DocumentListSerializer,
-    CorrespondenceSerializer, FilingSerializer, DocumentVersionSerializer
+    CorrespondenceSerializer, FilingSerializer, DocumentVersionSerializer,
+    MemoWorkflowSerializer, MemoApprovalSerializer, MemoCirculationSerializer
 )
+
+User = get_user_model()
 
 
 class DocumentViewSet(viewsets.ModelViewSet):
@@ -140,3 +151,159 @@ class DocumentVersionViewSet(viewsets.ModelViewSet):
 
         doc.version = version_num
         doc.save(update_fields=['version'])
+
+
+class MemoWorkflowViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        return MemoWorkflowSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role in ('SYSADMIN', 'TG', 'PS'):
+            return MemoWorkflow.objects.select_related('document', 'document__created_by').all()
+        return MemoWorkflow.objects.select_related('document', 'document__created_by').filter(
+            db_models.Q(document__created_by=user) |
+            db_models.Q(approvals__approver=user) |
+            db_models.Q(circulations__recipient=user)
+        ).distinct()
+
+    def perform_create(self, serializer):
+        memo = serializer.save()
+
+        AuditLogger.log_action(
+            user=self.request.user, action='CREATE', resource_type='MemoWorkflow',
+            resource_id=memo.id, description=f"Created {memo.workflow_type} workflow for {memo.document.reference_number}",
+        )
+
+    @action(detail=True, methods=['post'], url_path='approve')
+    def approve_memo(self, request, pk=None):
+        memo = self.get_object()
+        user = request.user
+        comments = request.data.get('comments', '')
+
+        if user.role not in ('SYSADMIN', 'TG', 'PS', 'PRI', 'VP'):
+            return Response({'error': 'No permission to approve.'}, status=status.HTTP_403_FORBIDDEN)
+
+        approval = MemoApproval.objects.filter(
+            memo_workflow=memo, approver=user, status='PENDING'
+        ).first()
+
+        if not approval:
+            return Response({'error': 'No pending approval found for you.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        approval.status = 'APPROVED'
+        approval.comments = comments
+        approval.approved_date = dt.datetime.now()
+        approval.save(update_fields=['status', 'comments', 'approved_date'])
+
+        pending_count = MemoApproval.objects.filter(memo_workflow=memo, status='PENDING').count()
+        if pending_count == 0:
+            memo.status = 'CIRCULATING'
+            memo.save(update_fields=['status', 'updated_at'])
+
+        AuditLogger.log_action(
+            user=user, action='APPROVE', resource_type='MemoWorkflow',
+            resource_id=memo.id, description=f"Approved {memo.document.reference_number}",
+        )
+        return Response({'message': 'Memo approved.', 'remaining_approvals': pending_count})
+
+    @action(detail=True, methods=['post'], url_path='reject')
+    def reject_memo(self, request, pk=None):
+        memo = self.get_object()
+        user = request.user
+        comments = request.data.get('comments', '')
+
+        if user.role not in ('SYSADMIN', 'TG', 'PS', 'PRI', 'VP'):
+            return Response({'error': 'No permission to reject.'}, status=status.HTTP_403_FORBIDDEN)
+
+        approval = MemoApproval.objects.filter(
+            memo_workflow=memo, approver=user, status='PENDING'
+        ).first()
+
+        if not approval:
+            return Response({'error': 'No pending approval found for you.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        approval.status = 'REJECTED'
+        approval.comments = comments
+        approval.approved_date = dt.datetime.now()
+        approval.save(update_fields=['status', 'comments', 'approved_date'])
+
+        memo.status = 'DRAFT'
+        memo.save(update_fields=['status', 'updated_at'])
+
+        AuditLogger.log_action(
+            user=user, action='REJECT', resource_type='MemoWorkflow',
+            resource_id=memo.id, description=f"Rejected {memo.document.reference_number}: {comments}",
+        )
+        return Response({'message': 'Memo rejected.'})
+
+    @action(detail=True, methods=['post'], url_path='circulate')
+    def circulate_memo(self, request, pk=None):
+        memo = self.get_object()
+        recipient_ids = request.data.get('recipient_ids', [])
+
+        if memo.status != 'CIRCULATING':
+            return Response({'error': f'Memo is {memo.status}, must be CIRCULATING.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        created = []
+        for rid in recipient_ids:
+            try:
+                recipient = User.objects.get(id=rid)
+                circ, _ = MemoCirculation.objects.get_or_create(
+                    memo_workflow=memo, recipient=recipient
+                )
+                created.append(recipient.get_full_name())
+            except User.DoesNotExist:
+                continue
+
+        AuditLogger.log_action(
+            user=request.user, action='UPDATE', resource_type='MemoWorkflow',
+            resource_id=memo.id, description=f"Circulated to {len(created)} recipients",
+        )
+        return Response({'message': f'Circulated to {len(created)} recipients.', 'recipients': created})
+
+    @action(detail=True, methods=['post'], url_path='acknowledge')
+    def acknowledge_memo(self, request, pk=None):
+        memo = self.get_object()
+        user = request.user
+        notes = request.data.get('acknowledgement_notes', '')
+
+        circ = MemoCirculation.objects.filter(
+            memo_workflow=memo, recipient=user, status='SENT'
+        ).first()
+
+        if not circ:
+            return Response({'error': 'No pending circulation for you.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        circ.status = 'ACKNOWLEDGED'
+        circ.date_acknowledged = dt.datetime.now()
+        circ.acknowledgement_notes = notes
+        circ.save(update_fields=['status', 'date_acknowledged', 'acknowledgement_notes'])
+
+        all_acknowledged = not MemoCirculation.objects.filter(
+            memo_workflow=memo, status='SENT'
+        ).exists()
+
+        if all_acknowledged:
+            memo.status = 'ACKNOWLEDGED'
+            memo.save(update_fields=['status', 'updated_at'])
+
+        AuditLogger.log_action(
+            user=user, action='UPDATE', resource_type='MemoWorkflow',
+            resource_id=memo.id, description=f"Acknowledged {memo.document.reference_number}",
+        )
+        return Response({'message': 'Acknowledged.', 'all_acknowledged': all_acknowledged})
+
+    @action(detail=True, methods=['post'], url_path='archive')
+    def archive_memo(self, request, pk=None):
+        memo = self.get_object()
+        memo.status = 'ARCHIVED'
+        memo.save(update_fields=['status', 'updated_at'])
+
+        AuditLogger.log_action(
+            user=request.user, action='UPDATE', resource_type='MemoWorkflow',
+            resource_id=memo.id, description=f"Archived {memo.document.reference_number}",
+        )
+        return Response({'message': 'Memo archived.'})

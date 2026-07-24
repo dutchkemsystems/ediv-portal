@@ -194,10 +194,10 @@ class CreateSchoolStaffSerializer(serializers.Serializer):
         )
 
         from apps.staff.models import Staff
-        prefix = school.code[:3]
+        code = school.code
         staff_count = Staff.objects.filter(school=school).count() + 1
-        staff_id = f"{prefix}/STF/{staff_count:04d}"
-        employee_number = f"EDIV/{prefix}/{staff_count:04d}"
+        staff_id = f"{code}/STF/{staff_count:04d}"
+        employee_number = f"EDIV/{code}/{staff_count:04d}"
 
         staff = Staff.objects.create(
             user=user,

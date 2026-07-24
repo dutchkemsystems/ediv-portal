@@ -69,6 +69,9 @@ class File(models.Model):
     ], default='NORMAL')
     due_date = models.DateField(null=True, blank=True)
     tags = models.JSONField(default=list)
+    status_timeline = models.JSONField(default=list, blank=True,
+        help_text='List of {timestamp, status, changed_by_id, changed_by_name, notes} entries')
+    expected_completion_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -103,6 +106,7 @@ class FileMovement(models.Model):
     expected_return_date = models.DateField(null=True, blank=True)
     actual_return_date = models.DateField(null=True, blank=True)
     is_returned = models.BooleanField(default=False)
+    completion_notes = models.TextField(blank=True)
     movement_date = models.DateTimeField(auto_now_add=True)
     
     class Meta:

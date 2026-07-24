@@ -1,12 +1,16 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import DocumentViewSet, CorrespondenceViewSet, FilingViewSet, DocumentVersionViewSet
+from .views import (
+    DocumentViewSet, CorrespondenceViewSet, FilingViewSet, DocumentVersionViewSet,
+    MemoWorkflowViewSet
+)
 
 router = DefaultRouter()
 router.register('documents', DocumentViewSet)
 router.register('correspondence', CorrespondenceViewSet)
 router.register('filings', FilingViewSet)
 router.register('versions', DocumentVersionViewSet)
+router.register('memos', MemoWorkflowViewSet, basename='memoworkflow')
 
 urlpatterns = [
     path('', include(router.urls)),

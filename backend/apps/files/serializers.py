@@ -35,7 +35,7 @@ class FileMovementSerializer(serializers.ModelSerializer):
         model = FileMovement
         fields = ['id', 'file', 'from_holder', 'from_holder_name', 'to_holder', 'to_holder_name',
                   'action', 'remarks', 'expected_return_date', 'actual_return_date',
-                  'is_returned', 'movement_date']
+                  'is_returned', 'completion_notes', 'movement_date']
         read_only_fields = ['id', 'movement_date']
     
     def get_from_holder_name(self, obj):
@@ -60,8 +60,9 @@ class FileSerializer(serializers.ModelSerializer):
                   'created_by', 'created_by_name', 'current_holder', 'current_holder_name',
                   'department', 'department_name', 'school', 'school_name',
                   'status', 'classification', 'priority', 'due_date', 'tags',
+                  'status_timeline', 'expected_completion_date',
                   'movements', 'attachments', 'comments', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'file_number', 'created_at', 'updated_at', 'created_by']
+        read_only_fields = ['id', 'file_number', 'created_at', 'updated_at', 'created_by', 'status_timeline']
     
     def get_created_by_name(self, obj):
         return obj.created_by.get_full_name()
