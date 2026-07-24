@@ -19,36 +19,38 @@ import {
 } from '@mui/material'
 import {
   Add as AddIcon,
-  Description as FileIcon,
-  MoveToInbox as MovementIcon,
+  Description as DocIcon,
+  CheckCircle as ApproveIcon,
+  Cancel as RejectIcon,
 } from '@mui/icons-material'
 import DataTable from '../components/common/DataTable'
 import StatCard from '../components/common/StatCard'
 import Loading from '../components/common/Loading'
 import api from '../api/client'
+import { notify } from '../utils/notifications'
 
 function Registry() {
-  const [files, setFiles] = useState([])
+  const [documents, setDocuments] = useState([])
   const [loading, setLoading] = useState(true)
   const [tabValue, setTabValue] = useState(0)
   const [openDialog, setOpenDialog] = useState(false)
+  const [rejectDialog, setRejectDialog] = useState({ open: false, doc: null, reason: '' })
   const [formData, setFormData] = useState({
     title: '',
-    file_type: '',
+    document_type: 'CORRESPONDENCE',
     classification: 'INTERNAL',
-    priority: 'NORMAL',
   })
 
   useEffect(() => {
-    fetchFiles()
+    fetchDocuments()
   }, [])
 
-  const fetchFiles = async () => {
+  const fetchDocuments = async () => {
     try {
-      const response = await api.get('/files/files/')
-      setFiles(response.data.results || response.data)
+      const response = await api.get('/registry/documents/')
+      setDocuments(response.data.results || response.data)
     } catch (error) {
-      console.error('Error fetching files:', error)
+      notify.error('Failed to load documents')
     } finally {
       setLoading(false)
     }
@@ -56,30 +58,57 @@ function Registry() {
 
   const handleSubmit = async () => {
     try {
-      await api.post('/files/files/', formData)
+      await api.post('/registry/documents/', formData)
+      notify.success('Document created successfully')
       setOpenDialog(false)
-      fetchFiles()
+      fetchDocuments()
     } catch (error) {
-      console.error('Error creating file:', error)
+      notify.error(error.response?.data?.detail || 'Failed to create document')
+    }
+  }
+
+  const handleApprove = async (doc) => {
+    try {
+      await api.post(`/registry/documents/${doc.id}/approve/`)
+      notify.success(`Document ${doc.reference_number} approved`)
+      fetchDocuments()
+    } catch (error) {
+      notify.error(error.response?.data?.error || 'Failed to approve document')
+    }
+  }
+
+  const handleReject = async () => {
+    try {
+      await api.post(`/registry/documents/${rejectDialog.doc.id}/reject/`, {
+        reason: rejectDialog.reason,
+      })
+      notify.success(`Document ${rejectDialog.doc.reference_number} rejected`)
+      setRejectDialog({ open: false, doc: null, reason: '' })
+      fetchDocuments()
+    } catch (error) {
+      notify.error(error.response?.data?.error || 'Failed to reject document')
+    }
+  }
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'APPROVED': return 'success'
+      case 'PENDING': return 'warning'
+      case 'DRAFT': return 'default'
+      case 'REJECTED': return 'error'
+      case 'ARCHIVED': return 'info'
+      default: return 'default'
     }
   }
 
   const columns = [
-    { id: 'file_number', label: 'File Number' },
+    { id: 'reference_number', label: 'Reference Number' },
     { id: 'title', label: 'Title' },
-    { id: 'file_type', label: 'Type', render: (row) => (
-      <Chip label={row.file_type} size="small" />
+    { id: 'document_type', label: 'Type', render: (row) => (
+      <Chip label={row.document_type} size="small" />
     )},
     { id: 'status', label: 'Status', render: (row) => (
-      <Chip
-        label={row.status}
-        size="small"
-        color={
-          row.status === 'ACTIVE' ? 'success' :
-          row.status === 'PENDING' ? 'warning' :
-          row.status === 'IN_TRANSIT' ? 'info' : 'default'
-        }
-      />
+      <Chip label={row.status} size="small" color={getStatusColor(row.status)} />
     )},
     { id: 'classification', label: 'Classification', render: (row) => (
       <Chip
@@ -91,19 +120,34 @@ function Registry() {
         }
       />
     )},
-    { id: 'priority', label: 'Priority', render: (row) => (
-      <Chip
-        label={row.priority}
-        size="small"
-        color={
-          row.priority === 'URGENT' ? 'error' :
-          row.priority === 'HIGH' ? 'warning' :
-          row.priority === 'NORMAL' ? 'info' : 'default'
-        }
-      />
-    )},
-    { id: 'current_holder_name', label: 'Current Holder' },
+    { id: 'created_by_name', label: 'Created By' },
     { id: 'created_at', label: 'Created', render: (row) => new Date(row.created_at).toLocaleDateString() },
+    { id: 'actions', label: 'Actions', render: (row) => (
+      <Box sx={{ display: 'flex', gap: 0.5 }}>
+        {row.status === 'PENDING' && (
+          <>
+            <Button
+              size="small"
+              color="success"
+              startIcon={<ApproveIcon />}
+              onClick={() => handleApprove(row)}
+              sx={{ minWidth: 0, px: 1 }}
+            >
+              Approve
+            </Button>
+            <Button
+              size="small"
+              color="error"
+              startIcon={<RejectIcon />}
+              onClick={() => setRejectDialog({ open: true, doc: row, reason: '' })}
+              sx={{ minWidth: 0, px: 1 }}
+            >
+              Reject
+            </Button>
+          </>
+        )}
+      </Box>
+    )},
   ]
 
   if (loading) {
@@ -113,14 +157,14 @@ function Registry() {
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">E-Registry</Typography>
+        <Typography variant="h4">E-Registry Documents</Typography>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => setOpenDialog(true)}
           sx={{ bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1642' } }}
         >
-          Create File
+          New Document
         </Button>
       </Box>
 
@@ -128,33 +172,33 @@ function Registry() {
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Total Files"
-            value={files.length}
-            icon={<FileIcon />}
+            title="Total Documents"
+            value={documents.length}
+            icon={<DocIcon />}
             color="#1a237e"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Active Files"
-            value={files.filter(f => f.status === 'ACTIVE').length}
-            icon={<FileIcon />}
+            title="Approved"
+            value={documents.filter(d => d.status === 'APPROVED').length}
+            icon={<DocIcon />}
             color="#388e3c"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Pending Files"
-            value={files.filter(f => f.status === 'PENDING').length}
-            icon={<FileIcon />}
+            title="Pending"
+            value={documents.filter(d => d.status === 'PENDING').length}
+            icon={<DocIcon />}
             color="#f57c00"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="In Transit"
-            value={files.filter(f => f.status === 'IN_TRANSIT').length}
-            icon={<MovementIcon />}
+            title="Rejected"
+            value={documents.filter(d => d.status === 'REJECTED').length}
+            icon={<DocIcon />}
             color="#d32f2f"
           />
         </Grid>
@@ -163,40 +207,44 @@ function Registry() {
       {/* Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={tabValue} onChange={(e, v) => setTabValue(v)}>
-          <Tab label="All Files" />
-          <Tab label="My Files" />
+          <Tab label="All Documents" />
           <Tab label="Pending Action" />
+          <Tab label="Approved" />
         </Tabs>
       </Box>
 
       {/* Table */}
       <DataTable
         columns={columns}
-        data={files}
-        onEdit={(f) => console.log('Edit:', f)}
-        onView={(f) => console.log('View:', f)}
+        data={
+          tabValue === 0 ? documents :
+          tabValue === 1 ? documents.filter(d => d.status === 'PENDING') :
+          documents.filter(d => d.status === 'APPROVED')
+        }
+        onView={(d) => console.log('View:', d)}
       />
 
-      {/* Create File Dialog */}
+      {/* Create Document Dialog */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Create New File</DialogTitle>
+        <DialogTitle>New Document</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="File Title"
+                required
+                label="Title"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
-                <InputLabel>File Type</InputLabel>
+                <InputLabel>Document Type</InputLabel>
                 <Select
-                  value={formData.file_type}
-                  onChange={(e) => setFormData({ ...formData, file_type: e.target.value })}
-                  label="File Type"
+                  value={formData.document_type}
+                  onChange={(e) => setFormData({ ...formData, document_type: e.target.value })}
+                  label="Document Type"
                 >
                   <MenuItem value="CORRESPONDENCE">Correspondence</MenuItem>
                   <MenuItem value="MEMO">Memo</MenuItem>
@@ -205,6 +253,7 @@ function Registry() {
                   <MenuItem value="MINUTES">Minutes</MenuItem>
                   <MenuItem value="POLICY">Policy</MenuItem>
                   <MenuItem value="CONTRACT">Contract</MenuItem>
+                  <MenuItem value="LETTER">Letter</MenuItem>
                   <MenuItem value="OTHER">Other</MenuItem>
                 </Select>
               </FormControl>
@@ -224,21 +273,6 @@ function Registry() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Priority</InputLabel>
-                <Select
-                  value={formData.priority}
-                  onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                  label="Priority"
-                >
-                  <MenuItem value="LOW">Low</MenuItem>
-                  <MenuItem value="NORMAL">Normal</MenuItem>
-                  <MenuItem value="HIGH">High</MenuItem>
-                  <MenuItem value="URGENT">Urgent</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
@@ -246,9 +280,36 @@ function Registry() {
           <Button
             onClick={handleSubmit}
             variant="contained"
+            disabled={!formData.title}
             sx={{ bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1642' } }}
           >
             Create
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Reject Reason Dialog */}
+      <Dialog open={rejectDialog.open} onClose={() => setRejectDialog({ open: false, doc: null, reason: '' })} maxWidth="sm" fullWidth>
+        <DialogTitle>Reject Document — {rejectDialog.doc?.reference_number}</DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            label="Reason for rejection"
+            value={rejectDialog.reason}
+            onChange={(e) => setRejectDialog({ ...rejectDialog, reason: e.target.value })}
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRejectDialog({ open: false, doc: null, reason: '' })}>Cancel</Button>
+          <Button
+            onClick={handleReject}
+            variant="contained"
+            color="error"
+          >
+            Reject
           </Button>
         </DialogActions>
       </Dialog>

@@ -32,7 +32,7 @@ class FilingSerializer(serializers.ModelSerializer):
         model = Filing
         fields = ['id', 'document', 'document_reference', 'file_code', 'box_number',
                   'shelf_number', 'room', 'filed_by', 'filed_by_name', 'filed_date', 'notes']
-        read_only_fields = ['id']
+        read_only_fields = ['id', 'filed_by']
     
     def get_document_reference(self, obj):
         return obj.document.reference_number
@@ -52,7 +52,7 @@ class DocumentSerializer(serializers.ModelSerializer):
                   'created_by', 'created_by_name', 'department', 'department_name',
                   'status', 'classification', 'version', 'effective_date', 'expiry_date',
                   'versions', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'reference_number', 'created_at', 'updated_at', 'created_by']
     
     def get_created_by_name(self, obj):
         return obj.created_by.get_full_name()

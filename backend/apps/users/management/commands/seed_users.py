@@ -41,25 +41,145 @@ ADMIN_USERS = [
         'is_staff': True,
         'is_superuser': False,
     },
+]
+
+# ---------------------------------------------------------------------------
+# Department Heads (9 departments)
+# ---------------------------------------------------------------------------
+
+DEPARTMENT_HEADS = [
     {
-        'email': 'hr@ediv.gov.ng',
+        'email': 'hr.head@ediv.gov.ng',
         'first_name': 'Funmilayo',
         'last_name': 'Ogundimu',
         'role': 'HR',
         'password': HEAD_OFFICE_PASSWORD,
         'phone_number': '+2348010000003',
-        'is_staff': True,
-        'is_superuser': False,
+        'department_code': 'ADMIN_HR',
     },
     {
-        'email': 'finance@ediv.gov.ng',
+        'email': 'finance.head@ediv.gov.ng',
         'first_name': 'Adewale',
         'last_name': 'Bakare',
         'role': 'FIN',
         'password': HEAD_OFFICE_PASSWORD,
         'phone_number': '+2348010000004',
-        'is_staff': True,
-        'is_superuser': False,
+        'department_code': 'FIN',
+    },
+    {
+        'email': 'qa.head@ediv.gov.ng',
+        'first_name': 'Oluwaseun',
+        'last_name': 'Ajayi',
+        'role': 'QA',
+        'password': HEAD_OFFICE_PASSWORD,
+        'phone_number': '+2348010000005',
+        'department_code': 'QA',
+    },
+    {
+        'email': 'cc.head@ediv.gov.ng',
+        'first_name': 'Chinedu',
+        'last_name': 'Eze',
+        'role': 'CC',
+        'password': HEAD_OFFICE_PASSWORD,
+        'phone_number': '+2348010000006',
+        'department_code': 'CC',
+    },
+    {
+        'email': 'sa.head@ediv.gov.ng',
+        'first_name': 'Adewale',
+        'last_name': 'Lawal',
+        'role': 'SA',
+        'password': HEAD_OFFICE_PASSWORD,
+        'phone_number': '+2348010000007',
+        'department_code': 'SA',
+    },
+    {
+        'email': 'registry.head@ediv.gov.ng',
+        'first_name': 'Folake',
+        'last_name': 'Okafor',
+        'role': 'REG',
+        'password': HEAD_OFFICE_PASSWORD,
+        'phone_number': '+2348010000008',
+        'department_code': 'REG',
+    },
+    {
+        'email': 'spd.head@ediv.gov.ng',
+        'first_name': 'Ibrahim',
+        'last_name': 'Abubakar',
+        'role': 'SA',
+        'password': HEAD_OFFICE_PASSWORD,
+        'phone_number': '+2348010000009',
+        'department_code': 'SPD',
+    },
+    {
+        'email': 'sss.head@ediv.gov.ng',
+        'first_name': 'Ngozi',
+        'last_name': 'Nwosu',
+        'role': 'QA',
+        'password': HEAD_OFFICE_PASSWORD,
+        'phone_number': '+2348010000010',
+        'department_code': 'SSS',
+    },
+    {
+        'email': 'french.head@ediv.gov.ng',
+        'first_name': 'Amina',
+        'last_name': 'Mohammed',
+        'role': 'FRENCH',
+        'password': HEAD_OFFICE_PASSWORD,
+        'phone_number': '+2348010000011',
+        'department_code': 'FRENCH',
+    },
+]
+
+# ---------------------------------------------------------------------------
+# Major Unit Heads (5 standalone district units)
+# ---------------------------------------------------------------------------
+
+UNIT_HEADS = [
+    {
+        'email': 'audit.head@ediv.gov.ng',
+        'first_name': 'Tunde',
+        'last_name': 'Fashola',
+        'role': 'AUDIT',
+        'password': HEAD_OFFICE_PASSWORD,
+        'phone_number': '+2348010000012',
+        'unit_code': 'AUDIT',
+    },
+    {
+        'email': 'emis.head@ediv.gov.ng',
+        'first_name': 'Kolade',
+        'last_name': 'Akande',
+        'role': 'EMIS',
+        'password': HEAD_OFFICE_PASSWORD,
+        'phone_number': '+2348010000013',
+        'unit_code': 'EMIS',
+    },
+    {
+        'email': 'plan.head@ediv.gov.ng',
+        'first_name': 'Babatunde',
+        'last_name': 'Olumide',
+        'role': 'PLAN',
+        'password': HEAD_OFFICE_PASSWORD,
+        'phone_number': '+2348010000014',
+        'unit_code': 'PLAN',
+    },
+    {
+        'email': 'procurement.head@ediv.gov.ng',
+        'first_name': 'Emeka',
+        'last_name': 'Chukwu',
+        'role': 'PROC',
+        'password': HEAD_OFFICE_PASSWORD,
+        'phone_number': '+2348010000015',
+        'unit_code': 'PROC',
+    },
+    {
+        'email': 'pa.head@ediv.gov.ng',
+        'first_name': 'Funke',
+        'last_name': 'Bakare',
+        'role': 'PA',
+        'password': HEAD_OFFICE_PASSWORD,
+        'phone_number': '+2348010000016',
+        'unit_code': 'PA',
     },
 ]
 
@@ -134,6 +254,84 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(
             f'  Admin users: {admin_created} created, {admin_skipped} skipped'
+        ))
+
+        # --- Department Heads ---
+        self.stdout.write(self.style.NOTICE('\n--- Seeding department heads ---'))
+        from apps.departments.models import Department
+        dept_head_created = 0
+        dept_head_skipped = 0
+        for data in DEPARTMENT_HEADS:
+            user, created = User.objects.get_or_create(
+                email=data['email'],
+                defaults={
+                    'first_name': data['first_name'],
+                    'last_name': data['last_name'],
+                    'role': data['role'],
+                    'phone_number': data['phone_number'],
+                    'is_staff': True,
+                    'is_superuser': False,
+                },
+            )
+            if created:
+                user.set_password(data['password'])
+                user.save()
+                dept_head_created += 1
+            else:
+                dept_head_skipped += 1
+
+            # Link head to department
+            dept_code = data.get('department_code')
+            if dept_code:
+                try:
+                    dept = Department.objects.get(code=dept_code)
+                    if dept.head_id != user.id:
+                        dept.head = user
+                        dept.save(update_fields=['head'])
+                except Department.DoesNotExist:
+                    pass
+
+        self.stdout.write(self.style.SUCCESS(
+            f'  Department heads: {dept_head_created} created, {dept_head_skipped} skipped'
+        ))
+
+        # --- Major Unit Heads ---
+        self.stdout.write(self.style.NOTICE('\n--- Seeding major unit heads ---'))
+        from apps.departments.models import Unit
+        unit_head_created = 0
+        unit_head_skipped = 0
+        for data in UNIT_HEADS:
+            user, created = User.objects.get_or_create(
+                email=data['email'],
+                defaults={
+                    'first_name': data['first_name'],
+                    'last_name': data['last_name'],
+                    'role': data['role'],
+                    'phone_number': data['phone_number'],
+                    'is_staff': True,
+                    'is_superuser': False,
+                },
+            )
+            if created:
+                user.set_password(data['password'])
+                user.save()
+                unit_head_created += 1
+            else:
+                unit_head_skipped += 1
+
+            # Link head to unit
+            unit_code = data.get('unit_code')
+            if unit_code:
+                try:
+                    unit = Unit.objects.get(code=unit_code)
+                    if unit.head_id != user.id:
+                        unit.head = user
+                        unit.save(update_fields=['head'])
+                except Unit.DoesNotExist:
+                    pass
+
+        self.stdout.write(self.style.SUCCESS(
+            f'  Unit heads: {unit_head_created} created, {unit_head_skipped} skipped'
         ))
 
         # --- Sample School Staff (Principals, VPs, Teachers) ---

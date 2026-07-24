@@ -61,7 +61,7 @@ class FileSerializer(serializers.ModelSerializer):
                   'department', 'department_name', 'school', 'school_name',
                   'status', 'classification', 'priority', 'due_date', 'tags',
                   'movements', 'attachments', 'comments', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'file_number', 'created_at', 'updated_at', 'created_by']
     
     def get_created_by_name(self, obj):
         return obj.created_by.get_full_name()

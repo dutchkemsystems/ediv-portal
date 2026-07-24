@@ -16,7 +16,7 @@ from .serializers import (
     PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
     MFAEnableSerializer, MFAVerifySerializer,
     PrivilegeSerializer, PrivilegeListSerializer, RolePrivilegeSerializer,
-    PrincipalCreateTeacherSerializer,
+    CreateSchoolStaffSerializer, DeleteSchoolStaffSerializer,
 )
 from .mfa import (
     generate_mfa_secret, get_mfa_qr_code_url,
@@ -38,6 +38,28 @@ class IsAdminOrPrincipal(permissions.BasePermission):
         return request.user.role in ('SYSADMIN', 'PRI', 'VP')
 
 
+class CanCreateStaff(permissions.BasePermission):
+    """SYSADMIN, TG, PS, Principals, and VPs can create staff with sub-login."""
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return request.user.role in ('SYSADMIN', 'TG', 'PS', 'PRI', 'VP')
+
+
+class CanCreateSchoolStaff(permissions.BasePermission):
+    """SYSADMIN, TG, PS, Principals, and VPs can create school staff sub-logins."""
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return request.user.role in ('SYSADMIN', 'TG', 'PS', 'PRI', 'VP')
+
+
+class CanDeleteSchoolStaff(permissions.BasePermission):
+    """Only SYSADMIN, TG, PS can delete school staff accounts."""
+    def has_permission(self, request, view):
+        return request.user.role in ('SYSADMIN', 'TG', 'PS')
+
+
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly]
@@ -46,8 +68,10 @@ class UserViewSet(viewsets.ModelViewSet):
     ordering_fields = ['created_at', 'last_name']
 
     def get_permissions(self):
-        if self.action in ('create_teacher', 'my_teachers'):
-            return [permissions.IsAuthenticated(), IsAdminOrPrincipal()]
+        if self.action == 'create_school_staff':
+            return [permissions.IsAuthenticated(), CanCreateSchoolStaff()]
+        if self.action == 'delete_school_staff':
+            return [permissions.IsAuthenticated(), CanDeleteSchoolStaff()]
         return super().get_permissions()
 
     def get_serializer_class(self):
@@ -76,79 +100,134 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         request.user.set_password(serializer.validated_data['new_password'])
         request.user.save()
+
+        from config.security import AuditLogger
+        AuditLogger.log_action(
+            user=request.user,
+            action='PASSWORD_CHANGE',
+            resource_type='User',
+            resource_id=request.user.id,
+            description=f"Password changed for {request.user.email}",
+        )
+
         return Response({'message': 'Password changed successfully.'})
 
-    @action(detail=False, methods=['post'], url_path='create-teacher')
-    def create_teacher(self, request):
-        """Allow Principals and Vice-Principals to create teacher accounts for their school."""
-        user = request.user
-        if user.role not in ('PRI', 'VP'):
-            return Response(
-                {'error': 'Only Principals and Vice-Principals can create teacher accounts.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+    @action(detail=False, methods=['post'], url_path='create-school-staff')
+    def create_school_staff(self, request):
+        """Create a school staff sub-login (Principal, VP, Teacher, Non-Teaching).
 
-        serializer = PrincipalCreateTeacherSerializer(data=request.data, context={'request': request})
+        SYSADMIN/TG/PS: must supply school_id, can create any role.
+        PRI/VP: creates TCH/SA_OFF for their own school only.
+        Returns temp_password on success — caller must share it securely.
+        """
+        serializer = CreateSchoolStaffSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
+        result = serializer.create(serializer.validated_data)
 
-        school = serializer.validated_data['school']
-        import secrets
-        temp_password = secrets.token_urlsafe(12)
+        user = result['user']
+        staff = result['staff']
+        temp_password = result['temp_password']
+        school = result['school']
 
-        teacher = User.objects.create_user(
-            email=serializer.validated_data['email'],
-            password=temp_password,
-            first_name=serializer.validated_data['first_name'],
-            last_name=serializer.validated_data['last_name'],
-            role='TCH',
-            phone_number=serializer.validated_data.get('phone_number', ''),
+        from config.security import AuditLogger
+        AuditLogger.log_action(
+            user=request.user,
+            action='CREATE',
+            resource_type='User',
+            resource_id=user.id,
+            description=f"Created {user.role} account for {user.get_full_name()} at {school.name}",
+            new_value={'email': user.email, 'role': user.role, 'school': school.name},
         )
 
         return Response({
-            'message': f'Teacher account created successfully for {school.name}.',
-            'teacher': {
-                'id': teacher.id,
-                'email': teacher.email,
-                'first_name': teacher.first_name,
-                'last_name': teacher.last_name,
-                'role': teacher.role,
+            'message': f"Account created for {user.get_full_name()} ({user.get_role_display()}) at {school.name}.",
+            'user': {
+                'id': user.id,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'role': user.role,
                 'school': school.name,
+                'school_code': school.code,
                 'temp_password': temp_password,
-            }
+            },
+            'staff': {
+                'id': staff.id,
+                'staff_id': staff.staff_id,
+                'employee_number': staff.employee_number,
+            },
         }, status=status.HTTP_201_CREATED)
 
-    @action(detail=False, methods=['get'], url_path='my-teachers')
-    def my_teachers(self, request):
-        """List all teachers at the principal's/VP's school."""
+    @action(detail=False, methods=['post'], url_path='delete-school-staff')
+    def delete_school_staff(self, request):
+        """Deactivate a school staff user account (SYSADMIN/TG/PS only).
+
+        Does NOT hard-delete — sets is_active=False so the account can be restored.
+        """
+        serializer = DeleteSchoolStaffSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        target_user = serializer.save()
+
+        from config.security import AuditLogger
+        AuditLogger.log_action(
+            user=request.user,
+            action='DELETE',
+            resource_type='User',
+            resource_id=target_user.id,
+            description=f"Deactivated {target_user.get_role_display()} account: {target_user.email}",
+            old_value={'is_active': True},
+            new_value={'is_active': False},
+        )
+
+        return Response({
+            'message': f"Account for {target_user.get_full_name()} ({target_user.email}) has been deactivated.",
+            'user': {
+                'id': target_user.id,
+                'email': target_user.email,
+                'is_active': target_user.is_active,
+            },
+        })
+
+    @action(detail=False, methods=['get'], url_path='school-staff')
+    def list_school_staff(self, request):
+        """List all staff at the caller's school (for Principals/VPs) or a specific school (for admins)."""
         user = request.user
-        if user.role not in ('PRI', 'VP'):
-            return Response(
-                {'error': 'Only Principals and Vice-Principals can access this endpoint.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+        school_id = request.query_params.get('school_id')
 
         from apps.schools.models import School
-        school = School.objects.filter(principal=user).first() or School.objects.filter(vice_principal=user).first()
+
+        if user.role in ('SYSADMIN', 'TG', 'PS'):
+            if school_id:
+                school = School.objects.filter(id=school_id).first()
+            else:
+                school = None
+        else:
+            school = School.objects.filter(principal=user).first() or School.objects.filter(vice_principal=user).first()
+
         if not school:
-            return Response({'teachers': [], 'school': None})
+            return Response({'school': None, 'staff': []})
 
         from apps.staff.models import Staff
-        staff_users = Staff.objects.filter(school=school, user__role='TCH').select_related('user')
-        teachers = [{
+        staff_users = Staff.objects.filter(school=school).select_related('user')
+        staff_list = [{
             'id': s.user.id,
             'email': s.user.email,
             'first_name': s.user.first_name,
             'last_name': s.user.last_name,
             'full_name': s.user.get_full_name(),
+            'role': s.user.role,
+            'role_display': s.user.get_role_display(),
             'phone_number': s.user.phone_number,
             'staff_id': s.staff_id,
+            'employee_number': s.employee_number,
+            'category': s.category,
             'designation': s.designation,
             'is_active': s.user.is_active,
         } for s in staff_users]
 
         return Response({
             'school': {'id': school.id, 'name': school.name, 'code': school.code},
-            'teachers': teachers,
+            'staff': staff_list,
         })
 
 
@@ -161,6 +240,7 @@ class AuthViewSet(viewsets.ViewSet):
 
         email = serializer.validated_data['email']
         ip_address = request.META.get('REMOTE_ADDR', 'unknown')
+        user_agent = request.META.get('HTTP_USER_AGENT', '')
 
         # Check account lockout
         try:
@@ -183,7 +263,7 @@ class AuthViewSet(viewsets.ViewSet):
             try:
                 user_check = User.objects.get(email=email)
                 AccountLockout.record_failed_attempt(user_check)
-                AuditLogger.log_login(user_check, ip_address, False)
+                AuditLogger.log_login(user_check, ip_address, False, user_agent=user_agent)
             except User.DoesNotExist:
                 pass
             return Response(
@@ -192,14 +272,14 @@ class AuthViewSet(viewsets.ViewSet):
             )
 
         if not user.is_active:
-            AuditLogger.log_login(user, ip_address, False)
+            AuditLogger.log_login(user, ip_address, False, user_agent=user_agent)
             return Response(
                 {'error': 'Account is disabled'},
                 status=status.HTTP_403_FORBIDDEN
             )
 
         AccountLockout.reset_attempts(user)
-        AuditLogger.log_login(user, ip_address, True)
+        AuditLogger.log_login(user, ip_address, True, user_agent=user_agent)
 
         if user.mfa_enabled:
             temp_token = RefreshToken()
@@ -500,11 +580,11 @@ class AuthViewSet(viewsets.ViewSet):
         except Exception as e:
             results['schools'] = f'error: {str(e)[:100]}'
 
-        # 4. Seed users (depends on schools existing)
+        # 4. Seed users (depends on schools + departments existing)
         try:
             out = io.StringIO()
             call_command('seed_users', stdout=out)
-            results['users'] = out.getvalue()[:200]
+            results['users'] = out.getvalue()[:500]
         except Exception as e:
             results['users'] = f'error: {str(e)[:100]}'
 
@@ -518,8 +598,9 @@ class AuthViewSet(viewsets.ViewSet):
         except Exception:
             results['totals']['schools'] = 'unavailable'
         try:
-            from apps.departments.models import Department
+            from apps.departments.models import Department, Unit
             results['totals']['departments'] = Department.objects.count()
+            results['totals']['units'] = Unit.objects.count()
         except Exception:
             results['totals']['departments'] = 'unavailable'
 

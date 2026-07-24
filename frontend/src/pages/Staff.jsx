@@ -15,6 +15,10 @@ import {
   Select,
   MenuItem,
   Alert,
+  Divider,
+  Stepper,
+  Step,
+  StepLabel,
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -28,25 +32,52 @@ import ConfirmDialog from '../components/common/ConfirmDialog'
 import api from '../api/client'
 import { notify } from '../utils/notifications'
 
+const initialStaffForm = {
+  first_name: '',
+  last_name: '',
+  email: '',
+  phone_number: '',
+  category: 'TEACHING',
+  designation: 'TEACHER',
+  employment_type: 'PERMANENT',
+  qualification: 'Bachelors',
+  date_of_birth: '',
+  gender: 'M',
+  marital_status: 'SINGLE',
+  state_of_origin: '',
+  lga_of_origin: '',
+  residential_address: '',
+  emergency_contact_name: '',
+  emergency_contact_phone: '',
+  bank_name: '',
+  bank_account_number: '',
+  bank_account_name: '',
+  date_joined: '',
+  school_id: '',
+  department_id: '',
+  pension_pin: '',
+  tax_id: '',
+  grade_level: '',
+  step: 1,
+  salary: 0,
+}
+
 function Staff() {
   const [staff, setStaff] = useState([])
   const [loading, setLoading] = useState(true)
-  const [openDialog, setOpenDialog] = useState(false)
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
   const [selectedStaff, setSelectedStaff] = useState(null)
 
   const [currentUser, setCurrentUser] = useState(null)
-  const [openTeacherDialog, setOpenTeacherDialog] = useState(false)
-  const [teacherForm, setTeacherForm] = useState({
-    first_name: '',
-    last_name: '',
-    email: '',
-    phone_number: '',
-  })
-  const [createdTeacher, setCreatedTeacher] = useState(null)
-  const [creatingTeacher, setCreatingTeacher] = useState(false)
+  const [openStaffDialog, setOpenStaffDialog] = useState(false)
+  const [staffForm, setStaffForm] = useState(initialStaffForm)
+  const [createdStaff, setCreatedStaff] = useState(null)
+  const [creatingStaff, setCreatingStaff] = useState(false)
+  const [activeStep, setActiveStep] = useState(0)
 
-  const canCreateTeacher = currentUser?.role === 'PRI' || currentUser?.role === 'VP'
+  const canCreateStaff = ['SYSADMIN', 'TG', 'PS', 'PRI', 'VP'].includes(currentUser?.role)
+
+  const steps = ['Personal Info', 'Employment Details', 'Financial & Contact']
 
   useEffect(() => {
     fetchStaff()
@@ -84,20 +115,51 @@ function Staff() {
     }
   }
 
-  const handleCreateTeacher = async () => {
-    setCreatingTeacher(true)
+  const handleCreateStaff = async () => {
+    setCreatingStaff(true)
     try {
-      const response = await api.post('/users/users/create-teacher/', teacherForm)
-      setCreatedTeacher(response.data.teacher)
-      notify.success('Teacher account created successfully')
-      setTeacherForm({ first_name: '', last_name: '', email: '', phone_number: '' })
+      const response = await api.post('/users/users/create-staff/', staffForm)
+      setCreatedStaff(response.data)
+      notify.success('Staff account created successfully')
       fetchStaff()
     } catch (error) {
-      const msg = error.response?.data?.error || error.response?.data?.email?.[0] || 'Failed to create teacher'
+      const data = error.response?.data
+      let msg = 'Failed to create staff'
+      if (data) {
+        if (data.error) msg = data.error
+        else if (typeof data === 'object') {
+          const firstKey = Object.keys(data)[0]
+          if (firstKey) {
+            const val = data[firstKey]
+            msg = Array.isArray(val) ? `${firstKey}: ${val[0]}` : `${firstKey}: ${val}`
+          }
+        }
+      }
       notify.error(msg)
     } finally {
-      setCreatingTeacher(false)
+      setCreatingStaff(false)
     }
+  }
+
+  const handleDialogClose = () => {
+    setOpenStaffDialog(false)
+    setCreatedStaff(null)
+    setStaffForm(initialStaffForm)
+    setActiveStep(0)
+  }
+
+  const isStepValid = (step) => {
+    const f = staffForm
+    if (step === 0) {
+      return f.first_name && f.last_name && f.email && f.date_of_birth && f.gender && f.state_of_origin && f.lga_of_origin && f.residential_address
+    }
+    if (step === 1) {
+      return f.category && f.designation && f.employment_type && f.qualification && f.date_joined
+    }
+    if (step === 2) {
+      return f.emergency_contact_name && f.emergency_contact_phone && f.bank_name && f.bank_account_number && f.bank_account_name
+    }
+    return true
   }
 
   const columns = [
@@ -105,7 +167,7 @@ function Staff() {
     { id: 'staff_id', label: 'Staff ID' },
     { id: 'employee_number', label: 'Employee No.' },
     { id: 'category', label: 'Category', render: (row) => (
-      <Chip label={row.category} size="small" />
+      <Chip label={row.category?.replace('_', ' ')} size="small" color={row.category === 'TEACHING' ? 'primary' : 'default'} />
     )},
     { id: 'designation', label: 'Designation' },
     { id: 'school_name', label: 'School', render: (row) => row.school_name || 'Head Office' },
@@ -122,60 +184,31 @@ function Staff() {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">Staff Management</Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          {canCreateTeacher && (
-            <Button
-              variant="contained"
-              startIcon={<PersonAddIcon />}
-              onClick={() => { setCreatedTeacher(null); setOpenTeacherDialog(true) }}
-              sx={{ bgcolor: '#388e3c', '&:hover': { bgcolor: '#2e7d32' } }}
-            >
-              Create Teacher Account
-            </Button>
-          )}
+        {canCreateStaff && (
           <Button
             variant="contained"
-            startIcon={<AddIcon />}
-            sx={{ bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1642' } }}
+            startIcon={<PersonAddIcon />}
+            onClick={() => { setCreatedStaff(null); setStaffForm(initialStaffForm); setActiveStep(0); setOpenStaffDialog(true) }}
+            sx={{ bgcolor: '#388e3c', '&:hover': { bgcolor: '#2e7d32' } }}
           >
-            Add Staff
+            Add Staff Member
           </Button>
-        </Box>
+        )}
       </Box>
 
       {/* Stats */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Total Staff"
-            value={staff.length}
-            icon={<PeopleIcon />}
-            color="#1a237e"
-          />
+          <StatCard title="Total Staff" value={staff.length} icon={<PeopleIcon />} color="#1a237e" />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Teaching Staff"
-            value={staff.filter(s => s.category === 'TEACHING').length}
-            icon={<PeopleIcon />}
-            color="#388e3c"
-          />
+          <StatCard title="Teaching Staff" value={staff.filter(s => s.category === 'TEACHING').length} icon={<PeopleIcon />} color="#388e3c" />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Non-Teaching"
-            value={staff.filter(s => s.category === 'NON_TEACHING').length}
-            icon={<PeopleIcon />}
-            color="#f57c00"
-          />
+          <StatCard title="Non-Teaching" value={staff.filter(s => s.category === 'NON_TEACHING').length} icon={<PeopleIcon />} color="#f57c00" />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Active Staff"
-            value={staff.filter(s => s.is_active).length}
-            icon={<PeopleIcon />}
-            color="#d32f2f"
-          />
+          <StatCard title="Active Staff" value={staff.filter(s => s.is_active).length} icon={<PeopleIcon />} color="#d32f2f" />
         </Grid>
       </Grid>
 
@@ -187,74 +220,254 @@ function Staff() {
         onDelete={(s) => { setSelectedStaff(s); setOpenDeleteDialog(true); }}
       />
 
-      {/* Create Teacher Dialog */}
-      <Dialog open={openTeacherDialog} onClose={() => setOpenTeacherDialog(false)} maxWidth="sm" fullWidth>
+      {/* Create Staff Dialog */}
+      <Dialog open={openStaffDialog} onClose={handleDialogClose} maxWidth="md" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <PersonAddIcon /> Create Teacher Account
+          <PersonAddIcon /> Add Staff Member
         </DialogTitle>
         <DialogContent>
-          {createdTeacher ? (
+          {createdStaff ? (
             <Alert severity="success" sx={{ mt: 2 }}>
-              <Typography variant="subtitle1" fontWeight="bold">Teacher Account Created</Typography>
+              <Typography variant="subtitle1" fontWeight="bold">Staff Account Created</Typography>
               <Typography variant="body2" sx={{ mt: 1 }}>
-                <strong>Name:</strong> {createdTeacher.first_name} {createdTeacher.last_name}<br />
-                <strong>Email:</strong> {createdTeacher.email}<br />
-                <strong>School:</strong> {createdTeacher.school}<br />
-                <strong>Temporary Password:</strong> <code>{createdTeacher.temp_password}</code><br /><br />
-                Please share these credentials securely with the teacher. They should change their password on first login.
+                <strong>Name:</strong> {createdStaff.user.first_name} {createdStaff.user.last_name}<br />
+                <strong>Email:</strong> {createdStaff.user.email}<br />
+                <strong>Role:</strong> {createdStaff.user.role}<br />
+                <strong>Staff ID:</strong> {createdStaff.staff.staff_id}<br />
+                <strong>Employee No:</strong> {createdStaff.staff.employee_number}<br />
+                <strong>Category:</strong> {createdStaff.staff.category}<br />
+                <strong>Designation:</strong> {createdStaff.staff.designation}<br />
+                <strong>School:</strong> {createdStaff.staff.school}<br />
+                <strong>Temporary Password:</strong> <code>{createdStaff.user.temp_password}</code><br /><br />
+                Please share these credentials securely. The staff member should change their password on first login.
               </Typography>
             </Alert>
           ) : (
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="First Name"
-                  value={teacherForm.first_name}
-                  onChange={(e) => setTeacherForm({ ...teacherForm, first_name: e.target.value })}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Last Name"
-                  value={teacherForm.last_name}
-                  onChange={(e) => setTeacherForm({ ...teacherForm, last_name: e.target.value })}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Email"
-                  type="email"
-                  value={teacherForm.email}
-                  onChange={(e) => setTeacherForm({ ...teacherForm, email: e.target.value })}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Phone Number"
-                  value={teacherForm.phone_number}
-                  onChange={(e) => setTeacherForm({ ...teacherForm, phone_number: e.target.value })}
-                />
-              </Grid>
-            </Grid>
+            <Box sx={{ mt: 2 }}>
+              <Stepper activeStep={activeStep} sx={{ mb: 3 }}>
+                {steps.map((label) => (
+                  <Step key={label}>
+                    <StepLabel>{label}</StepLabel>
+                  </Step>
+                ))}
+              </Stepper>
+
+              {/* Step 0: Personal Info */}
+              {activeStep === 0 && (
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <TextField fullWidth required label="First Name" value={staffForm.first_name}
+                      onChange={(e) => setStaffForm({ ...staffForm, first_name: e.target.value })} />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField fullWidth required label="Last Name" value={staffForm.last_name}
+                      onChange={(e) => setStaffForm({ ...staffForm, last_name: e.target.value })} />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField fullWidth required label="Email" type="email" value={staffForm.email}
+                      onChange={(e) => setStaffForm({ ...staffForm, email: e.target.value })} />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField fullWidth label="Phone Number" value={staffForm.phone_number}
+                      onChange={(e) => setStaffForm({ ...staffForm, phone_number: e.target.value })} />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField fullWidth required label="Date of Birth" type="date" InputLabelProps={{ shrink: true }}
+                      value={staffForm.date_of_birth}
+                      onChange={(e) => setStaffForm({ ...staffForm, date_of_birth: e.target.value })} />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth required>
+                      <InputLabel>Gender</InputLabel>
+                      <Select value={staffForm.gender} label="Gender"
+                        onChange={(e) => setStaffForm({ ...staffForm, gender: e.target.value })}>
+                        <MenuItem value="M">Male</MenuItem>
+                        <MenuItem value="F">Female</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>Marital Status</InputLabel>
+                      <Select value={staffForm.marital_status} label="Marital Status"
+                        onChange={(e) => setStaffForm({ ...staffForm, marital_status: e.target.value })}>
+                        <MenuItem value="SINGLE">Single</MenuItem>
+                        <MenuItem value="MARRIED">Married</MenuItem>
+                        <MenuItem value="DIVORCED">Divorced</MenuItem>
+                        <MenuItem value="WIDOWED">Widowed</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField fullWidth required label="State of Origin" value={staffForm.state_of_origin}
+                      onChange={(e) => setStaffForm({ ...staffForm, state_of_origin: e.target.value })} />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField fullWidth required label="LGA of Origin" value={staffForm.lga_of_origin}
+                      onChange={(e) => setStaffForm({ ...staffForm, lga_of_origin: e.target.value })} />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField fullWidth required label="Residential Address" multiline rows={2} value={staffForm.residential_address}
+                      onChange={(e) => setStaffForm({ ...staffForm, residential_address: e.target.value })} />
+                  </Grid>
+                </Grid>
+              )}
+
+              {/* Step 1: Employment Details */}
+              {activeStep === 1 && (
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth required>
+                      <InputLabel>Category</InputLabel>
+                      <Select value={staffForm.category} label="Category"
+                        onChange={(e) => setStaffForm({ ...staffForm, category: e.target.value })}>
+                        <MenuItem value="TEACHING">Teaching Staff</MenuItem>
+                        <MenuItem value="NON_TEACHING">Non-Teaching Staff</MenuItem>
+                        <MenuItem value="ADMINISTRATIVE">Administrative Staff</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth required>
+                      <InputLabel>Designation</InputLabel>
+                      <Select value={staffForm.designation} label="Designation"
+                        onChange={(e) => setStaffForm({ ...staffForm, designation: e.target.value })}>
+                        <MenuItem value="PRINCIPAL">Principal</MenuItem>
+                        <MenuItem value="VICE_PRINCIPAL">Vice Principal</MenuItem>
+                        <MenuItem value="HEAD_TEACHER">Head Teacher</MenuItem>
+                        <MenuItem value="SENIOR_TEACHER">Senior Teacher</MenuItem>
+                        <MenuItem value="TEACHER">Teacher</MenuItem>
+                        <MenuItem value="LIBRARIAN">Librarian</MenuItem>
+                        <MenuItem value="LABORATORY_ATTENDANT">Laboratory Attendant</MenuItem>
+                        <MenuItem value="BURSAR">Bursar</MenuItem>
+                        <MenuItem value="SECRETARY">Secretary</MenuItem>
+                        <MenuItem value="CLERK">Clerk</MenuItem>
+                        <MenuItem value="GARDENER">Gardener</MenuItem>
+                        <MenuItem value="SECURITY">Security</MenuItem>
+                        <MenuItem value="CLEANER">Cleaner</MenuItem>
+                        <MenuItem value="DRIVER">Driver</MenuItem>
+                        <MenuItem value="TECHNICIAN">Technician</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth required>
+                      <InputLabel>Employment Type</InputLabel>
+                      <Select value={staffForm.employment_type} label="Employment Type"
+                        onChange={(e) => setStaffForm({ ...staffForm, employment_type: e.target.value })}>
+                        <MenuItem value="PERMANENT">Permanent</MenuItem>
+                        <MenuItem value="CONTRACT">Contract</MenuItem>
+                        <MenuItem value="TEMPORARY">Temporary</MenuItem>
+                        <MenuItem value="VOLUNTEER">Volunteer</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth required>
+                      <InputLabel>Qualification</InputLabel>
+                      <Select value={staffForm.qualification} label="Qualification"
+                        onChange={(e) => setStaffForm({ ...staffForm, qualification: e.target.value })}>
+                        <MenuItem value="PhD">Doctorate</MenuItem>
+                        <MenuItem value="Masters">Masters Degree</MenuItem>
+                        <MenuItem value="Bachelors">Bachelors Degree</MenuItem>
+                        <MenuItem value="HND">Higher National Diploma</MenuItem>
+                        <MenuItem value="OND">Ordinary National Diploma</MenuItem>
+                        <MenuItem value="NCE">Nigeria Certificate in Education</MenuItem>
+                        <MenuItem value="SSCE">Senior School Certificate</MenuItem>
+                        <MenuItem value="OTHER">Other</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField fullWidth required label="Date Joined" type="date" InputLabelProps={{ shrink: true }}
+                      value={staffForm.date_joined}
+                      onChange={(e) => setStaffForm({ ...staffForm, date_joined: e.target.value })} />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField fullWidth label="Grade Level" value={staffForm.grade_level}
+                      onChange={(e) => setStaffForm({ ...staffForm, grade_level: e.target.value })} />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField fullWidth label="Step" type="number" value={staffForm.step}
+                      onChange={(e) => setStaffForm({ ...staffForm, step: parseInt(e.target.value) || 1 })} />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField fullWidth label="Salary" type="number" value={staffForm.salary}
+                      onChange={(e) => setStaffForm({ ...staffForm, salary: parseFloat(e.target.value) || 0 })} />
+                  </Grid>
+                </Grid>
+              )}
+
+              {/* Step 2: Financial & Contact */}
+              {activeStep === 2 && (
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <Divider sx={{ mb: 2 }} />
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Emergency Contact</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField fullWidth required label="Emergency Contact Name" value={staffForm.emergency_contact_name}
+                      onChange={(e) => setStaffForm({ ...staffForm, emergency_contact_name: e.target.value })} />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField fullWidth required label="Emergency Contact Phone" value={staffForm.emergency_contact_phone}
+                      onChange={(e) => setStaffForm({ ...staffForm, emergency_contact_phone: e.target.value })} />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Divider sx={{ my: 2 }} />
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Bank Details</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField fullWidth required label="Bank Name" value={staffForm.bank_name}
+                      onChange={(e) => setStaffForm({ ...staffForm, bank_name: e.target.value })} />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField fullWidth required label="Account Number" value={staffForm.bank_account_number}
+                      onChange={(e) => setStaffForm({ ...staffForm, bank_account_number: e.target.value })} />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField fullWidth required label="Account Name" value={staffForm.bank_account_name}
+                      onChange={(e) => setStaffForm({ ...staffForm, bank_account_name: e.target.value })} />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Divider sx={{ my: 2 }} />
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Other (Optional)</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField fullWidth label="Pension PIN" value={staffForm.pension_pin}
+                      onChange={(e) => setStaffForm({ ...staffForm, pension_pin: e.target.value })} />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField fullWidth label="Tax ID" value={staffForm.tax_id}
+                      onChange={(e) => setStaffForm({ ...staffForm, tax_id: e.target.value })} />
+                  </Grid>
+                </Grid>
+              )}
+            </Box>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenTeacherDialog(false)}>
-            {createdTeacher ? 'Close' : 'Cancel'}
+          <Button onClick={handleDialogClose}>
+            {createdStaff ? 'Close' : 'Cancel'}
           </Button>
-          {!createdTeacher && (
-            <Button
-              onClick={handleCreateTeacher}
-              variant="contained"
-              disabled={creatingTeacher || !teacherForm.first_name || !teacherForm.last_name || !teacherForm.email}
-              sx={{ bgcolor: '#388e3c', '&:hover': { bgcolor: '#2e7d32' } }}
-            >
-              {creatingTeacher ? 'Creating...' : 'Create Account'}
-            </Button>
+          {!createdStaff && (
+            <>
+              {activeStep > 0 && (
+                <Button onClick={() => setActiveStep(activeStep - 1)}>Back</Button>
+              )}
+              {activeStep < steps.length - 1 ? (
+                <Button variant="contained" onClick={() => setActiveStep(activeStep + 1)}
+                  disabled={!isStepValid(activeStep)}>
+                  Next
+                </Button>
+              ) : (
+                <Button variant="contained" onClick={handleCreateStaff}
+                  disabled={creatingStaff}
+                  sx={{ bgcolor: '#388e3c', '&:hover': { bgcolor: '#2e7d32' } }}>
+                  {creatingStaff ? 'Creating...' : 'Create Staff Account'}
+                </Button>
+              )}
+            </>
           )}
         </DialogActions>
       </Dialog>

@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand
 from apps.departments.models import Department, Unit
 
 
+# --- DEPARTMENTS (actual departments only) ---
 DEPARTMENTS = [
     {
         'name': 'Administration & Human Resources Department',
@@ -27,16 +28,6 @@ DEPARTMENTS = [
         ],
     },
     {
-        'name': 'Internal Audit Department',
-        'code': 'AUDIT',
-        'category': 'CORE',
-        'description': 'Provides independent assurance on internal controls, compliance, and governance processes.',
-        'units': [
-            {'name': 'Compliance Audit Unit', 'code': 'AUP_CMP', 'description': 'Audits compliance with policies, laws, and regulations.'},
-            {'name': 'Operational Audit Unit', 'code': 'AUP_OPS', 'description': 'Reviews operational efficiency and effectiveness of departmental processes.'},
-        ],
-    },
-    {
         'name': 'Quality Assurance Department',
         'code': 'QA',
         'category': 'CORE',
@@ -59,49 +50,6 @@ DEPARTMENTS = [
         ],
     },
     {
-        'name': 'Education Management Information System Department',
-        'code': 'EMIS',
-        'category': 'CORE',
-        'description': 'Manages data collection, analysis, and reporting for evidence-based educational planning.',
-        'units': [
-            {'name': 'Data Collection Unit', 'code': 'EMP_DCL', 'description': 'Collects and validates school data from all institutions.'},
-            {'name': 'Analytics & Reporting Unit', 'code': 'EMP_ANR', 'description': 'Analyses educational data and produces reports for decision-making.'},
-            {'name': 'ICT Support Unit', 'code': 'EMP_ICT', 'description': 'Provides technical support for ICT infrastructure and digital tools.'},
-        ],
-    },
-    {
-        'name': 'Planning, Research & Statistics Department',
-        'code': 'PLAN',
-        'category': 'CORE',
-        'description': 'Drives strategic planning, educational research, and statistical analysis for the district.',
-        'units': [
-            {'name': 'Strategic Planning Unit', 'code': 'PLP_STP', 'description': 'Develops and monitors the district strategic plan.'},
-            {'name': 'Research Unit', 'code': 'PLP_RES', 'description': 'Conducts educational research and evaluation studies.'},
-            {'name': 'Statistics Unit', 'code': 'PLP_STA', 'description': 'Manages statistical data and demographic analysis.'},
-            {'name': 'Planner Unit', 'code': 'PLP_PLN', 'description': 'Coordinates annual operational planning, school development plans, and capital projects.'},
-        ],
-    },
-    {
-        'name': 'Procurement Department',
-        'code': 'PROC',
-        'category': 'CORE',
-        'description': 'Manages procurement processes, vendor relations, and supply chain in line with due process requirements.',
-        'units': [
-            {'name': 'Tender & Contracts Unit', 'code': 'PRP_TND', 'description': 'Handles tendering, bidding, and contract management.'},
-            {'name': 'Supply Chain Unit', 'code': 'PRP_SCP', 'description': 'Manages inventory, logistics, and distribution of materials.'},
-        ],
-    },
-    {
-        'name': 'Public Affairs Department',
-        'code': 'PA',
-        'category': 'CORE',
-        'description': 'Manages public relations, media, communications, and community engagement for the district.',
-        'units': [
-            {'name': 'Media & Publicity Unit', 'code': 'PAP_MED', 'description': 'Handles press releases, media relations, and publicity.'},
-            {'name': 'Community Engagement Unit', 'code': 'PAP_CEG', 'description': 'Coordinates community outreach and stakeholder engagement.'},
-        ],
-    },
-    {
         'name': 'Schools Administration Department',
         'code': 'SA',
         'category': 'CORE',
@@ -110,16 +58,6 @@ DEPARTMENTS = [
             {'name': 'School Inspection Unit', 'code': 'SAP_INS', 'description': 'Conducts routine inspections and monitoring of schools.'},
             {'name': 'Enrolment & Placement Unit', 'code': 'SAP_ENP', 'description': 'Manages student enrolment, transfers, and placement.'},
             {'name': 'School Records Unit', 'code': 'SAP_RCR', 'description': 'Maintains school records, certificates, and documentation.'},
-        ],
-    },
-    {
-        'name': 'French Unit',
-        'code': 'FRENCH',
-        'category': 'SUPPORT',
-        'description': 'Coordinates French language instruction, examinations, and francophone educational partnerships.',
-        'units': [
-            {'name': 'French Instruction Unit', 'code': 'FRP_INS', 'description': 'Manages French language teaching and teacher deployment.'},
-            {'name': 'French Examinations Unit', 'code': 'FRP_EXM', 'description': 'Coordinates French language examinations and certifications.'},
         ],
     },
     {
@@ -153,11 +91,51 @@ DEPARTMENTS = [
             {'name': 'School Improvement Unit', 'code': 'SSP_IMP', 'description': 'Develops and monitors school improvement plans.'},
         ],
     },
+    {
+        'name': 'French Language Department',
+        'code': 'FRENCH',
+        'category': 'SUPPORT',
+        'description': 'Coordinates French language instruction, examinations, and francophone educational partnerships.',
+        'units': [
+            {'name': 'French Instruction Unit', 'code': 'FRP_INS', 'description': 'Manages French language teaching and teacher deployment.'},
+            {'name': 'French Examinations Unit', 'code': 'FRP_EXM', 'description': 'Coordinates French language examinations and certifications.'},
+        ],
+    },
+]
+
+
+# --- MAJOR UNITS (District Headquarters level, not under any department) ---
+MAJOR_UNITS = [
+    {
+        'name': 'Internal Audit Unit',
+        'code': 'AUDIT',
+        'description': 'Provides independent assurance on internal controls, compliance, and governance processes across the district.',
+    },
+    {
+        'name': 'Education Management Information System (EMIS) Unit',
+        'code': 'EMIS',
+        'description': 'Manages data collection, analysis, and reporting for evidence-based educational planning and decision-making.',
+    },
+    {
+        'name': 'Planning, Research & Statistics Unit',
+        'code': 'PLAN',
+        'description': 'Drives strategic planning, educational research, and statistical analysis for the district.',
+    },
+    {
+        'name': 'Procurement Unit',
+        'code': 'PROC',
+        'description': 'Manages procurement processes, vendor relations, and supply chain in line with due process requirements.',
+    },
+    {
+        'name': 'Public Affairs Unit',
+        'code': 'PA',
+        'description': 'Manages public relations, media, communications, and community engagement for the district.',
+    },
 ]
 
 
 class Command(BaseCommand):
-    help = 'Seed Education District IV departments and their units'
+    help = 'Seed Education District IV departments, major units, and their sub-units'
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.NOTICE('Seeding departments...'))
@@ -182,9 +160,8 @@ class Command(BaseCommand):
 
             for unit_data in units_data:
                 unit, u_created = Unit.objects.get_or_create(
-                    department=dept,
                     code=unit_data['code'],
-                    defaults=unit_data,
+                    defaults={**unit_data, 'department': dept},
                 )
                 if u_created:
                     unit_created += 1
@@ -192,6 +169,30 @@ class Command(BaseCommand):
                     unit_skipped += 1
 
         self.stdout.write(self.style.SUCCESS(
-            f'\nDone! Departments: {dept_created} created, {dept_skipped} skipped | '
-            f'Units: {unit_created} created, {unit_skipped} skipped'
+            f'  Departments: {dept_created} created, {dept_skipped} skipped | '
+            f'Sub-units: {unit_created} created, {unit_skipped} skipped'
         ))
+
+        # --- Major Units (District HQ level) ---
+        self.stdout.write(self.style.NOTICE('\nSeeding major district units...'))
+
+        major_created = 0
+        major_skipped = 0
+
+        for unit_data in MAJOR_UNITS:
+            unit, created = Unit.objects.get_or_create(
+                code=unit_data['code'],
+                defaults={**unit_data, 'department': None},
+            )
+            if created:
+                major_created += 1
+                self.stdout.write(f'  + Major Unit: {unit.name}')
+            else:
+                major_skipped += 1
+                self.stdout.write(f'  ~ Exists: {unit.name}')
+
+        self.stdout.write(self.style.SUCCESS(
+            f'  Major Units: {major_created} created, {major_skipped} skipped'
+        ))
+
+        self.stdout.write(self.style.SUCCESS('\nAll seeding complete!'))

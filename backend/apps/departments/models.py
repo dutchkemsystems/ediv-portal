@@ -43,9 +43,15 @@ class Department(models.Model):
 
 
 class Unit(models.Model):
-    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='units')
+    department = models.ForeignKey(
+        Department,
+        on_delete=models.CASCADE,
+        related_name='units',
+        null=True,
+        blank=True,
+    )
     name = models.CharField(max_length=200)
-    code = models.CharField(max_length=20)
+    code = models.CharField(max_length=20, unique=True)
     description = models.TextField(blank=True)
     head = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -57,10 +63,12 @@ class Unit(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
-        unique_together = ['department', 'code']
+        verbose_name_plural = 'units'
         ordering = ['name']
-    
+
     def __str__(self):
-        return f"{self.department.name} - {self.name}"
+        if self.department:
+            return f"{self.department.name} - {self.name}"
+        return self.name

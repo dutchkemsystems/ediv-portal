@@ -157,28 +157,30 @@ class InputSanitizer:
 
 
 class AuditLogger:
-    """Security audit logging."""
-    
+    """Security audit logging — persists to database via AuditLog model."""
+
     @staticmethod
-    def log_login(user, ip_address, success):
-        """Log login attempt."""
+    def log_login(user, ip_address, success, user_agent=''):
+        """Log login attempt to database."""
+        from apps.audit.models import AuditLog, AuditAction
         from apps.communication.models import UserNotification
-        
-        log_entry = {
-            'timestamp': datetime.now().isoformat(),
-            'user_id': user.id,
-            'email': user.email,
-            'ip_address': ip_address,
-            'success': success,
-            'action': 'LOGIN'
-        }
-        
-        # Store in cache for batch processing
-        cache_key = "ediv:audit:login"
-        logs = cache.get(cache_key, [])
-        logs.append(log_entry)
-        cache.set(cache_key, logs, timeout=3600)
-        
+
+        action = AuditAction.LOGIN if success else AuditAction.LOGIN
+        description = f"{'Successful' if success else 'Failed'} login from {ip_address}"
+
+        AuditLog.objects.create(
+            user=user,
+            action=action,
+            module='auth',
+            object_type='User',
+            object_id=str(user.id),
+            object_repr=user.email,
+            description=description,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            new_value={'success': success},
+        )
+
         # Create notification for failed attempts
         if not success:
             UserNotification.objects.create(
@@ -187,38 +189,41 @@ class AuditLogger:
                 message=f'Failed login from IP: {ip_address}',
                 notification_type='WARNING'
             )
-    
+
     @staticmethod
-    def log_action(user, action, resource_type, resource_id, details=None):
-        """Log user action."""
-        log_entry = {
-            'timestamp': datetime.now().isoformat(),
-            'user_id': user.id,
-            'email': user.email,
-            'action': action,
-            'resource_type': resource_type,
-            'resource_id': resource_id,
-            'details': details
-        }
-        
-        cache_key = "ediv:audit:actions"
-        logs = cache.get(cache_key, [])
-        logs.append(log_entry)
-        cache.set(cache_key, logs, timeout=3600)
-    
+    def log_action(user, action, resource_type, resource_id, details=None,
+                   ip_address=None, old_value=None, new_value=None, description=''):
+        """Log arbitrary user action to database."""
+        from apps.audit.models import AuditLog
+
+        AuditLog.objects.create(
+            user=user,
+            action=action,
+            module=resource_type,
+            object_type=resource_type,
+            object_id=str(resource_id) if resource_id else '',
+            object_repr=description or f"{action} on {resource_type}#{resource_id}",
+            description=description,
+            ip_address=ip_address,
+            old_value=old_value,
+            new_value=new_value,
+        )
+
     @staticmethod
-    def get_audit_logs(user_id=None, action=None, limit=100):
-        """Get audit logs."""
-        cache_key = "ediv:audit:actions"
-        logs = cache.get(cache_key, [])
-        
+    def get_audit_logs(user_id=None, action=None, module=None, limit=100):
+        """Get audit logs from database."""
+        from apps.audit.models import AuditLog
+
+        qs = AuditLog.objects.select_related('user').all()
+
         if user_id:
-            logs = [l for l in logs if l.get('user_id') == user_id]
-        
+            qs = qs.filter(user_id=user_id)
         if action:
-            logs = [l for l in logs if l.get('action') == action]
-        
-        return logs[-limit:]
+            qs = qs.filter(action=action)
+        if module:
+            qs = qs.filter(module=module)
+
+        return list(qs.order_by('-created_at')[:limit])
 
 
 class SessionManager:

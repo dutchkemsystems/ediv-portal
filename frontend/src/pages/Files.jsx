@@ -7,7 +7,6 @@ import {
   Card,
   CardContent,
   Chip,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -17,24 +16,15 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
 } from '@mui/material'
 import {
   Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Visibility as ViewIcon,
   FolderOpen as FileIcon,
-  History as HistoryIcon,
   MoveUp as MoveIcon,
 } from '@mui/icons-material'
 import DataTable from '../components/common/DataTable'
 import StatCard from '../components/common/StatCard'
 import Loading from '../components/common/Loading'
-import ConfirmDialog from '../components/common/ConfirmDialog'
 import api from '../api/client'
 import { notify } from '../utils/notifications'
 
@@ -43,17 +33,20 @@ function Files() {
   const [movements, setMovements] = useState([])
   const [loading, setLoading] = useState(true)
   const [openDialog, setOpenDialog] = useState(false)
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
   const [openMovementDialog, setOpenMovementDialog] = useState(false)
   const [selectedFile, setSelectedFile] = useState(null)
   const [formData, setFormData] = useState({
-    file_number: '',
     title: '',
-    category: '',
+    file_type: 'CORRESPONDENCE',
     status: 'ACTIVE',
-    current_holder: '',
-    created_by: '',
-    priority: 'MEDIUM',
+    classification: 'INTERNAL',
+    priority: 'NORMAL',
+  })
+  const [moveData, setMoveData] = useState({
+    to_holder_id: '',
+    action: 'Forwarded',
+    remarks: '',
+    expected_return_date: '',
   })
 
   useEffect(() => {
@@ -84,62 +77,67 @@ function Files() {
   const handleAdd = () => {
     setSelectedFile(null)
     setFormData({
-      file_number: '',
       title: '',
-      category: '',
+      file_type: 'CORRESPONDENCE',
       status: 'ACTIVE',
-      current_holder: '',
-      created_by: '',
-      priority: 'MEDIUM',
+      classification: 'INTERNAL',
+      priority: 'NORMAL',
     })
     setOpenDialog(true)
   }
 
-  const handleEdit = (file) => {
+  const handleMove = (file) => {
     setSelectedFile(file)
-    setFormData({
-      file_number: file.file_number,
-      title: file.title,
-      category: file.category,
-      status: file.status,
-      current_holder: file.current_holder,
-      created_by: file.created_by,
-      priority: file.priority || 'MEDIUM',
-    })
-    setOpenDialog(true)
-  }
-
-  const handleDelete = (file) => {
-    setSelectedFile(file)
-    setOpenDeleteDialog(true)
-  }
-
-  const handleViewMovement = (file) => {
-    setSelectedFile(file)
+    setMoveData({ to_holder_id: '', action: 'Forwarded', remarks: '', expected_return_date: '' })
     setOpenMovementDialog(true)
+  }
+
+  const handleReceive = async (file) => {
+    try {
+      await api.post(`/files/files/${file.id}/receive/`)
+      notify.success('File received successfully')
+      fetchFiles()
+      fetchMovements()
+    } catch (error) {
+      notify.error(error.response?.data?.error || 'Failed to receive file')
+    }
+  }
+
+  const handleClose = async (file) => {
+    try {
+      await api.post(`/files/files/${file.id}/close/`)
+      notify.success('File archived successfully')
+      fetchFiles()
+    } catch (error) {
+      notify.error(error.response?.data?.error || 'Failed to close file')
+    }
+  }
+
+  const handleSubmitMove = async () => {
+    try {
+      await api.post(`/files/files/${selectedFile.id}/move/`, {
+        to_holder_id: parseInt(moveData.to_holder_id),
+        action: moveData.action,
+        remarks: moveData.remarks,
+        expected_return_date: moveData.expected_return_date || undefined,
+      })
+      notify.success('File moved successfully')
+      setOpenMovementDialog(false)
+      fetchFiles()
+      fetchMovements()
+    } catch (error) {
+      notify.error(error.response?.data?.error || 'Failed to move file')
+    }
   }
 
   const handleSubmit = async () => {
     try {
-      if (selectedFile) {
-        await api.put(`/files/files/${selectedFile.id}/`, formData)
-      } else {
-        await api.post('/files/files/', formData)
-      }
+      await api.post('/files/files/', formData)
+      notify.success('File created successfully')
       setOpenDialog(false)
       fetchFiles()
     } catch (error) {
-      console.error('Error saving file:', error)
-    }
-  }
-
-  const handleConfirmDelete = async () => {
-    try {
-      await api.delete(`/files/files/${selectedFile.id}/`)
-      setOpenDeleteDialog(false)
-      fetchFiles()
-    } catch (error) {
-      console.error('Error deleting file:', error)
+      notify.error(error.response?.data?.detail || 'Failed to create file')
     }
   }
 
@@ -147,6 +145,7 @@ function Files() {
     switch (status) {
       case 'ACTIVE': return 'success'
       case 'PENDING': return 'warning'
+      case 'IN_TRANSIT': return 'info'
       case 'ARCHIVED': return 'default'
       case 'CLOSED': return 'error'
       default: return 'default'
@@ -156,8 +155,9 @@ function Files() {
   const getPriorityColor = (priority) => {
     switch (priority) {
       case 'HIGH': return 'error'
-      case 'MEDIUM': return 'warning'
-      case 'LOW': return 'info'
+      case 'URGENT': return 'error'
+      case 'NORMAL': return 'info'
+      case 'LOW': return 'default'
       default: return 'default'
     }
   }
@@ -169,13 +169,14 @@ function Files() {
   const columns = [
     { id: 'file_number', label: 'File Number' },
     { id: 'title', label: 'Title' },
-    { id: 'category', label: 'Category' },
+    { id: 'file_type', label: 'Type' },
     { id: 'status', label: 'Status', render: (row) => (
       <Chip label={row.status} size="small" color={getStatusColor(row.status)} />
     )},
-    { id: 'current_holder', label: 'Current Holder' },
+    { id: 'current_holder_name', label: 'Current Holder' },
+    { id: 'classification', label: 'Classification' },
     { id: 'priority', label: 'Priority', render: (row) => (
-      <Chip label={row.priority || 'MEDIUM'} size="small" color={getPriorityColor(row.priority)} />
+      <Chip label={row.priority || 'NORMAL'} size="small" color={getPriorityColor(row.priority)} />
     )},
   ]
 
@@ -237,70 +238,59 @@ function Files() {
       <DataTable
         columns={columns}
         data={files}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
+        onEdit={handleMove}
+        onDelete={handleClose}
         onView={handleViewMovement}
       />
 
-      {/* Add/Edit Dialog */}
+      {/* Create File Dialog */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>{selectedFile ? 'Edit File' : 'New File'}</DialogTitle>
+        <DialogTitle>New File</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="File Number"
-                value={formData.file_number}
-                onChange={(e) => setFormData({ ...formData, file_number: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
+                required
                 label="Title"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Category"
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
+                <InputLabel>File Type</InputLabel>
                 <Select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  label="Status"
+                  value={formData.file_type}
+                  onChange={(e) => setFormData({ ...formData, file_type: e.target.value })}
+                  label="File Type"
                 >
-                  <MenuItem value="ACTIVE">Active</MenuItem>
-                  <MenuItem value="PENDING">Pending</MenuItem>
-                  <MenuItem value="ARCHIVED">Archived</MenuItem>
-                  <MenuItem value="CLOSED">Closed</MenuItem>
+                  <MenuItem value="CORRESPONDENCE">Correspondence</MenuItem>
+                  <MenuItem value="MEMO">Memo</MenuItem>
+                  <MenuItem value="CIRCULAR">Circular</MenuItem>
+                  <MenuItem value="REPORT">Report</MenuItem>
+                  <MenuItem value="MINUTES">Minutes</MenuItem>
+                  <MenuItem value="POLICY">Policy</MenuItem>
+                  <MenuItem value="CONTRACT">Contract</MenuItem>
+                  <MenuItem value="INVOICE">Invoice</MenuItem>
+                  <MenuItem value="OTHER">Other</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Current Holder"
-                value={formData.current_holder}
-                onChange={(e) => setFormData({ ...formData, current_holder: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Created By"
-                value={formData.created_by}
-                onChange={(e) => setFormData({ ...formData, created_by: e.target.value })}
-              />
+              <FormControl fullWidth>
+                <InputLabel>Classification</InputLabel>
+                <Select
+                  value={formData.classification}
+                  onChange={(e) => setFormData({ ...formData, classification: e.target.value })}
+                  label="Classification"
+                >
+                  <MenuItem value="PUBLIC">Public</MenuItem>
+                  <MenuItem value="INTERNAL">Internal</MenuItem>
+                  <MenuItem value="CONFIDENTIAL">Confidential</MenuItem>
+                  <MenuItem value="RESTRICTED">Restricted</MenuItem>
+                </Select>
+              </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
@@ -310,9 +300,10 @@ function Files() {
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
                   label="Priority"
                 >
-                  <MenuItem value="HIGH">High</MenuItem>
-                  <MenuItem value="MEDIUM">Medium</MenuItem>
                   <MenuItem value="LOW">Low</MenuItem>
+                  <MenuItem value="NORMAL">Normal</MenuItem>
+                  <MenuItem value="HIGH">High</MenuItem>
+                  <MenuItem value="URGENT">Urgent</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -323,57 +314,82 @@ function Files() {
           <Button
             onClick={handleSubmit}
             variant="contained"
+            disabled={!formData.title}
             sx={{ bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1642' } }}
           >
-            {selectedFile ? 'Update' : 'Create'}
+            Create
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Movement History Dialog */}
+      {/* Move File Dialog */}
       <Dialog open={openMovementDialog} onClose={() => setOpenMovementDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <HistoryIcon />
-          File Movement History - {selectedFile?.file_number}
+          <MoveIcon />
+          Move File — {selectedFile?.file_number}
         </DialogTitle>
         <DialogContent>
-          {selectedFile && (
-            <List>
-              {getFileMovements(selectedFile.id).length === 0 ? (
-                <ListItem>
-                  <ListItemText primary="No movement history recorded" />
-                </ListItem>
-              ) : (
-                getFileMovements(selectedFile.id).map((movement, index) => (
-                  <ListItem key={movement.id || index} divider>
-                    <ListItemIcon>
-                      <MoveIcon color="primary" />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={`${movement.from_holder || 'Origin'} → ${movement.to_holder || 'Destination'}`}
-                      secondary={movement.date || movement.created_at || 'No date'}
-                    />
-                  </ListItem>
-                ))
-              )}
-            </List>
-          )}
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                required
+                type="number"
+                label="Recipient User ID"
+                value={moveData.to_holder_id}
+                onChange={(e) => setMoveData({ ...moveData, to_holder_id: e.target.value })}
+                helperText="Enter the user ID of the person to move this file to"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Action</InputLabel>
+                <Select
+                  value={moveData.action}
+                  onChange={(e) => setMoveData({ ...moveData, action: e.target.value })}
+                  label="Action"
+                >
+                  <MenuItem value="Forwarded">Forwarded</MenuItem>
+                  <MenuItem value="Returned">Returned</MenuItem>
+                  <MenuItem value="Reviewed">Reviewed</MenuItem>
+                  <MenuItem value="Approved">Approved</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Remarks"
+                multiline
+                rows={2}
+                value={moveData.remarks}
+                onChange={(e) => setMoveData({ ...moveData, remarks: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                type="date"
+                label="Expected Return Date"
+                value={moveData.expected_return_date}
+                onChange={(e) => setMoveData({ ...moveData, expected_return_date: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+          </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenMovementDialog(false)}>Close</Button>
+          <Button onClick={() => setOpenMovementDialog(false)}>Cancel</Button>
+          <Button
+            onClick={handleSubmitMove}
+            variant="contained"
+            disabled={!moveData.to_holder_id}
+            sx={{ bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1642' } }}
+          >
+            Move File
+          </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
-        open={openDeleteDialog}
-        title="Delete File"
-        message={`Are you sure you want to delete file ${selectedFile?.file_number}? This action cannot be undone.`}
-        onConfirm={handleConfirmDelete}
-        onCancel={() => setOpenDeleteDialog(false)}
-        confirmText="Delete"
-        severity="error"
-      />
     </Box>
   )
 }
