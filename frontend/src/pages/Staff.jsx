@@ -14,10 +14,12 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Alert,
 } from '@mui/material'
 import {
   Add as AddIcon,
   People as PeopleIcon,
+  PersonAdd as PersonAddIcon,
 } from '@mui/icons-material'
 import DataTable from '../components/common/DataTable'
 import StatCard from '../components/common/StatCard'
@@ -33,9 +35,32 @@ function Staff() {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
   const [selectedStaff, setSelectedStaff] = useState(null)
 
+  const [currentUser, setCurrentUser] = useState(null)
+  const [openTeacherDialog, setOpenTeacherDialog] = useState(false)
+  const [teacherForm, setTeacherForm] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone_number: '',
+  })
+  const [createdTeacher, setCreatedTeacher] = useState(null)
+  const [creatingTeacher, setCreatingTeacher] = useState(false)
+
+  const canCreateTeacher = currentUser?.role === 'PRI' || currentUser?.role === 'VP'
+
   useEffect(() => {
     fetchStaff()
+    fetchCurrentUser()
   }, [])
+
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await api.get('/users/users/me/')
+      setCurrentUser(response.data)
+    } catch (error) {
+      console.error('Failed to fetch current user')
+    }
+  }
 
   const fetchStaff = async () => {
     try {
@@ -56,6 +81,22 @@ function Staff() {
       fetchStaff()
     } catch (error) {
       notify.error('Failed to delete staff')
+    }
+  }
+
+  const handleCreateTeacher = async () => {
+    setCreatingTeacher(true)
+    try {
+      const response = await api.post('/users/users/create-teacher/', teacherForm)
+      setCreatedTeacher(response.data.teacher)
+      notify.success('Teacher account created successfully')
+      setTeacherForm({ first_name: '', last_name: '', email: '', phone_number: '' })
+      fetchStaff()
+    } catch (error) {
+      const msg = error.response?.data?.error || error.response?.data?.email?.[0] || 'Failed to create teacher'
+      notify.error(msg)
+    } finally {
+      setCreatingTeacher(false)
     }
   }
 
@@ -81,13 +122,25 @@ function Staff() {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">Staff Management</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          sx={{ bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1642' } }}
-        >
-          Add Staff
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          {canCreateTeacher && (
+            <Button
+              variant="contained"
+              startIcon={<PersonAddIcon />}
+              onClick={() => { setCreatedTeacher(null); setOpenTeacherDialog(true) }}
+              sx={{ bgcolor: '#388e3c', '&:hover': { bgcolor: '#2e7d32' } }}
+            >
+              Create Teacher Account
+            </Button>
+          )}
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            sx={{ bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1642' } }}
+          >
+            Add Staff
+          </Button>
+        </Box>
       </Box>
 
       {/* Stats */}
@@ -133,6 +186,78 @@ function Staff() {
         onEdit={(s) => console.log('Edit:', s)}
         onDelete={(s) => { setSelectedStaff(s); setOpenDeleteDialog(true); }}
       />
+
+      {/* Create Teacher Dialog */}
+      <Dialog open={openTeacherDialog} onClose={() => setOpenTeacherDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <PersonAddIcon /> Create Teacher Account
+        </DialogTitle>
+        <DialogContent>
+          {createdTeacher ? (
+            <Alert severity="success" sx={{ mt: 2 }}>
+              <Typography variant="subtitle1" fontWeight="bold">Teacher Account Created</Typography>
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                <strong>Name:</strong> {createdTeacher.first_name} {createdTeacher.last_name}<br />
+                <strong>Email:</strong> {createdTeacher.email}<br />
+                <strong>School:</strong> {createdTeacher.school}<br />
+                <strong>Temporary Password:</strong> <code>{createdTeacher.temp_password}</code><br /><br />
+                Please share these credentials securely with the teacher. They should change their password on first login.
+              </Typography>
+            </Alert>
+          ) : (
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="First Name"
+                  value={teacherForm.first_name}
+                  onChange={(e) => setTeacherForm({ ...teacherForm, first_name: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Last Name"
+                  value={teacherForm.last_name}
+                  onChange={(e) => setTeacherForm({ ...teacherForm, last_name: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Email"
+                  type="email"
+                  value={teacherForm.email}
+                  onChange={(e) => setTeacherForm({ ...teacherForm, email: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Phone Number"
+                  value={teacherForm.phone_number}
+                  onChange={(e) => setTeacherForm({ ...teacherForm, phone_number: e.target.value })}
+                />
+              </Grid>
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenTeacherDialog(false)}>
+            {createdTeacher ? 'Close' : 'Cancel'}
+          </Button>
+          {!createdTeacher && (
+            <Button
+              onClick={handleCreateTeacher}
+              variant="contained"
+              disabled={creatingTeacher || !teacherForm.first_name || !teacherForm.last_name || !teacherForm.email}
+              sx={{ bgcolor: '#388e3c', '&:hover': { bgcolor: '#2e7d32' } }}
+            >
+              {creatingTeacher ? 'Creating...' : 'Create Account'}
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog

@@ -1,3 +1,4 @@
+import os
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 
@@ -8,8 +9,10 @@ class Command(BaseCommand):
     help = 'Ensure admin user exists for login testing'
 
     def handle(self, *args, **options):
+        admin_password = os.environ.get('ADMIN_PASSWORD', 'Admin@12345678')
+        tg_password = os.environ.get('TG_PASSWORD', 'TutorGen@12345')
+
         email = 'admin@ediv.gov.ng'
-        password = 'Admin@12345678'
 
         user, created = User.objects.get_or_create(
             email=email,
@@ -22,7 +25,7 @@ class Command(BaseCommand):
                 'is_superuser': True,
             },
         )
-        user.set_password(password)
+        user.set_password(admin_password)
         user.is_active = True
         user.is_staff = True
         user.is_superuser = True
@@ -46,7 +49,7 @@ class Command(BaseCommand):
                 'is_staff': True,
             },
         )
-        tg.set_password('TutorGen@12345')
+        tg.set_password(tg_password)
         tg.is_active = True
         tg.save()
 

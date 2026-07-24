@@ -46,11 +46,12 @@ class StudentFeeModelTest(TestCase):
             role='STD'
         )
         from apps.students.models import Student
+        from datetime import date
         self.student = Student.objects.create(
             user=self.user,
             admission_number='ADM001',
             school=self.school,
-            date_of_birth='2005-01-15',
+            date_of_birth=date(2005, 1, 15),
             gender='F',
             state_of_origin='Lagos',
             lga_of_origin='Apapa',
@@ -59,7 +60,7 @@ class StudentFeeModelTest(TestCase):
             parent_phone='08012345678',
             emergency_contact_name='John Smith',
             emergency_contact_phone='08012345678',
-            admission_date='2020-09-15'
+            admission_date=date(2020, 9, 15)
         )
         self.fee_structure = FeeStructure.objects.create(
             school=self.school,

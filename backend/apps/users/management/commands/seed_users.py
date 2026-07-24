@@ -1,9 +1,19 @@
+import os
 import random
 from datetime import date
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
+
+# Passwords loaded from environment variables with fallback defaults for development only.
+# In production, set these via Render env vars or .env file.
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'Admin@12345678')
+HEAD_OFFICE_PASSWORD = os.environ.get('HEAD_OFFICE_PASSWORD', 'DeptHead@12345')
+TG_PASSWORD = os.environ.get('TG_PASSWORD', 'TutorGen@12345')
+SCHOOL_STAFF_PASSWORD = os.environ.get('SCHOOL_STAFF_PASSWORD', 'SchoolStaff@12345')
+TEACHER_PASSWORD = os.environ.get('TEACHER_PASSWORD', 'Teacher@12345')
+STUDENT_PASSWORD = os.environ.get('STUDENT_PASSWORD', 'Student@12345')
 
 
 # ---------------------------------------------------------------------------
@@ -16,7 +26,7 @@ ADMIN_USERS = [
         'first_name': 'System',
         'last_name': 'Administrator',
         'role': 'SYSADMIN',
-        'password': 'Admin@12345678',
+        'password': ADMIN_PASSWORD,
         'phone_number': '+2348010000001',
         'is_staff': True,
         'is_superuser': True,
@@ -26,7 +36,7 @@ ADMIN_USERS = [
         'first_name': 'Abimbola',
         'last_name': 'Adesanya',
         'role': 'TG',
-        'password': 'TutorGen@12345',
+        'password': TG_PASSWORD,
         'phone_number': '+2348010000002',
         'is_staff': True,
         'is_superuser': False,
@@ -36,7 +46,7 @@ ADMIN_USERS = [
         'first_name': 'Funmilayo',
         'last_name': 'Ogundimu',
         'role': 'HR',
-        'password': 'DeptHead@12345',
+        'password': HEAD_OFFICE_PASSWORD,
         'phone_number': '+2348010000003',
         'is_staff': True,
         'is_superuser': False,
@@ -46,7 +56,7 @@ ADMIN_USERS = [
         'first_name': 'Adewale',
         'last_name': 'Bakare',
         'role': 'FIN',
-        'password': 'DeptHead@12345',
+        'password': HEAD_OFFICE_PASSWORD,
         'phone_number': '+2348010000004',
         'is_staff': True,
         'is_superuser': False,
@@ -158,7 +168,7 @@ class Command(BaseCommand):
                 },
             )
             if created:
-                user.set_password('SchoolStaff@12345')
+                user.set_password(SCHOOL_STAFF_PASSWORD)
                 user.save()
                 school.principal = user
                 school.save()
@@ -183,7 +193,7 @@ class Command(BaseCommand):
                 },
             )
             if created2:
-                user2.set_password('SchoolStaff@12345')
+                user2.set_password(SCHOOL_STAFF_PASSWORD)
                 user2.save()
                 school.vice_principal = user2
                 school.save()
@@ -210,7 +220,7 @@ class Command(BaseCommand):
                     },
                 )
                 if created_t:
-                    user_t.set_password('Teacher@12345')
+                    user_t.set_password(TEACHER_PASSWORD)
                     user_t.save()
                     staff_created += 1
                 else:
@@ -247,7 +257,7 @@ class Command(BaseCommand):
                         },
                     )
                     if created_s:
-                        user_s.set_password('Student@12345')
+                        user_s.set_password(STUDENT_PASSWORD)
                         user_s.save()
                         student_created += 1
                     else:

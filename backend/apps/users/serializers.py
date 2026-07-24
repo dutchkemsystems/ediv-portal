@@ -115,6 +115,28 @@ class PrivilegeListSerializer(serializers.ModelSerializer):
         return dict(Module.choices).get(obj.module, obj.module)
 
 
+class PrincipalCreateTeacherSerializer(serializers.Serializer):
+    first_name = serializers.CharField(max_length=150)
+    last_name = serializers.CharField(max_length=150)
+    email = serializers.EmailField()
+    phone_number = serializers.CharField(max_length=20, required=False, default='')
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError('A user with this email already exists.')
+        return value
+
+    def validate(self, attrs):
+        request = self.context['request']
+        user = request.user
+        from apps.schools.models import School
+        school = School.objects.filter(principal=user).first() or School.objects.filter(vice_principal=user).first()
+        if not school:
+            raise serializers.ValidationError({'school': 'You are not assigned to any school.'})
+        attrs['school'] = school
+        return attrs
+
+
 class RolePrivilegeSerializer(serializers.ModelSerializer):
     role_display = serializers.SerializerMethodField()
     privileges = serializers.SerializerMethodField()

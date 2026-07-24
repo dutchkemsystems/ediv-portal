@@ -46,7 +46,7 @@ class FeeStructure(models.Model):
         ]
     
     def __str__(self):
-        return f"{self.school.name} - {self.name} ({self.amount})"
+        return f"{self.school.name} - {self.name} ({self.amount:.2f})"
 
 
 class PaymentStatus(models.TextChoices):

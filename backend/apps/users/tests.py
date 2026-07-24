@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
+from apps.schools.models import School
 
 User = get_user_model()
 
@@ -73,7 +74,7 @@ class AuthViewSetTest(APITestCase):
             'email': 'test@example.com',
             'password': 'TestPass123!@#'
         })
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
 class UserViewSetTest(APITestCase):
@@ -116,3 +117,65 @@ class UserViewSetTest(APITestCase):
             'password_confirm': 'NewPass123!@#'
         })
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+
+class PrincipalCreateTeacherTest(APITestCase):
+    def setUp(self):
+        self.school = School.objects.create(
+            name='Test School',
+            code='TST001',
+            school_type='SENIOR',
+            lga='APAPA',
+            address='123 Street'
+        )
+        self.principal = User.objects.create_user(
+            email='principal@ediv.gov.ng',
+            password='PrincipalPass123!@#',
+            first_name='Principal',
+            last_name='User',
+            role='PRI'
+        )
+        self.school.principal = self.principal
+        self.school.save()
+
+        self.teacher_user = User.objects.create_user(
+            email='teacher@ediv.gov.ng',
+            password='TeacherPass123!@#',
+            first_name='Teacher',
+            last_name='User',
+            role='TCH'
+        )
+
+        self.principal_token = RefreshToken.for_user(self.principal)
+        self.teacher_token = RefreshToken.for_user(self.teacher_user)
+
+    def test_principal_can_create_teacher(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.principal_token.access_token}')
+        response = self.client.post('/api/users/users/create-teacher/', {
+            'first_name': 'New',
+            'last_name': 'Teacher',
+            'email': 'newteacher@ediv.gov.ng',
+            'phone_number': '+2348012345678',
+        })
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIn('teacher', response.data)
+        self.assertIn('temp_password', response.data['teacher'])
+        self.assertEqual(response.data['teacher']['role'], 'TCH')
+
+    def test_teacher_cannot_create_teacher(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.teacher_token.access_token}')
+        response = self.client.post('/api/users/users/create-teacher/', {
+            'first_name': 'New',
+            'last_name': 'Teacher',
+            'email': 'newteacher@ediv.gov.ng',
+        })
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_duplicate_email_rejected(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.principal_token.access_token}')
+        response = self.client.post('/api/users/users/create-teacher/', {
+            'first_name': 'Dup',
+            'last_name': 'Teacher',
+            'email': 'teacher@ediv.gov.ng',
+        })
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

@@ -63,6 +63,7 @@ class WorkflowAPITest(APITestCase):
         data = {
             'name': 'New Workflow',
             'description': 'New workflow description',
+            'created_by': self.admin.id,
             'status': 'DRAFT'
         }
         response = self.client.post('/api/workflows/workflows/', data)

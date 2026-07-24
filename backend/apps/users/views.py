@@ -16,6 +16,7 @@ from .serializers import (
     PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
     MFAEnableSerializer, MFAVerifySerializer,
     PrivilegeSerializer, PrivilegeListSerializer, RolePrivilegeSerializer,
+    PrincipalCreateTeacherSerializer,
 )
 from .mfa import (
     generate_mfa_secret, get_mfa_qr_code_url,
@@ -30,12 +31,24 @@ class IsAdminOrReadOnly(permissions.BasePermission):
         return request.user.role == 'SYSADMIN'
 
 
+class IsAdminOrPrincipal(permissions.BasePermission):
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return request.user.role in ('SYSADMIN', 'PRI', 'VP')
+
+
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly]
     filterset_fields = ['role', 'is_active']
     search_fields = ['email', 'first_name', 'last_name']
     ordering_fields = ['created_at', 'last_name']
+
+    def get_permissions(self):
+        if self.action in ('create_teacher', 'my_teachers'):
+            return [permissions.IsAuthenticated(), IsAdminOrPrincipal()]
+        return super().get_permissions()
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -64,6 +77,79 @@ class UserViewSet(viewsets.ModelViewSet):
         request.user.set_password(serializer.validated_data['new_password'])
         request.user.save()
         return Response({'message': 'Password changed successfully.'})
+
+    @action(detail=False, methods=['post'], url_path='create-teacher')
+    def create_teacher(self, request):
+        """Allow Principals and Vice-Principals to create teacher accounts for their school."""
+        user = request.user
+        if user.role not in ('PRI', 'VP'):
+            return Response(
+                {'error': 'Only Principals and Vice-Principals can create teacher accounts.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        serializer = PrincipalCreateTeacherSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+
+        school = serializer.validated_data['school']
+        import secrets
+        temp_password = secrets.token_urlsafe(12)
+
+        teacher = User.objects.create_user(
+            email=serializer.validated_data['email'],
+            password=temp_password,
+            first_name=serializer.validated_data['first_name'],
+            last_name=serializer.validated_data['last_name'],
+            role='TCH',
+            phone_number=serializer.validated_data.get('phone_number', ''),
+        )
+
+        return Response({
+            'message': f'Teacher account created successfully for {school.name}.',
+            'teacher': {
+                'id': teacher.id,
+                'email': teacher.email,
+                'first_name': teacher.first_name,
+                'last_name': teacher.last_name,
+                'role': teacher.role,
+                'school': school.name,
+                'temp_password': temp_password,
+            }
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['get'], url_path='my-teachers')
+    def my_teachers(self, request):
+        """List all teachers at the principal's/VP's school."""
+        user = request.user
+        if user.role not in ('PRI', 'VP'):
+            return Response(
+                {'error': 'Only Principals and Vice-Principals can access this endpoint.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        from apps.schools.models import School
+        school = School.objects.filter(principal=user).first() or School.objects.filter(vice_principal=user).first()
+        if not school:
+            return Response({'teachers': [], 'school': None})
+
+        from apps.staff.models import Staff
+        staff_users = Staff.objects.filter(school=school, user__role='TCH').select_related('user')
+        teachers = [{
+            'id': s.user.id,
+            'email': s.user.email,
+            'first_name': s.user.first_name,
+            'last_name': s.user.last_name,
+            'full_name': s.user.get_full_name(),
+            'phone_number': s.user.phone_number,
+            'staff_id': s.staff_id,
+            'designation': s.designation,
+            'is_active': s.user.is_active,
+        } for s in staff_users]
+
+        return Response({
+            'school': {'id': school.id, 'name': school.name, 'code': school.code},
+            'teachers': teachers,
+        })
 
 
 class AuthViewSet(viewsets.ViewSet):
@@ -377,8 +463,9 @@ class AuthViewSet(viewsets.ViewSet):
         results = {}
 
         # 1. Seed admin user
+        import os
         email = 'admin@ediv.gov.ng'
-        password = 'Admin@12345678'
+        password = os.environ.get('ADMIN_PASSWORD', 'Admin@12345678')
         user, created = User.objects.get_or_create(
             email=email,
             defaults={

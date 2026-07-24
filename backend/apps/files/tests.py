@@ -65,6 +65,7 @@ class FilesAPITest(APITestCase):
             'file_number': 'EDIV-2024-REG-002',
             'title': 'New Memo',
             'file_type': 'MEMO',
+            'created_by': self.admin.id,
             'status': 'ACTIVE',
             'classification': 'INTERNAL',
             'priority': 'HIGH'

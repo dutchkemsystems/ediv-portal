@@ -55,6 +55,7 @@ DEPARTMENTS = [
             {'name': 'Sports Unit', 'code': 'CCP_SPT', 'description': 'Organises inter-school sports competitions and athletic programmes.'},
             {'name': 'Clubs & Societies Unit', 'code': 'CCP_CLB', 'description': 'Manages school clubs, societies, and cultural activities.'},
             {'name': 'Debate & Quiz Unit', 'code': 'CCP_DBT', 'description': 'Coordinates inter-school debates, quiz, and academic competitions.'},
+            {'name': 'Science & Technology Unit', 'code': 'CCP_STE', 'description': 'Coordinates science fairs, robotics, STEM clubs, and technology competitions across schools.'},
         ],
     },
     {
@@ -77,6 +78,7 @@ DEPARTMENTS = [
             {'name': 'Strategic Planning Unit', 'code': 'PLP_STP', 'description': 'Develops and monitors the district strategic plan.'},
             {'name': 'Research Unit', 'code': 'PLP_RES', 'description': 'Conducts educational research and evaluation studies.'},
             {'name': 'Statistics Unit', 'code': 'PLP_STA', 'description': 'Manages statistical data and demographic analysis.'},
+            {'name': 'Planner Unit', 'code': 'PLP_PLN', 'description': 'Coordinates annual operational planning, school development plans, and capital projects.'},
         ],
     },
     {
@@ -128,6 +130,27 @@ DEPARTMENTS = [
         'units': [
             {'name': 'Records Management Unit', 'code': 'RGP_RCR', 'description': 'Manages filing systems, archiving, and document retrieval.'},
             {'name': 'Correspondence Unit', 'code': 'RGP_COR', 'description': 'Handles incoming and outgoing official correspondence.'},
+        ],
+    },
+    {
+        'name': 'Special Duties Department',
+        'code': 'SPD',
+        'category': 'CORE',
+        'description': 'Handles special assignments, inter-agency liaison, and ad-hoc tasks as directed by the Tutor General.',
+        'units': [
+            {'name': 'Inter-Agency Liaison Unit', 'code': 'SDP_LIA', 'description': 'Coordinates liaison with external agencies and government bodies.'},
+            {'name': 'Special Projects Unit', 'code': 'SDP_PRJ', 'description': 'Manages special projects and task-force assignments.'},
+        ],
+    },
+    {
+        'name': 'School Support Services Department',
+        'code': 'SSS',
+        'category': 'SUPPORT',
+        'description': 'Provides technical support, mentoring, and capacity building for schools in the district.',
+        'units': [
+            {'name': 'School Mentoring Unit', 'code': 'SSP_MNT', 'description': 'Provides mentoring and advisory support to school administrators.'},
+            {'name': 'Resource Centre Unit', 'code': 'SSP_RES', 'description': 'Manages teaching resources, learning materials, and resource centres.'},
+            {'name': 'School Improvement Unit', 'code': 'SSP_IMP', 'description': 'Develops and monitors school improvement plans.'},
         ],
     },
 ]
