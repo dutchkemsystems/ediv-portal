@@ -3,7 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db import models
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import File, FileMovement, FileAttachment, FileComment, FileStatus
+from .models import File, FileMovement, FileAttachment, FileComment, FileStatus, FileCategory, SecurityClassification
 from .serializers import (
     FileSerializer, FileListSerializer,
     FileMovementSerializer, FileAttachmentSerializer, FileCommentSerializer
@@ -252,6 +252,190 @@ class FileViewSet(viewsets.ModelViewSet):
         return Response({
             'message': f"Status change logged for {file_obj.file_number}.",
             'timeline': file_obj.status_timeline,
+        })
+
+    @action(detail=True, methods=['post'], url_path='submit')
+    def submit_file(self, request, pk=None):
+        """Submit a file for review. Only file creator can submit."""
+        file_obj = self.get_object()
+        user = request.user
+
+        if file_obj.created_by != user and user.role not in ('SYSADMIN', 'TG', 'PS'):
+            return Response(
+                {'error': 'Only the file creator or Admin can submit a file.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if file_obj.status != 'DRAFT':
+            return Response(
+                {'error': 'Only files in DRAFT status can be submitted.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        file_obj.status = 'PENDING'
+        file_obj.save(update_fields=['status', 'updated_at'])
+
+        import datetime as dt
+        timeline_entry = {
+            'timestamp': dt.datetime.now(dt.timezone.utc).isoformat(),
+            'status': 'PENDING',
+            'changed_by_id': user.id,
+            'changed_by_name': user.get_full_name(),
+            'notes': f"File submitted for review by {user.get_full_name()}",
+        }
+        file_obj.status_timeline = (file_obj.status_timeline or []) + [timeline_entry]
+        file_obj.save(update_fields=['status_timeline'])
+
+        from config.security import AuditLogger
+        AuditLogger.log_action(
+            user=user,
+            action='SUBMIT',
+            resource_type='File',
+            resource_id=file_obj.id,
+            description=f"File {file_obj.file_number} submitted for review",
+        )
+
+        return Response({'message': f"File {file_obj.file_number} submitted for review."})
+
+    @action(detail=True, methods=['post'], url_path='approve')
+    def approve_file(self, request, pk=None):
+        """Approve a file. Only TG/PS or department head can approve."""
+        file_obj = self.get_object()
+        user = request.user
+
+        if user.role not in ('SYSADMIN', 'TG', 'PS'):
+            return Response(
+                {'error': 'Only Admin/TG/PS can approve files.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if file_obj.status != 'PENDING':
+            return Response(
+                {'error': 'Only files in PENDING status can be approved.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        notes = request.data.get('notes', '')
+        file_obj.status = 'ACTIVE'
+        file_obj.save(update_fields=['status', 'updated_at'])
+
+        import datetime as dt
+        timeline_entry = {
+            'timestamp': dt.datetime.now(dt.timezone.utc).isoformat(),
+            'status': 'ACTIVE',
+            'changed_by_id': user.id,
+            'changed_by_name': user.get_full_name(),
+            'notes': notes or f"File approved by {user.get_full_name()}",
+        }
+        file_obj.status_timeline = (file_obj.status_timeline or []) + [timeline_entry]
+        file_obj.save(update_fields=['status_timeline'])
+
+        from config.security import AuditLogger
+        AuditLogger.log_action(
+            user=user,
+            action='APPROVE',
+            resource_type='File',
+            resource_id=file_obj.id,
+            description=f"File {file_obj.file_number} approved by {user.get_full_name()}",
+        )
+
+        return Response({'message': f"File {file_obj.file_number} has been approved."})
+
+    @action(detail=True, methods=['post'], url_path='reject')
+    def reject_file(self, request, pk=None):
+        """Reject a file. Only TG/PS can reject."""
+        file_obj = self.get_object()
+        user = request.user
+
+        if user.role not in ('SYSADMIN', 'TG', 'PS'):
+            return Response(
+                {'error': 'Only Admin/TG/PS can reject files.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if file_obj.status != 'PENDING':
+            return Response(
+                {'error': 'Only files in PENDING status can be rejected.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        notes = request.data.get('notes', '')
+        file_obj.status = 'DRAFT'
+        file_obj.save(update_fields=['status', 'updated_at'])
+
+        import datetime as dt
+        timeline_entry = {
+            'timestamp': dt.datetime.now(dt.timezone.utc).isoformat(),
+            'status': 'DRAFT',
+            'changed_by_id': user.id,
+            'changed_by_name': user.get_full_name(),
+            'notes': notes or f"File rejected by {user.get_full_name()}",
+        }
+        file_obj.status_timeline = (file_obj.status_timeline or []) + [timeline_entry]
+        file_obj.save(update_fields=['status_timeline'])
+
+        from config.security import AuditLogger
+        AuditLogger.log_action(
+            user=user,
+            action='REJECT',
+            resource_type='File',
+            resource_id=file_obj.id,
+            description=f"File {file_obj.file_number} rejected by {user.get_full_name()}",
+        )
+
+        return Response({'message': f"File {file_obj.file_number} has been rejected and returned to draft."})
+
+    @action(detail=True, methods=['post'], url_path='escalate')
+    def escalate_file(self, request, pk=None):
+        """Escalate a file to higher authority."""
+        file_obj = self.get_object()
+        user = request.user
+
+        to_holder_id = request.data.get('to_holder_id')
+        if not to_holder_id:
+            return Response({'error': 'to_holder_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        try:
+            to_holder = User.objects.get(id=to_holder_id)
+        except User.DoesNotExist:
+            return Response({'error': 'Target user not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        notes = request.data.get('notes', '')
+
+        movement = FileMovement.objects.create(
+            file=file_obj,
+            from_holder=user,
+            to_holder=to_holder,
+            action='ESCALATED',
+            remarks=notes,
+        )
+
+        import datetime as dt
+        timeline_entry = {
+            'timestamp': dt.datetime.now(dt.timezone.utc).isoformat(),
+            'status': file_obj.status,
+            'changed_by_id': user.id,
+            'changed_by_name': user.get_full_name(),
+            'notes': f"File escalated to {to_holder.get_full_name()} by {user.get_full_name()}",
+        }
+        file_obj.status_timeline = (file_obj.status_timeline or []) + [timeline_entry]
+        file_obj.current_holder = to_holder
+        file_obj.save(update_fields=['current_holder', 'status_timeline', 'updated_at'])
+
+        from config.security import AuditLogger
+        AuditLogger.log_action(
+            user=user,
+            action='ESCALATE',
+            resource_type='File',
+            resource_id=file_obj.id,
+            description=f"File {file_obj.file_number} escalated to {to_holder.get_full_name()}",
+        )
+
+        return Response({
+            'message': f"File {file_obj.file_number} escalated to {to_holder.get_full_name()}.",
+            'movement': FileMovementSerializer(movement).data,
         })
 
 

@@ -7,7 +7,7 @@ class FileCommentSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = FileComment
-        fields = ['id', 'file', 'author', 'author_name', 'content', 'created_at', 'updated_at']
+        fields = ['id', 'file', 'author', 'author_name', 'content', 'is_internal', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at']
     
     def get_author_name(self, obj):
@@ -56,7 +56,7 @@ class FileSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = File
-        fields = ['id', 'file_number', 'title', 'file_type', 'description',
+        fields = ['id', 'file_number', 'title', 'file_type', 'file_category', 'description',
                   'created_by', 'created_by_name', 'current_holder', 'current_holder_name',
                   'department', 'department_name', 'school', 'school_name',
                   'status', 'classification', 'priority', 'due_date', 'tags',
@@ -89,8 +89,8 @@ class FileListSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = File
-        fields = ['id', 'file_number', 'title', 'file_type', 'created_by_name',
-                  'current_holder_name', 'status', 'priority', 'created_at']
+        fields = ['id', 'file_number', 'title', 'file_type', 'file_category', 'created_by_name',
+                  'current_holder_name', 'status', 'classification', 'priority', 'created_at']
     
     def get_created_by_name(self, obj):
         return obj.created_by.get_full_name()

@@ -20,10 +20,11 @@ class FileModelTest(TestCase):
             file_number='EDIV-2024-REG-001',
             title='Test Correspondence',
             file_type='CORRESPONDENCE',
+            file_category='CORR',
             created_by=self.user,
             current_holder=self.user,
             status='ACTIVE',
-            classification='INTERNAL',
+            classification='CONFIDENTIAL',
             priority='NORMAL'
         )
 
@@ -47,6 +48,7 @@ class FilesAPITest(APITestCase):
             file_number='EDIV-2024-REG-001',
             title='Test Correspondence',
             file_type='CORRESPONDENCE',
+            file_category='CORR',
             created_by=self.admin,
             current_holder=self.admin,
             status='ACTIVE'
@@ -64,8 +66,9 @@ class FilesAPITest(APITestCase):
         data = {
             'title': 'New Memo',
             'file_type': 'MEMO',
+            'file_category': 'ADMIN',
             'status': 'ACTIVE',
-            'classification': 'INTERNAL',
+            'classification': 'CONFIDENTIAL',
             'priority': 'HIGH'
         }
         response = self.client.post('/api/files/files/', data)
@@ -77,6 +80,7 @@ class FilesAPITest(APITestCase):
         data = {
             'title': 'Auto Created By',
             'file_type': 'MEMO',
+            'file_category': 'ADMIN',
         }
         response = self.client.post('/api/files/files/', data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -105,6 +109,7 @@ class MoveFileTest(APITestCase):
             file_number='EDIV-2024-REG-001',
             title='Test File',
             file_type='CORRESPONDENCE',
+            file_category='CORR',
             created_by=self.admin,
             current_holder=self.admin,
             status='ACTIVE'
@@ -177,6 +182,7 @@ class ReceiveFileTest(APITestCase):
             file_number='EDIV-2024-REG-002',
             title='File to Receive',
             file_type='MEMO',
+            file_category='ADMIN',
             created_by=self.sender,
             current_holder=self.receiver,
             status='IN_TRANSIT'
@@ -185,7 +191,7 @@ class ReceiveFileTest(APITestCase):
             file=self.file,
             from_holder=self.sender,
             to_holder=self.receiver,
-            action='Forwarded',
+            action='FORWARDED',
         )
         self.receiver_token = RefreshToken.for_user(self.receiver)
         self.sender_token = RefreshToken.for_user(self.sender)
@@ -239,6 +245,7 @@ class CloseFileTest(APITestCase):
             file_number='EDIV-2024-REG-003',
             title='File to Close',
             file_type='REPORT',
+            file_category='ADMIN',
             created_by=self.creator,
             current_holder=self.creator,
             status='ACTIVE',
@@ -287,7 +294,8 @@ class LogStatusChangeTest(APITestCase):
         )
         self.file = File.objects.create(
             file_number='EDIV-2024-GEN-001', title='Timeline File',
-            file_type='REPORT', created_by=self.user, current_holder=self.user,
+            file_type='REPORT', file_category='ADMIN',
+            created_by=self.user, current_holder=self.user,
             status='ACTIVE', classification='PUBLIC',
         )
         self.user_token = RefreshToken.for_user(self.user)
@@ -341,7 +349,7 @@ class LogStatusChangeTest(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.user_token.access_token}')
         response = self.client.post(
             f'/api/files/files/{self.file.id}/move/',
-            {'to_holder_id': self.other.id, 'action': 'Forwarded', 'remarks': 'Please review'},
+            {'to_holder_id': self.other.id, 'action': 'FORWARDED', 'remarks': 'Please review'},
             format='json'
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)

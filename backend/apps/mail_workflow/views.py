@@ -6,10 +6,18 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from config.security import AuditLogger
-from .models import IncomingMail, MailScanRecord, MailAssignment, MailMovement
+from .models import (
+    IncomingMail, MailScanRecord, MailAssignment, MailMovement,
+    OutgoingMail, OutgoingMailApproval, OutgoingMailMovement,
+    SchoolHQCorrespondence, SchoolHQCorrespondenceMovement,
+    MailCorrespondence, MailCorrespondenceMovement
+)
 from .serializers import (
     IncomingMailSerializer, IncomingMailListSerializer,
-    MailScanRecordSerializer, MailAssignmentSerializer, MailMovementSerializer
+    MailScanRecordSerializer, MailAssignmentSerializer, MailMovementSerializer,
+    OutgoingMailSerializer, OutgoingMailListSerializer, OutgoingMailApprovalSerializer, OutgoingMailMovementSerializer,
+    SchoolHQCorrespondenceSerializer, SchoolHQCorrespondenceListSerializer, SchoolHQCorrespondenceMovementSerializer,
+    MailCorrespondenceSerializer, MailCorrespondenceListSerializer, MailCorrespondenceMovementSerializer
 )
 
 User = get_user_model()
@@ -213,4 +221,237 @@ class MailAssignmentViewSet(viewsets.ModelViewSet):
             return MailAssignment.objects.select_related('mail', 'assigned_by', 'assigned_to').all()
         return MailAssignment.objects.select_related('mail', 'assigned_by', 'assigned_to').filter(
             db_models.Q(assigned_by=user) | db_models.Q(assigned_to=user)
+        )
+
+
+class OutgoingMailViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return OutgoingMailListSerializer
+        return OutgoingMailSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role in ('SYSADMIN', 'TG', 'PS'):
+            return OutgoingMail.objects.select_related('created_by', 'department').all()
+        return OutgoingMail.objects.select_related('created_by', 'department').filter(
+            db_models.Q(created_by=user) | db_models.Q(approvals__approver=user)
+        ).distinct()
+
+    def perform_create(self, serializer):
+        year = datetime.date.today().year
+        seq = OutgoingMail.objects.filter(mail_number__startswith=f'EDIV/OUT/{year}').count() + 1
+        mail_number = f'EDIV/OUT/{year}/{seq:04d}'
+        mail_obj = serializer.save(mail_number=mail_number, created_by=self.request.user)
+
+        AuditLogger.log_action(
+            user=self.request.user,
+            action='CREATE',
+            resource_type='OutgoingMail',
+            resource_id=mail_obj.id,
+            description=f"Created outgoing mail {mail_number}: {mail_obj.subject}",
+        )
+
+    @action(detail=True, methods=['post'], url_path='submit')
+    def submit_for_approval(self, request, pk=None):
+        mail_obj = self.get_object()
+        if mail_obj.status != 'DRAFT':
+            return Response({'error': 'Only DRAFT mails can be submitted.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        mail_obj.status = 'PENDING_APPROVAL'
+        mail_obj.save(update_fields=['status', 'updated_at'])
+
+        AuditLogger.log_action(
+            user=request.user, action='UPDATE', resource_type='OutgoingMail',
+            resource_id=mail_obj.id, description=f"Outgoing mail {mail_obj.mail_number} submitted for approval",
+        )
+        return Response({'message': f"Mail {mail_obj.mail_number} submitted for approval."})
+
+    @action(detail=True, methods=['post'], url_path='approve')
+    def approve_mail(self, request, pk=None):
+        mail_obj = self.get_object()
+        if request.user.role not in ('SYSADMIN', 'TG', 'PS'):
+            return Response({'error': 'Only Admin/TG/PS can approve.'}, status=status.HTTP_403_FORBIDDEN)
+
+        comments = request.data.get('comments', '')
+        OutgoingMailApproval.objects.create(
+            outgoing_mail=mail_obj, approver=request.user,
+            status='APPROVED', comments=comments,
+            approved_date=datetime.datetime.now(),
+        )
+        mail_obj.status = 'APPROVED'
+        mail_obj.save(update_fields=['status', 'updated_at'])
+
+        AuditLogger.log_action(
+            user=request.user, action='APPROVE', resource_type='OutgoingMail',
+            resource_id=mail_obj.id, description=f"Outgoing mail {mail_obj.mail_number} approved",
+        )
+        return Response({'message': f"Mail {mail_obj.mail_number} approved."})
+
+    @action(detail=True, methods=['post'], url_path='reject')
+    def reject_mail(self, request, pk=None):
+        mail_obj = self.get_object()
+        if request.user.role not in ('SYSADMIN', 'TG', 'PS'):
+            return Response({'error': 'Only Admin/TG/PS can reject.'}, status=status.HTTP_403_FORBIDDEN)
+
+        comments = request.data.get('comments', '')
+        OutgoingMailApproval.objects.create(
+            outgoing_mail=mail_obj, approver=request.user,
+            status='REJECTED', comments=comments,
+            approved_date=datetime.datetime.now(),
+        )
+        mail_obj.status = 'REJECTED'
+        mail_obj.save(update_fields=['status', 'updated_at'])
+
+        AuditLogger.log_action(
+            user=request.user, action='REJECT', resource_type='OutgoingMail',
+            resource_id=mail_obj.id, description=f"Outgoing mail {mail_obj.mail_number} rejected",
+        )
+        return Response({'message': f"Mail {mail_obj.mail_number} rejected."})
+
+    @action(detail=True, methods=['post'], url_path='dispatch')
+    def dispatch_mail(self, request, pk=None):
+        mail_obj = self.get_object()
+        if mail_obj.status != 'APPROVED':
+            return Response({'error': 'Only APPROVED mails can be dispatched.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        mail_obj.status = 'DISPATCHED'
+        mail_obj.date_dispatched = datetime.date.today()
+        mail_obj.save(update_fields=['status', 'date_dispatched', 'updated_at'])
+
+        AuditLogger.log_action(
+            user=request.user, action='UPDATE', resource_type='OutgoingMail',
+            resource_id=mail_obj.id, description=f"Outgoing mail {mail_obj.mail_number} dispatched",
+        )
+        return Response({'message': f"Mail {mail_obj.mail_number} dispatched."})
+
+    @action(detail=True, methods=['post'], url_path='deliver')
+    def deliver_mail(self, request, pk=None):
+        mail_obj = self.get_object()
+        if mail_obj.status != 'DISPATCHED':
+            return Response({'error': 'Only DISPATCHED mails can be marked as delivered.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        mail_obj.status = 'DELIVERED'
+        mail_obj.date_delivered = datetime.date.today()
+        mail_obj.save(update_fields=['status', 'date_delivered', 'updated_at'])
+
+        AuditLogger.log_action(
+            user=request.user, action='UPDATE', resource_type='OutgoingMail',
+            resource_id=mail_obj.id, description=f"Outgoing mail {mail_obj.mail_number} delivered",
+        )
+        return Response({'message': f"Mail {mail_obj.mail_number} marked as delivered."})
+
+
+class SchoolHQCorrespondenceViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return SchoolHQCorrespondenceListSerializer
+        return SchoolHQCorrespondenceSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role in ('SYSADMIN', 'TG', 'PS'):
+            return SchoolHQCorrespondence.objects.select_related('sender', 'recipient', 'school', 'department').all()
+        return SchoolHQCorrespondence.objects.select_related('sender', 'recipient', 'school', 'department').filter(
+            db_models.Q(sender=user) | db_models.Q(recipient=user)
+        ).distinct()
+
+    def perform_create(self, serializer):
+        year = datetime.date.today().year
+        direction = serializer.validated_data.get('direction', 'SCHOOL_TO_HQ')
+        prefix = 'S2H' if direction == 'SCHOOL_TO_HQ' else 'H2S'
+        seq = SchoolHQCorrespondence.objects.filter(reference_number__startswith=f'EDIV/{prefix}/{year}').count() + 1
+        reference_number = f'EDIV/{prefix}/{year}/{seq:04d}'
+        correspondence = serializer.save(reference_number=reference_number, sender=self.request.user)
+
+        AuditLogger.log_action(
+            user=self.request.user,
+            action='CREATE',
+            resource_type='SchoolHQCorrespondence',
+            resource_id=correspondence.id,
+            description=f"Created {direction} correspondence {reference_number}: {correspondence.subject}",
+        )
+
+    @action(detail=True, methods=['post'], url_path='submit')
+    def submit_correspondence(self, request, pk=None):
+        correspondence = self.get_object()
+        if correspondence.status != 'DRAFT':
+            return Response({'error': 'Only DRAFT correspondences can be submitted.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        correspondence.status = 'SUBMITTED'
+        correspondence.date_submitted = datetime.date.today()
+        correspondence.save(update_fields=['status', 'date_submitted', 'updated_at'])
+
+        AuditLogger.log_action(
+            user=request.user, action='UPDATE', resource_type='SchoolHQCorrespondence',
+            resource_id=correspondence.id, description=f"Correspondence {correspondence.reference_number} submitted",
+        )
+        return Response({'message': f"Correspondence {correspondence.reference_number} submitted."})
+
+    @action(detail=True, methods=['post'], url_path='receive')
+    def receive_correspondence(self, request, pk=None):
+        correspondence = self.get_object()
+        correspondence.status = 'RECEIVED_AT_HQ'
+        correspondence.date_received = datetime.date.today()
+        correspondence.save(update_fields=['status', 'date_received', 'updated_at'])
+
+        AuditLogger.log_action(
+            user=request.user, action='UPDATE', resource_type='SchoolHQCorrespondence',
+            resource_id=correspondence.id, description=f"Correspondence {correspondence.reference_number} received",
+        )
+        return Response({'message': f"Correspondence {correspondence.reference_number} marked as received."})
+
+    @action(detail=True, methods=['post'], url_path='respond')
+    def respond_to_correspondence(self, request, pk=None):
+        correspondence = self.get_object()
+        response_text = request.data.get('response', '')
+        correspondence.response = response_text
+        correspondence.status = 'COMPLETED'
+        correspondence.date_resolved = datetime.date.today()
+        correspondence.save(update_fields=['response', 'status', 'date_resolved', 'updated_at'])
+
+        AuditLogger.log_action(
+            user=request.user, action='UPDATE', resource_type='SchoolHQCorrespondence',
+            resource_id=correspondence.id, description=f"Correspondence {correspondence.reference_number} responded to",
+        )
+        return Response({'message': f"Correspondence {correspondence.reference_number} responded to."})
+
+
+class MailCorrespondenceViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return MailCorrespondenceListSerializer
+        return MailCorrespondenceSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role in ('SYSADMIN', 'TG', 'PS'):
+            return MailCorrespondence.objects.select_related('sender', 'recipient', 'department', 'school').all()
+        return MailCorrespondence.objects.select_related('sender', 'recipient', 'department', 'school').filter(
+            db_models.Q(sender=user) | db_models.Q(recipient=user)
+        ).distinct()
+
+    def perform_create(self, serializer):
+        year = datetime.date.today().year
+        corr_type = serializer.validated_data.get('correspondence_type', 'INTERNAL')
+        type_prefix = {
+            'INCOMING': 'INC', 'OUTGOING': 'OUT', 'INTERNAL': 'INT',
+            'SCHOOL_HQ': 'S2H', 'HQ_SCHOOL': 'H2S', 'DEPARTMENT': 'DEPT'
+        }.get(corr_type, 'INT')
+        seq = MailCorrespondence.objects.filter(reference_number__startswith=f'EDIV/CORR/{type_prefix}/{year}').count() + 1
+        reference_number = f'EDIV/CORR/{type_prefix}/{year}/{seq:04d}'
+        correspondence = serializer.save(reference_number=reference_number, sender=self.request.user)
+
+        AuditLogger.log_action(
+            user=self.request.user,
+            action='CREATE',
+            resource_type='MailCorrespondence',
+            resource_id=correspondence.id,
+            description=f"Created correspondence {reference_number}: {correspondence.subject}",
         )
