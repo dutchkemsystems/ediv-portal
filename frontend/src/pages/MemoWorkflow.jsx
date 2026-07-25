@@ -252,7 +252,7 @@ function MemoWorkflow() {
             </Grid>
             <Grid item xs={6}>
               <TextField select fullWidth label="Classification" value={newMemo.classification} onChange={(e) => setNewMemo({ ...newMemo, classification: e.target.value })}>
-                {['PUBLIC', 'INTERNAL', 'CONFIDENTIAL', 'RESTRICTED'].map((v) => <MenuItem key={v} value={v}>{v}</MenuItem>)}
+                {['PUBLIC', 'CONFIDENTIAL', 'RESTRICTED', 'TOP_SECRET'].map((v) => <MenuItem key={v} value={v}>{v}</MenuItem>)}
               </TextField>
             </Grid>
           </Grid>
