@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, lazy, Suspense } from 'react'
 import { useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -8,14 +8,13 @@ import {
   Box,
   Card,
   CardContent,
-  CardActionArea,
   CircularProgress,
+  CardActionArea,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
   Chip,
-  Divider,
 } from '@mui/material'
 import {
   School as SchoolIcon,
@@ -35,6 +34,27 @@ import {
 } from '@mui/icons-material'
 import api from '../api/client'
 import { notify } from '../utils/notifications'
+
+const SysAdminDashboard = lazy(() => import('../components/dashboard/SysAdminDashboard'))
+const HRDashboard = lazy(() => import('../components/dashboard/HRDashboard'))
+const FinanceDashboard = lazy(() => import('../components/dashboard/FinanceDashboard'))
+const PrincipalDashboard = lazy(() => import('../components/dashboard/PrincipalDashboard'))
+const TeacherDashboard = lazy(() => import('../components/dashboard/TeacherDashboard'))
+const RegistryDashboard = lazy(() => import('../components/dashboard/RegistryDashboard'))
+const ParentDashboard = lazy(() => import('../components/dashboard/ParentDashboard'))
+
+const roleDashboards = {
+  SYSADMIN: SysAdminDashboard,
+  TG_PS: SysAdminDashboard,
+  HR: HRDashboard,
+  FIN: FinanceDashboard,
+  PRI: PrincipalDashboard,
+  VP: PrincipalDashboard,
+  TCH: TeacherDashboard,
+  REG: RegistryDashboard,
+  REG_OFF: RegistryDashboard,
+  PAR: ParentDashboard,
+}
 
 const lagosRed = '#C8102E'
 const lagosGreen = '#00843D'
@@ -74,6 +94,20 @@ function Dashboard() {
     fetchDashboard()
   }, [])
 
+  // Route to role-specific dashboard
+  const RoleDashboard = roleDashboards[user?.role]
+  if (RoleDashboard) {
+    return (
+      <Suspense fallback={
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+          <CircularProgress />
+        </Box>
+      }>
+        <RoleDashboard />
+      </Suspense>
+    )
+  }
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
@@ -95,7 +129,7 @@ function Dashboard() {
       { label: 'Manage Users', route: '/staff', icon: <PeopleIcon /> },
       { label: 'View Reports', route: '/reports', icon: <AssignmentIcon /> },
     ],
-    TG: [
+    TG_PS: [
       { label: 'School Overview', route: '/schools', icon: <SchoolIcon /> },
       { label: 'Staff Directory', route: '/staff', icon: <PeopleIcon /> },
       { label: 'Finance Overview', route: '/finance', icon: <MoneyIcon /> },
@@ -122,7 +156,7 @@ function Dashboard() {
     ],
   }
 
-  const actions = quickActions[user?.role] || quickActions.TG
+  const actions = quickActions[user?.role] || quickActions.TG_PS
 
   return (
     <Box>

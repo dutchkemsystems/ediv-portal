@@ -100,8 +100,7 @@ const getMenuItems = (role) => {
 
   const roleAccess = {
     SYSADMIN: allItems.map(i => i.path),
-    TG: allItems.map(i => i.path),
-    PS: allItems.map(i => i.path),
+    TG_PS: allItems.map(i => i.path),
     HR: ['/dashboard', '/staff', '/hr', '/grants', '/reports', '/notifications'],
     FIN: ['/dashboard', '/finance', '/grants', '/reports', '/notifications'],
     AUDIT: ['/dashboard', '/audit', '/reports', '/notifications'],

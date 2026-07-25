@@ -43,102 +43,213 @@ const mockActivityData = {
   recent_tasks: [],
 }
 
+const mockHrData = {
+  total_staff: 350,
+  by_category: [{ category: 'TEACHING', count: 200 }],
+  by_designation: [],
+  new_hires_30d: 12,
+  pending_leaves: 5,
+  approved_leaves: 20,
+  suspended: 2,
+  recent_leaves: [],
+}
+
+const mockFinanceData = {
+  total_collected: 5000000,
+  total_due: 2000000,
+  collection_rate: 71.4,
+  pending_payments: 15,
+  payments_today: 250000,
+  collection_by_school: [],
+  collection_by_method: [],
+  budget_summary: [],
+  fee_status: [],
+}
+
 describe('Dashboard Page', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('shows loading spinner while data is being fetched', () => {
-    mockGet.mockReturnValue(new Promise(() => {}))
+  describe('Generic Dashboard (non-role-specific)', () => {
+    it('shows loading spinner while data is being fetched', () => {
+      mockGet.mockReturnValue(new Promise(() => {}))
 
-    renderWithProviders(<Dashboard />, {
-      preloadedState: {
-        auth: { user: { first_name: 'Admin', role: 'SYSADMIN' }, isAuthenticated: true, loading: false, error: null },
-      },
+      renderWithProviders(<Dashboard />, {
+        preloadedState: {
+          auth: { user: { first_name: 'Admin', role: 'QA' }, isAuthenticated: true, loading: false, error: null },
+        },
+      })
+
+      expect(screen.getByRole('progressbar')).toBeInTheDocument()
     })
 
-    expect(screen.getByRole('progressbar')).toBeInTheDocument()
+    it('renders welcome message with user name', async () => {
+      mockGet
+        .mockResolvedValueOnce({ data: mockStatsData })
+        .mockResolvedValueOnce({ data: mockActivityData })
+
+      renderWithProviders(<Dashboard />, {
+        preloadedState: {
+          auth: { user: { first_name: 'John', role: 'QA' }, isAuthenticated: true, loading: false, error: null },
+        },
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText('Welcome, John')).toBeInTheDocument()
+      })
+    })
+
+    it('renders subtitle text', async () => {
+      mockGet
+        .mockResolvedValueOnce({ data: mockStatsData })
+        .mockResolvedValueOnce({ data: mockActivityData })
+
+      renderWithProviders(<Dashboard />, {
+        preloadedState: {
+          auth: { user: { first_name: 'Admin', role: 'EMIS' }, isAuthenticated: true, loading: false, error: null },
+        },
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText('Education District IV Portal Dashboard')).toBeInTheDocument()
+      })
+    })
+
+    it('renders stat cards with data from API', async () => {
+      mockGet
+        .mockResolvedValueOnce({ data: mockStatsData })
+        .mockResolvedValueOnce({ data: mockActivityData })
+
+      renderWithProviders(<Dashboard />, {
+        preloadedState: {
+          auth: { user: { first_name: 'Admin', role: 'QA' }, isAuthenticated: true, loading: false, error: null },
+        },
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText('Total Schools')).toBeInTheDocument()
+        expect(screen.getByText('Total Students')).toBeInTheDocument()
+        expect(screen.getByText('Total Staff')).toBeInTheDocument()
+        expect(screen.getByText('Active Files')).toBeInTheDocument()
+      })
+    })
+
+    it('calls both API endpoints on mount', async () => {
+      mockGet
+        .mockResolvedValueOnce({ data: mockStatsData })
+        .mockResolvedValueOnce({ data: mockActivityData })
+
+      renderWithProviders(<Dashboard />, {
+        preloadedState: {
+          auth: { user: { first_name: 'Admin', role: 'QA' }, isAuthenticated: true, loading: false, error: null },
+        },
+      })
+
+      await waitFor(() => {
+        expect(mockGet).toHaveBeenCalledWith('/analytics/stats/overview/')
+        expect(mockGet).toHaveBeenCalledWith('/analytics/stats/recent_activity/')
+      })
+    })
+
+    it('handles API error gracefully', async () => {
+      mockGet.mockRejectedValue(new Error('Network Error'))
+
+      renderWithProviders(<Dashboard />, {
+        preloadedState: {
+          auth: { user: { first_name: 'Admin', role: 'QA' }, isAuthenticated: true, loading: false, error: null },
+        },
+      })
+
+      await waitFor(() => {
+        expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+      })
+    })
   })
 
-  it('renders welcome message with user name', async () => {
-    mockGet
-      .mockResolvedValueOnce({ data: mockStatsData })
-      .mockResolvedValueOnce({ data: mockActivityData })
+  describe('Role-specific Dashboard Routing', () => {
+    it('routes SYSADMIN to SysAdminDashboard', async () => {
+      renderWithProviders(<Dashboard />, {
+        preloadedState: {
+          auth: { user: { first_name: 'Admin', role: 'SYSADMIN' }, isAuthenticated: true, loading: false, error: null },
+        },
+      })
 
-    renderWithProviders(<Dashboard />, {
-      preloadedState: {
-        auth: { user: { first_name: 'John', role: 'SYSADMIN' }, isAuthenticated: true, loading: false, error: null },
-      },
+      await waitFor(() => {
+        expect(screen.getByText(/System Overview/)).toBeInTheDocument()
+      })
     })
 
-    await waitFor(() => {
-      expect(screen.getByText('Welcome, John')).toBeInTheDocument()
-    })
-  })
+    it('routes HR to HRDashboard', async () => {
+      renderWithProviders(<Dashboard />, {
+        preloadedState: {
+          auth: { user: { first_name: 'HR Manager', role: 'HR' }, isAuthenticated: true, loading: false, error: null },
+        },
+      })
 
-  it('renders subtitle text', async () => {
-    mockGet
-      .mockResolvedValueOnce({ data: mockStatsData })
-      .mockResolvedValueOnce({ data: mockActivityData })
-
-    renderWithProviders(<Dashboard />, {
-      preloadedState: {
-        auth: { user: { first_name: 'Admin', role: 'TG' }, isAuthenticated: true, loading: false, error: null },
-      },
+      await waitFor(() => {
+        expect(screen.getByText(/Staff Management Overview/)).toBeInTheDocument()
+      })
     })
 
-    await waitFor(() => {
-      expect(screen.getByText('Education District IV Portal Dashboard')).toBeInTheDocument()
-    })
-  })
+    it('routes FIN to FinanceDashboard', async () => {
+      renderWithProviders(<Dashboard />, {
+        preloadedState: {
+          auth: { user: { first_name: 'Finance', role: 'FIN' }, isAuthenticated: true, loading: false, error: null },
+        },
+      })
 
-  it('renders stat cards with data from API', async () => {
-    mockGet
-      .mockResolvedValueOnce({ data: mockStatsData })
-      .mockResolvedValueOnce({ data: mockActivityData })
-
-    renderWithProviders(<Dashboard />, {
-      preloadedState: {
-        auth: { user: { first_name: 'Admin', role: 'SYSADMIN' }, isAuthenticated: true, loading: false, error: null },
-      },
+      await waitFor(() => {
+        expect(screen.getByText(/Financial Overview/)).toBeInTheDocument()
+      })
     })
 
-    await waitFor(() => {
-      expect(screen.getByText('Total Schools')).toBeInTheDocument()
-      expect(screen.getByText('Total Students')).toBeInTheDocument()
-      expect(screen.getByText('Total Staff')).toBeInTheDocument()
-      expect(screen.getByText('Active Files')).toBeInTheDocument()
-    })
-  })
+    it('routes PRI to PrincipalDashboard', async () => {
+      renderWithProviders(<Dashboard />, {
+        preloadedState: {
+          auth: { user: { first_name: 'Principal', role: 'PRI' }, isAuthenticated: true, loading: false, error: null },
+        },
+      })
 
-  it('calls both API endpoints on mount', async () => {
-    mockGet
-      .mockResolvedValueOnce({ data: mockStatsData })
-      .mockResolvedValueOnce({ data: mockActivityData })
-
-    renderWithProviders(<Dashboard />, {
-      preloadedState: {
-        auth: { user: { first_name: 'Admin', role: 'SYSADMIN' }, isAuthenticated: true, loading: false, error: null },
-      },
+      await waitFor(() => {
+        expect(screen.getByText(/School Operations Overview/)).toBeInTheDocument()
+      })
     })
 
-    await waitFor(() => {
-      expect(mockGet).toHaveBeenCalledWith('/analytics/stats/overview/')
-      expect(mockGet).toHaveBeenCalledWith('/analytics/stats/recent_activity/')
-    })
-  })
+    it('routes TCH to TeacherDashboard', async () => {
+      renderWithProviders(<Dashboard />, {
+        preloadedState: {
+          auth: { user: { first_name: 'Teacher', role: 'TCH' }, isAuthenticated: true, loading: false, error: null },
+        },
+      })
 
-  it('handles API error gracefully', async () => {
-    mockGet.mockRejectedValue(new Error('Network Error'))
-
-    renderWithProviders(<Dashboard />, {
-      preloadedState: {
-        auth: { user: { first_name: 'Admin', role: 'SYSADMIN' }, isAuthenticated: true, loading: false, error: null },
-      },
+      await waitFor(() => {
+        expect(screen.getByText(/Today's Overview/)).toBeInTheDocument()
+      })
     })
 
-    await waitFor(() => {
-      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+    it('routes REG to RegistryDashboard', async () => {
+      renderWithProviders(<Dashboard />, {
+        preloadedState: {
+          auth: { user: { first_name: 'Registry', role: 'REG' }, isAuthenticated: true, loading: false, error: null },
+        },
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText(/File & Workflow Management/)).toBeInTheDocument()
+      })
+    })
+
+    it('routes PAR to ParentDashboard', async () => {
+      renderWithProviders(<Dashboard />, {
+        preloadedState: {
+          auth: { user: { first_name: 'Parent', role: 'PAR' }, isAuthenticated: true, loading: false, error: null },
+        },
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText(/Your Children's Overview/)).toBeInTheDocument()
+      })
     })
   })
 })

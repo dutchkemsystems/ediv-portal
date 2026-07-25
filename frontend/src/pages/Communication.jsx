@@ -4,10 +4,7 @@ import {
   Typography,
   Button,
   Grid,
-  Card,
-  CardContent,
   Chip,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -17,130 +14,147 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
+  Divider,
+  Paper,
+  Stack,
 } from '@mui/material'
 import {
   Add as AddIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon,
-  Visibility as ViewIcon,
   Mail as MessageIcon,
   Campaign as CircularIcon,
   MarkEmailRead as ReadIcon,
   MarkEmailUnread as UnreadIcon,
+  FilterList as FilterIcon,
+  Clear as ClearIcon,
 } from '@mui/icons-material'
 import DataTable from '../components/common/DataTable'
 import StatCard from '../components/common/StatCard'
 import Loading from '../components/common/Loading'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 import api from '../api/client'
+import { notify } from '../utils/notifications'
 
 function Communication() {
   const [messages, setMessages] = useState([])
   const [circulars, setCirculars] = useState([])
   const [loading, setLoading] = useState(true)
-  const [openDialog, setOpenDialog] = useState(false)
+  const [openFormDialog, setOpenFormDialog] = useState(false)
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
-  const [openCircularDialog, setOpenCircularDialog] = useState(false)
-  const [selectedMessage, setSelectedMessage] = useState(null)
+  const [openViewDialog, setOpenViewDialog] = useState(false)
+  const [selectedItem, setSelectedItem] = useState(null)
   const [viewMode, setViewMode] = useState('messages')
-  const [formData, setFormData] = useState({
-    subject: '',
-    sender: '',
-    recipient: '',
-    message: '',
-    priority: 'NORMAL',
-    category: 'GENERAL',
-    date_sent: '',
-  })
+  const [formData, setFormData] = useState({ subject: '', sender: '', recipient: '', message: '', priority: 'NORMAL', category: 'GENERAL', date_sent: '' })
+  const [submitting, setSubmitting] = useState(false)
+
+  // Filters
+  const [filters, setFilters] = useState({ priority: '', category: '', is_read: '' })
+  const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
     fetchMessages()
     fetchCirculars()
   }, [])
 
+  useEffect(() => {
+    if (viewMode === 'messages') fetchMessages()
+    if (viewMode === 'circulars') fetchCirculars()
+  }, [filters, viewMode])
+
   const fetchMessages = async () => {
     try {
-      const response = await api.get('/communication/messages/')
-      setMessages(response.data.results || response.data)
-    } catch (error) {
-      console.error('Error fetching messages:', error)
-    } finally {
-      setLoading(false)
-    }
+      setLoading(true)
+      const params = new URLSearchParams()
+      if (filters.priority) params.append('priority', filters.priority)
+      if (filters.is_read) params.append('is_read', filters.is_read)
+      const query = params.toString()
+      const res = await api.get(`/communication/messages/${query ? `?${query}` : ''}`)
+      setMessages(res.data.results || res.data)
+    } catch (error) { /* silent */ } finally { setLoading(false) }
   }
 
   const fetchCirculars = async () => {
     try {
-      const response = await api.get('/communication/circulars/')
-      setCirculars(response.data.results || response.data)
+      setLoading(true)
+      const params = new URLSearchParams()
+      if (filters.category) params.append('category', filters.category)
+      const query = params.toString()
+      const res = await api.get(`/communication/circulars/${query ? `?${query}` : ''}`)
+      setCirculars(res.data.results || res.data)
+    } catch (error) { /* silent */ } finally { setLoading(false) }
+  }
+
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({ ...prev, [field]: value }))
+  }
+
+  const clearFilters = () => setFilters({ priority: '', category: '', is_read: '' })
+  const hasActiveFilters = Object.values(filters).some(v => v !== '')
+
+  const handleOpenCreate = () => {
+    setSelectedItem(null)
+    setFormData({ subject: '', sender: '', recipient: '', message: '', priority: 'NORMAL', category: 'GENERAL', date_sent: '' })
+    setOpenFormDialog(true)
+  }
+
+  const handleOpenEdit = (item) => {
+    setSelectedItem(item)
+    setFormData({
+      subject: item.subject || '',
+      sender: item.sender || '',
+      recipient: item.recipient || '',
+      message: item.message || item.content || '',
+      priority: item.priority || 'NORMAL',
+      category: item.category || 'GENERAL',
+      date_sent: item.date_sent || '',
+    })
+    setOpenFormDialog(true)
+  }
+
+  const handleOpenView = (item) => {
+    setSelectedItem(item)
+    setOpenViewDialog(true)
+  }
+
+  const handleDelete = async () => {
+    try {
+      const endpoint = viewMode === 'messages' ? 'messages' : 'circulars'
+      await api.delete(`/communication/${endpoint}/${selectedItem.id}/`)
+      notify.success('Deleted successfully')
+      setOpenDeleteDialog(false)
+      setSelectedItem(null)
+      if (viewMode === 'messages') fetchMessages()
+      else fetchCirculars()
     } catch (error) {
-      console.error('Error fetching circulars:', error)
+      notify.error('Failed to delete')
     }
-  }
-
-  const handleAdd = () => {
-    setSelectedMessage(null)
-    setFormData({
-      subject: '',
-      sender: '',
-      recipient: '',
-      message: '',
-      priority: 'NORMAL',
-      category: 'GENERAL',
-      date_sent: '',
-    })
-    setOpenDialog(true)
-  }
-
-  const handleEdit = (message) => {
-    setSelectedMessage(message)
-    setFormData({
-      subject: message.subject,
-      sender: message.sender,
-      recipient: message.recipient,
-      message: message.message,
-      priority: message.priority || 'NORMAL',
-      category: message.category || 'GENERAL',
-      date_sent: message.date_sent || '',
-    })
-    setOpenDialog(true)
-  }
-
-  const handleDelete = (message) => {
-    setSelectedMessage(message)
-    setOpenDeleteDialog(true)
-  }
-
-  const handleViewCircular = (circular) => {
-    setSelectedMessage(circular)
-    setOpenCircularDialog(true)
   }
 
   const handleSubmit = async () => {
+    setSubmitting(true)
     try {
-      if (selectedMessage) {
-        await api.put(`/communication/messages/${selectedMessage.id}/`, formData)
+      const endpoint = viewMode === 'messages' ? 'messages' : 'circulars'
+      if (selectedItem) {
+        await api.put(`/communication/${endpoint}/${selectedItem.id}/`, formData)
+        notify.success('Updated successfully')
       } else {
-        await api.post('/communication/messages/', formData)
+        await api.post(`/communication/${endpoint}/`, formData)
+        notify.success('Created successfully')
       }
-      setOpenDialog(false)
-      fetchMessages()
+      setOpenFormDialog(false)
+      setSelectedItem(null)
+      if (viewMode === 'messages') fetchMessages()
+      else fetchCirculars()
     } catch (error) {
-      console.error('Error saving message:', error)
-    }
-  }
-
-  const handleConfirmDelete = async () => {
-    try {
-      await api.delete(`/communication/messages/${selectedMessage.id}/`)
-      setOpenDeleteDialog(false)
-      fetchMessages()
-    } catch (error) {
-      console.error('Error deleting message:', error)
+      const data = error.response?.data
+      let msg = 'Failed to save'
+      if (data && typeof data === 'object') {
+        const firstKey = Object.keys(data)[0]
+        if (firstKey) { const val = data[firstKey]; msg = Array.isArray(val) ? `${firstKey}: ${val[0]}` : `${firstKey}: ${val}` }
+      }
+      notify.error(msg)
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -203,33 +217,84 @@ function Communication() {
 
   return (
     <Box>
+      {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">Communication & Messaging</Typography>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button
-            variant={viewMode === 'messages' ? 'contained' : 'outlined'}
-            onClick={() => setViewMode('messages')}
-            sx={viewMode === 'messages' ? { bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1642' } } : {}}
-          >
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 700 }}>Communication & Messaging</Typography>
+          <Typography variant="body2" color="text.secondary">
+            {viewMode === 'messages' ? `${messages.length} messages` : `${circulars.length} circulars`}
+            {hasActiveFilters ? ' (filtered)' : ''}
+          </Typography>
+        </Box>
+        <Stack direction="row" spacing={1}>
+          <Button variant={viewMode === 'messages' ? 'contained' : 'outlined'} onClick={() => { setViewMode('messages'); setShowFilters(false) }}
+            sx={viewMode === 'messages' ? { bgcolor: '#1a237e' } : {}}>
             Messages
           </Button>
-          <Button
-            variant={viewMode === 'circulars' ? 'contained' : 'outlined'}
-            onClick={() => setViewMode('circulars')}
-            sx={viewMode === 'circulars' ? { bgcolor: '#f57c00', '&:hover': { bgcolor: '#e65100' } } : {}}
-          >
+          <Button variant={viewMode === 'circulars' ? 'contained' : 'outlined'} onClick={() => { setViewMode('circulars'); setShowFilters(false) }}
+            sx={viewMode === 'circulars' ? { bgcolor: '#f57c00' } : {}}>
             Circulars
           </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleAdd}
-            sx={{ bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1642' } }}
-          >
-            New Message
+          <Button variant="outlined" startIcon={<FilterIcon />} onClick={() => setShowFilters(!showFilters)} color={hasActiveFilters ? 'primary' : 'inherit'}>
+            Filters
           </Button>
-        </Box>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenCreate}
+            sx={{ bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1642' } }}>
+            New {viewMode === 'messages' ? 'Message' : 'Circular'}
+          </Button>
+        </Stack>
       </Box>
+
+      {/* Filters */}
+      {showFilters && (
+        <Paper sx={{ p: 2, mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+            <FilterIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+            <Typography variant="subtitle2" color="text.secondary">Filter {viewMode === 'messages' ? 'Messages' : 'Circulars'}</Typography>
+            {hasActiveFilters && <Button size="small" startIcon={<ClearIcon />} onClick={clearFilters}>Clear All</Button>}
+          </Box>
+          {viewMode === 'messages' ? (
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6} md={4}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Priority</InputLabel>
+                  <Select value={filters.priority} onChange={(e) => handleFilterChange('priority', e.target.value)} label="Priority">
+                    <MenuItem value="">All Priorities</MenuItem>
+                    <MenuItem value="HIGH">High</MenuItem>
+                    <MenuItem value="NORMAL">Normal</MenuItem>
+                    <MenuItem value="LOW">Low</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6} md={4}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Status</InputLabel>
+                  <Select value={filters.is_read} onChange={(e) => handleFilterChange('is_read', e.target.value)} label="Status">
+                    <MenuItem value="">All</MenuItem>
+                    <MenuItem value="false">Unread</MenuItem>
+                    <MenuItem value="true">Read</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+          ) : (
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6} md={4}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Category</InputLabel>
+                  <Select value={filters.category} onChange={(e) => handleFilterChange('category', e.target.value)} label="Category">
+                    <MenuItem value="">All Categories</MenuItem>
+                    <MenuItem value="ANNOUNCEMENT">Announcement</MenuItem>
+                    <MenuItem value="URGENT">Urgent</MenuItem>
+                    <MenuItem value="GENERAL">General</MenuItem>
+                    <MenuItem value="ACADEMIC">Academic</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+          )}
+        </Paper>
+      )}
 
       {/* Stats */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -269,26 +334,14 @@ function Communication() {
 
       {/* Table */}
       {viewMode === 'messages' ? (
-        <DataTable
-          columns={columns}
-          data={messages}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onView={(msg) => console.log('View:', msg)}
-        />
+        <DataTable columns={columns} data={messages} onView={handleOpenView} onEdit={handleOpenEdit} onDelete={(item) => { setSelectedItem(item); setOpenDeleteDialog(true) }} />
       ) : (
-        <DataTable
-          columns={circularColumns}
-          data={circulars}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onView={handleViewCircular}
-        />
+        <DataTable columns={circularColumns} data={circulars} onView={handleOpenView} onEdit={handleOpenEdit} onDelete={(item) => { setSelectedItem(item); setOpenDeleteDialog(true) }} />
       )}
 
-      {/* Add/Edit Dialog */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>{selectedMessage ? 'Edit Message' : 'New Message'}</DialogTitle>
+      {/* ============ CREATE / EDIT DIALOG ============ */}
+      <Dialog open={openFormDialog} onClose={() => setOpenFormDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ fontWeight: 600 }}>{selectedItem ? 'Edit Message' : 'New Message'}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
@@ -366,56 +419,54 @@ function Communication() {
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-          <Button
-            onClick={handleSubmit}
-            variant="contained"
-            sx={{ bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1642' } }}
-          >
-            {selectedMessage ? 'Update' : 'Send'}
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => setOpenFormDialog(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleSubmit} disabled={submitting}
+            sx={{ bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1642' } }}>
+            {submitting ? 'Sending...' : selectedItem ? 'Update' : 'Send'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Circular View Dialog */}
-      <Dialog open={openCircularDialog} onClose={() => setOpenCircularDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <CircularIcon />
-          Circular Details
+      {/* ============ VIEW DETAILS DIALOG ============ */}
+      <Dialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 600 }}>
+          {viewMode === 'messages' ? 'Message' : 'Circular'} Details
+          {selectedItem?.priority && <Chip label={selectedItem.priority} size="small" sx={{ ml: 1 }} color={getPriorityColor(selectedItem.priority)} />}
         </DialogTitle>
         <DialogContent>
-          {selectedMessage && (
+          {selectedItem && (
             <Box>
-              <Typography variant="h6" gutterBottom>{selectedMessage.subject}</Typography>
+              <Typography variant="h6" gutterBottom>{selectedItem.subject}</Typography>
               <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                <Chip label={selectedMessage.priority || 'NORMAL'} size="small" color={getPriorityColor(selectedMessage.priority)} />
-                <Chip label={selectedMessage.category || 'GENERAL'} size="small" color={getCategoryColor(selectedMessage.category)} />
+                {selectedItem.category && <Chip label={selectedItem.category} size="small" color={getCategoryColor(selectedItem.category)} />}
+                {selectedItem.read !== undefined && (
+                  <Chip icon={selectedItem.read ? <ReadIcon /> : <UnreadIcon />}
+                    label={selectedItem.read ? 'Read' : 'Unread'} size="small"
+                    color={selectedItem.read ? 'default' : 'primary'} variant={selectedItem.read ? 'outlined' : 'filled'} />
+                )}
               </Box>
+              <Divider sx={{ my: 1 }} />
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                From: {selectedMessage.sender} | Date: {selectedMessage.date_sent}
+                From: {selectedItem.sender} | To: {selectedItem.recipient || 'All'} | Date: {selectedItem.date_sent}
               </Typography>
-              <Typography variant="body1" sx={{ mt: 2 }}>
-                {selectedMessage.message || selectedMessage.content || 'No content available.'}
+              <Divider sx={{ my: 1 }} />
+              <Typography variant="body1" sx={{ mt: 2, whiteSpace: 'pre-wrap' }}>
+                {selectedItem.message || selectedItem.content || 'No content available.'}
               </Typography>
             </Box>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenCircularDialog(false)}>Close</Button>
+          <Button onClick={() => setOpenViewDialog(false)}>Close</Button>
+          <Button variant="contained" startIcon={<EditIcon />} onClick={() => { setOpenViewDialog(false); handleOpenEdit(selectedItem) }} sx={{ bgcolor: '#1a237e' }}>Edit</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
-        open={openDeleteDialog}
-        title="Delete Message"
-        message={`Are you sure you want to delete "${selectedMessage?.subject}"? This action cannot be undone.`}
-        onConfirm={handleConfirmDelete}
-        onCancel={() => setOpenDeleteDialog(false)}
-        confirmText="Delete"
-        severity="error"
-      />
+      {/* ============ DELETE CONFIRMATION ============ */}
+      <ConfirmDialog open={openDeleteDialog} title="Delete Message"
+        message={`Are you sure you want to delete "${selectedItem?.subject}"? This action cannot be undone.`}
+        onConfirm={handleDelete} onCancel={() => setOpenDeleteDialog(false)} confirmText="Delete" severity="error" />
     </Box>
   )
 }

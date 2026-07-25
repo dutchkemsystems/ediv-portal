@@ -31,8 +31,7 @@ import { notify } from '../utils/notifications'
 
 const allRoles = [
   { value: 'SYSADMIN', label: 'System Administrator', category: 'Head Office' },
-  { value: 'TG', label: 'Tutor General', category: 'Head Office' },
-  { value: 'PS', label: 'Permanent Secretary', category: 'Head Office' },
+  { value: 'TG_PS', label: 'Tutor General/Permanent Secretary', category: 'Head Office' },
   { value: 'HR', label: 'Admin & HR Head', category: 'Head Office' },
   { value: 'FIN', label: 'Finance Director', category: 'Head Office' },
   { value: 'AUDIT', label: 'Internal Audit', category: 'Head Office' },
@@ -89,8 +88,7 @@ const modules = [
 
 const defaultAccess = {
   SYSADMIN: modules.map(m => m.key),
-  TG: modules.map(m => m.key),
-  PS: modules.map(m => m.key),
+  TG_PS: modules.map(m => m.key),
   HR: ['dashboard', 'staff', 'hr', 'grants', 'reports', 'notifications'],
   FIN: ['dashboard', 'finance', 'grants', 'reports', 'notifications'],
   AUDIT: ['dashboard', 'finance', 'grants', 'reports', 'notifications'],
