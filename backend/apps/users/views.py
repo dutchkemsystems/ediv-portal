@@ -547,7 +547,9 @@ class AuthViewSet(viewsets.ViewSet):
         # 1. Seed admin user
         import os
         email = 'admin@ediv.gov.ng'
-        password = os.environ.get('ADMIN_PASSWORD', 'Admin@12345678')
+        password = os.environ.get('ADMIN_PASSWORD')
+        if not password:
+            return Response({'error': 'ADMIN_PASSWORD env var not set'}, status=500)
         user, created = User.objects.get_or_create(
             email=email,
             defaults={

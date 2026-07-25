@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
+import os
 
 User = get_user_model()
 
@@ -8,15 +9,14 @@ class Command(BaseCommand):
     help = 'Print all user login credentials in a formatted table'
 
     def handle(self, *args, **options):
-        # Password defaults (matching seed_users.py)
         passwords = {
-            'SYSADMIN': 'Admin@12345678',
-            'TG': 'TutorGen@12345',
+            'SYSADMIN': os.environ.get('ADMIN_PASSWORD', '*** NOT SET ***'),
+            'TG': os.environ.get('TG_PASSWORD', '*** NOT SET ***'),
         }
-        dept_head_pw = 'DeptHead@12345'
-        school_staff_pw = 'SchoolStaff@12345'
-        teacher_pw = 'Teacher@12345'
-        student_pw = 'Student@12345'
+        dept_head_pw = os.environ.get('HEAD_OFFICE_PASSWORD', '*** NOT SET ***')
+        school_staff_pw = os.environ.get('SCHOOL_STAFF_PASSWORD', '*** NOT SET ***')
+        teacher_pw = os.environ.get('TEACHER_PASSWORD', '*** NOT SET ***')
+        student_pw = os.environ.get('STUDENT_PASSWORD', '*** NOT SET ***')
 
         users = User.objects.all().order_by('role', 'email')
 
@@ -95,10 +95,10 @@ class Command(BaseCommand):
         for role in sorted(by_role.keys()):
             self.stdout.write(f'    {role:<12}: {len(by_role[role])}')
 
-        self.stdout.write(self.style.SUCCESS(f'\nPassword Reference:'))
-        self.stdout.write(f'  SYSADMIN:       Admin@12345678')
-        self.stdout.write(f'  TG:             TutorGen@12345')
-        self.stdout.write(f'  Dept/Unit Heads: DeptHead@12345')
-        self.stdout.write(f'  Principals/VPs:  SchoolStaff@12345')
-        self.stdout.write(f'  Teachers:        Teacher@12345')
-        self.stdout.write(f'  Students:        Student@12345')
+        self.stdout.write(self.style.SUCCESS(f'\nPassword Reference (from env vars):'))
+        self.stdout.write(f'  SYSADMIN:        {os.environ.get("ADMIN_PASSWORD", "*** NOT SET ***")}')
+        self.stdout.write(f'  TG:              {os.environ.get("TG_PASSWORD", "*** NOT SET ***")}')
+        self.stdout.write(f'  Dept/Unit Heads: {os.environ.get("HEAD_OFFICE_PASSWORD", "*** NOT SET ***")}')
+        self.stdout.write(f'  Principals/VPs:  {os.environ.get("SCHOOL_STAFF_PASSWORD", "*** NOT SET ***")}')
+        self.stdout.write(f'  Teachers:        {os.environ.get("TEACHER_PASSWORD", "*** NOT SET ***")}')
+        self.stdout.write(f'  Students:        {os.environ.get("STUDENT_PASSWORD", "*** NOT SET ***")}')

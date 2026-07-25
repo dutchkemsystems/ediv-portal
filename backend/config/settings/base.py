@@ -4,7 +4,9 @@ from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-change-this-in-production')
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    raise SystemExit('Missing DJANGO_SECRET_KEY environment variable.')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -140,8 +142,8 @@ REST_FRAMEWORK = {
 
 # JWT Settings
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.environ.get('JWT_ACCESS_TOKEN_LIFETIME_MINUTES', 30))),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=int(os.environ.get('JWT_REFRESH_TOKEN_LIFETIME_DAYS', 7))),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.environ.get('JWT_ACCESS_TOKEN_LIFETIME_MINUTES', '30'))),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=int(os.environ.get('JWT_REFRESH_TOKEN_LIFETIME_DAYS', '7'))),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
@@ -184,8 +186,8 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 
 # KoraPay
-KORA_PAY_PUBLIC_KEY = os.environ.get('KORA_PAY_PUBLIC_KEY', 'pk_test_xxx')
-KORA_PAY_SECRET_KEY = os.environ.get('KORA_PAY_SECRET_KEY', 'sk_test_xxx')
+KORA_PAY_PUBLIC_KEY = os.environ.get('KORA_PAY_PUBLIC_KEY', '')
+KORA_PAY_SECRET_KEY = os.environ.get('KORA_PAY_SECRET_KEY', '')
 KORA_PAY_WEBHOOK_SECRET = os.environ.get('KORA_PAY_WEBHOOK_SECRET', '')
 KORA_PAY_API_URL = os.environ.get('KORA_PAY_API_URL', 'https://api.korapay.com/merchant/api/v1')
 

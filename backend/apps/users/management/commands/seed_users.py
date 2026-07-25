@@ -6,14 +6,18 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-# Passwords loaded from environment variables with fallback defaults for development only.
-# In production, set these via Render env vars or .env file.
-ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'Admin@12345678')
-HEAD_OFFICE_PASSWORD = os.environ.get('HEAD_OFFICE_PASSWORD', 'DeptHead@12345')
-TG_PASSWORD = os.environ.get('TG_PASSWORD', 'TutorGen@12345')
-SCHOOL_STAFF_PASSWORD = os.environ.get('SCHOOL_STAFF_PASSWORD', 'SchoolStaff@12345')
-TEACHER_PASSWORD = os.environ.get('TEACHER_PASSWORD', 'Teacher@12345')
-STUDENT_PASSWORD = os.environ.get('STUDENT_PASSWORD', 'Student@12345')
+def _require_env(key):
+    val = os.environ.get(key)
+    if not val:
+        raise SystemExit(f'Missing required environment variable: {key}. Set it in .env or Render dashboard.')
+    return val
+
+ADMIN_PASSWORD = _require_env('ADMIN_PASSWORD')
+TG_PASSWORD = _require_env('TG_PASSWORD')
+HEAD_OFFICE_PASSWORD = _require_env('HEAD_OFFICE_PASSWORD')
+SCHOOL_STAFF_PASSWORD = _require_env('SCHOOL_STAFF_PASSWORD')
+TEACHER_PASSWORD = _require_env('TEACHER_PASSWORD')
+STUDENT_PASSWORD = _require_env('STUDENT_PASSWORD')
 
 
 # ---------------------------------------------------------------------------
@@ -32,10 +36,10 @@ ADMIN_USERS = [
         'is_superuser': True,
     },
     {
-        'email': 'tg@ediv.gov.ng',
+        'email': 'tg.ps@ediv.gov.ng',
         'first_name': 'Abimbola',
         'last_name': 'Adesanya',
-        'role': 'TG',
+        'role': 'TG_PS',
         'password': TG_PASSWORD,
         'phone_number': '+2348010000002',
         'is_staff': True,
