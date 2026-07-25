@@ -73,6 +73,10 @@ class User(AbstractUser):
     def is_head_office_staff(self):
         return self.role in ['TG', 'PS', 'HR', 'FIN', 'AUDIT', 'QA', 'CC', 'EMIS', 'PLAN', 'PROC', 'PA', 'SA', 'FRENCH', 'REG', 'REG_OFF']
     
+    @property
+    def is_admin_level(self):
+        return self.role in ['SYSADMIN', 'TG', 'PS']
+    
     def can_access_module(self, module):
         """Check if user can access a specific module based on role."""
         permissions = {
@@ -159,3 +163,44 @@ class RolePrivilege(models.Model):
 
     def __str__(self):
         return f"Privilege Template: {self.role}"
+
+
+class UserSession(models.Model):
+    """Tracks active user sessions for concurrent session enforcement and device fingerprinting."""
+    
+    class Status(models.TextChoices):
+        ACTIVE = 'ACTIVE', 'Active'
+        IDLE = 'IDLE', 'Idle'
+        EXPIRED = 'EXPIRED', 'Expired'
+        REVOKED = 'REVOKED', 'Revoked'
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sessions')
+    session_key = models.CharField(max_length=64, unique=True, db_index=True)
+    device_fingerprint = models.CharField(max_length=256, blank=True, db_index=True)
+    device_type = models.CharField(max_length=50, blank=True, help_text='e.g. desktop, mobile, tablet')
+    device_os = models.CharField(max_length=100, blank=True)
+    device_browser = models.CharField(max_length=100, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.ACTIVE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_activity = models.DateTimeField(auto_now=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-last_activity']
+        indexes = [
+            models.Index(fields=['user', 'status']),
+            models.Index(fields=['session_key']),
+            models.Index(fields=['device_fingerprint']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.email} - {self.device_type} ({self.ip_address}) [{self.status}]"
+    
+    def revoke(self):
+        from django.utils import timezone
+        self.status = self.Status.REVOKED
+        self.revoked_at = timezone.now()
+        self.save(update_fields=['status', 'revoked_at'])

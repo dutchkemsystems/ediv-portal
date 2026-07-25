@@ -8,7 +8,7 @@ from django.contrib.auth import authenticate
 from django.core.cache import cache
 from django.core.mail import send_mail
 from django.conf import settings
-from config.security import AccountLockout, AuditLogger
+from config.security import AccountLockout, AuditLogger, SessionManager, DeviceFingerprint
 from .models import User, Privilege, RolePrivilege
 from .serializers import (
     UserSerializer, UserCreateSerializer,
@@ -316,6 +316,8 @@ class AuthViewSet(viewsets.ViewSet):
     def logout(self, request):
         try:
             refresh = RefreshToken(request.data.get('refresh'))
+            jti = str(refresh.get('jti', ''))
+            SessionManager.revoke_session(jti)
             refresh.blacklist()
             return Response({'message': 'Logged out successfully.'})
         except Exception:
