@@ -78,22 +78,15 @@ function Dashboard() {
 
   const RoleDashboard = user?.role ? roleDashboards[user.role] : null
 
-  // If user has a dedicated dashboard, show it immediately
-  if (RoleDashboard) {
-    return (
-      <Suspense fallback={
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-          <CircularProgress />
-        </Box>
-      }>
-        <RoleDashboard />
-      </Suspense>
-    )
-  }
-
-  // Only fetch generic dashboard data if user is loaded and has no dedicated dashboard
   useEffect(() => {
-    if (!user?.role) return // Don't fetch until user is loaded
+    // If user has a dedicated dashboard, skip generic data fetch
+    if (RoleDashboard) {
+      setLoading(false)
+      return
+    }
+    // If user not loaded yet, wait
+    if (!user?.role) return
+
     const fetchDashboard = async () => {
       try {
         const [statsRes, activityRes] = await Promise.all([
@@ -109,7 +102,20 @@ function Dashboard() {
       }
     }
     fetchDashboard()
-  }, [user?.role])
+  }, [RoleDashboard, user?.role])
+
+  // Render role-specific dashboard if user has one
+  if (RoleDashboard) {
+    return (
+      <Suspense fallback={
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+          <CircularProgress />
+        </Box>
+      }>
+        <RoleDashboard />
+      </Suspense>
+    )
+  }
 
   if (loading) {
     return (
