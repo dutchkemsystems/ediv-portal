@@ -66,7 +66,7 @@ class IncomingMailSerializer(serializers.ModelSerializer):
                   'date_received', 'received_by', 'received_by_name', 'department', 'department_name',
                   'classification', 'priority', 'subject_category', 'status', 'scanned_copy', 'notes',
                   'scan_records', 'assignments', 'movements', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'mail_number', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'mail_number', 'received_by', 'created_at', 'updated_at']
 
     def get_received_by_name(self, obj):
         return obj.received_by.get_full_name()
@@ -133,7 +133,7 @@ class OutgoingMailSerializer(serializers.ModelSerializer):
                   'created_by', 'created_by_name', 'department', 'department_name',
                   'classification', 'priority', 'status', 'content', 'notes', 'scanned_copy',
                   'approvals', 'movements', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'mail_number', 'date_created', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'mail_number', 'date_created', 'created_by', 'created_at', 'updated_at']
 
     def get_created_by_name(self, obj):
         return obj.created_by.get_full_name()
@@ -189,7 +189,7 @@ class SchoolHQCorrespondenceSerializer(serializers.ModelSerializer):
                   'date_created', 'date_submitted', 'date_received', 'date_resolved',
                   'classification', 'priority', 'status', 'content', 'response',
                   'requires_response', 'response_deadline', 'movements', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'reference_number', 'date_created', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'reference_number', 'date_created', 'sender', 'created_at', 'updated_at']
 
     def get_sender_name(self, obj):
         return obj.sender.get_full_name()
@@ -261,7 +261,7 @@ class MailCorrespondenceSerializer(serializers.ModelSerializer):
                   'department', 'department_name', 'school', 'school_name',
                   'date_created', 'date_sent', 'date_received', 'status',
                   'classification', 'priority', 'notes', 'movements', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'reference_number', 'date_created', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'reference_number', 'date_created', 'sender', 'created_at', 'updated_at']
 
     def get_sender_name(self, obj):
         return obj.sender.get_full_name()
