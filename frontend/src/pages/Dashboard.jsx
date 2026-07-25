@@ -76,7 +76,14 @@ function Dashboard() {
   const [activity, setActivity] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  const RoleDashboard = roleDashboards[user?.role]
+
   useEffect(() => {
+    // Only fetch generic dashboard data for roles without a dedicated dashboard
+    if (RoleDashboard) {
+      setLoading(false)
+      return
+    }
     const fetchDashboard = async () => {
       try {
         const [statsRes, activityRes] = await Promise.all([
@@ -94,8 +101,6 @@ function Dashboard() {
     fetchDashboard()
   }, [])
 
-  // Route to role-specific dashboard
-  const RoleDashboard = roleDashboards[user?.role]
   if (RoleDashboard) {
     return (
       <Suspense fallback={
