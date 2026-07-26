@@ -32,7 +32,7 @@ class ErrorBoundary extends React.Component {
               Something went wrong
             </Typography>
             <Typography color="text.secondary" gutterBottom>
-              {this.state.error?.message || 'An unexpected error occurred.'}
+              {typeof this.state.error?.message === 'string' ? this.state.error.message : 'An unexpected error occurred.'}
             </Typography>
             <Button
               variant="contained"

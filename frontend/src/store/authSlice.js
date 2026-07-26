@@ -71,7 +71,19 @@ const authSlice = createSlice({
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false
-        state.error = action.payload?.error || 'Login failed'
+        const err = action.payload
+        // Ensure error is always a string, never an object
+        if (typeof err === 'string') {
+          state.error = err
+        } else if (typeof err?.error === 'string') {
+          state.error = err.error
+        } else if (typeof err?.detail === 'string') {
+          state.error = err.detail
+        } else if (typeof err?.message === 'string') {
+          state.error = err.message
+        } else {
+          state.error = 'Login failed. Please check your credentials.'
+        }
       })
       .addCase(logout.fulfilled, (state) => {
         state.isAuthenticated = false
