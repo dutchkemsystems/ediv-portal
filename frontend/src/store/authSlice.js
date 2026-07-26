@@ -81,6 +81,10 @@ const authSlice = createSlice({
           state.error = err.detail
         } else if (typeof err?.message === 'string') {
           state.error = err.message
+        } else if (err && typeof err === 'object') {
+          // Extract first string value from error object
+          const firstVal = Object.values(err).find(v => typeof v === 'string')
+          state.error = firstVal || 'Login failed. Please check your credentials.'
         } else {
           state.error = 'Login failed. Please check your credentials.'
         }
