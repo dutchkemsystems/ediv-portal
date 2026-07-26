@@ -1,26 +1,24 @@
 import axios from 'axios'
 
 // Determine the API base URL
-// If VITE_API_URL is set and is a full URL, use it directly
-// If VITE_API_URL is '/api' or unset, try to detect the backend URL
 const configuredUrl = import.meta.env.VITE_API_URL
 let baseURL = '/api'
 
-if (configuredUrl) {
-  if (configuredUrl.startsWith('http')) {
-    // Full URL provided (e.g., https://ediv-portal.onrender.com/api)
-    baseURL = configuredUrl
-  } else {
-    // Relative path - check if we're on a static site (no backend proxy)
-    // On Render static sites, /api goes to the static site itself
-    // We need to redirect to the backend
+// If no explicit URL configured, auto-detect backend based on current hostname
+if (!configuredUrl) {
+  const hostname = window.location.hostname
+  // If frontend is on a separate static site, point API to the backend
+  if (hostname.includes('ediv-frontend-static')) {
+    baseURL = 'https://ediv-portal.onrender.com/api'
+  } else if (hostname.includes('onrender.com') && !hostname.includes('ediv-portal')) {
+    // Any other Render static site - try the backend URL
     const backendUrl = import.meta.env.VITE_BACKEND_URL
     if (backendUrl) {
       baseURL = `${backendUrl}/api`
-    } else {
-      baseURL = configuredUrl
     }
   }
+} else if (configuredUrl.startsWith('http')) {
+  baseURL = configuredUrl
 }
 
 const api = axios.create({
