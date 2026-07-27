@@ -361,7 +361,9 @@ class CreateStaffSerializer(serializers.Serializer):
         )
 
         # Generate staff_id and employee_number
-        prefix = school.code[:3]
+        # Use full school code (NOT school.code[:3]) to avoid prefix collisions
+        # across schools in the same LGA (e.g., APU001 and APU002 both -> "APU").
+        prefix = school.code
         staff_count = Staff.objects.filter(school=school).count() + 1
         staff_id = f"{prefix}/STF/{staff_count:04d}"
         employee_number = f"EDIV/{prefix}/{staff_count:04d}"

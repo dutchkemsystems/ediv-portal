@@ -1,6 +1,6 @@
 import secrets
 from datetime import timedelta
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -607,6 +607,114 @@ class AuthViewSet(viewsets.ViewSet):
             results['totals']['units'] = Unit.objects.count()
         except Exception:
             results['totals']['departments'] = 'unavailable'
+
+        return Response(results)
+
+
+class UnlockView(generics.GenericAPIView):
+    """Standalone unlock endpoint — CSRF-exempt via URL decorator in urls.py.
+
+    Routed at POST /api/users/auth/unlock/
+
+    Protected by UNLOCK_TOKEN env var (header: X-Unlock-Token).
+    Returns 503 if env var not set, 401 if token missing/wrong.
+
+    Action: clears failed_login_attempts, locked_until, MFA, and resets password.
+    Creates the admin user if it does not exist.
+    """
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []  # No JWT auth — this is an emergency endpoint
+
+    def post(self, request):
+        import os
+
+        expected_token = os.environ.get('UNLOCK_TOKEN', '').strip()
+        provided_token = request.headers.get('X-Unlock-Token', '').strip()
+
+        if not expected_token:
+            return Response(
+                {'error': 'UNLOCK_TOKEN env var not configured on server. Cannot unlock.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        if not provided_token or provided_token != expected_token:
+            return Response(
+                {'error': 'Invalid or missing X-Unlock-Token header.'},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        email = request.data.get('email', 'admin@ediv.gov.ng').strip().lower()
+        password = request.data.get('password', 'Admin@12345678')
+
+        results = {}
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            user = User.objects.create_user(
+                email=email,
+                password=password,
+                first_name='System',
+                last_name='Administrator',
+                role='SYSADMIN',
+                is_staff=True,
+                is_superuser=True,
+            )
+            results['created'] = True
+
+        # Snapshot before
+        results['before'] = {
+            'is_active': user.is_active,
+            'is_staff': user.is_staff,
+            'is_superuser': user.is_superuser,
+            'failed_login_attempts': user.failed_login_attempts,
+            'locked_until': user.locked_until.isoformat() if user.locked_until else None,
+            'mfa_enabled': user.mfa_enabled,
+            'role': user.role,
+        }
+
+        # Reset
+        user.failed_login_attempts = 0
+        user.locked_until = None
+        user.is_active = True
+        user.is_staff = True
+        user.is_superuser = True
+        user.mfa_enabled = False
+        user.mfa_secret = ''
+        user.role = 'SYSADMIN'
+        user.set_password(password)
+        user.save()
+
+        # Clear cache lockout (best-effort)
+        try:
+            cache.delete(f'ediv:lockout:{user.id}')
+            cache.delete_pattern('ediv:lockout:*') if hasattr(cache, 'delete_pattern') else None
+        except Exception as e:
+            results['cache_warning'] = str(e)
+
+        # Verify
+        user.refresh_from_db()
+        auth_ok = authenticate(email=email, password=password)
+        results['after'] = {
+            'is_active': user.is_active,
+            'failed_login_attempts': user.failed_login_attempts,
+            'locked_until': user.locked_until.isoformat() if user.locked_until else None,
+            'mfa_enabled': user.mfa_enabled,
+            'password_works': auth_ok is not None,
+        }
+        results['credentials'] = {'email': email, 'password': password}
+
+        # Audit log (best-effort)
+        try:
+            AuditLogger.log_action(
+                user=user,
+                action='ADMIN_UNLOCK',
+                resource_type='User',
+                resource_id=user.id,
+                description=f'Admin unlock endpoint called from {request.META.get("REMOTE_ADDR", "unknown")}',
+                ip_address=request.META.get('REMOTE_ADDR'),
+            )
+        except Exception:
+            pass
 
         return Response(results)
 

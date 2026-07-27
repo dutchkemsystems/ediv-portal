@@ -67,6 +67,8 @@ services:
         sync: false
       - key: EDIV_WHITELISTED_IPS
         sync: false
+      - key: UNLOCK_TOKEN
+        sync: false
     healthCheckPath: /health
     autoDeploy: true
 

@@ -42,6 +42,11 @@ def debug_files(request):
 
 def serve_frontend(request, path=''):
     """Serve the React frontend for all non-API routes"""
+    # API routes that miss a URL pattern should return JSON 404, not HTML
+    full_path = request.path or ''
+    if full_path.startswith('/api/'):
+        return JsonResponse({'error': 'Not Found', 'path': full_path}, status=404)
+
     # Try multiple possible locations for the frontend build
     possible_dirs = [
         os.path.join(settings.BASE_DIR, '..', 'frontend', 'dist'),

@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 from rest_framework import status
@@ -479,3 +479,224 @@ class ListSchoolStaffTest(APITestCase):
         self.assertEqual(response.data['school']['code'], 'TST001')
         self.assertEqual(len(response.data['staff']), 1)
         self.assertEqual(response.data['staff'][0]['email'], 'teacher@ediv.gov.ng')
+
+
+class AccountLockoutTest(APITestCase):
+    """Tests for AccountLockout behavior on failed login attempts."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email='lockme@example.com',
+            password='GoodPass123!@#',
+            first_name='Lock',
+            last_name='Me',
+            role='TCH',
+        )
+
+    def _attempt_login(self, password='wrong'):
+        return self.client.post('/api/users/auth/', {
+            'email': 'lockme@example.com',
+            'password': password,
+        })
+
+    def test_failed_attempts_increment(self):
+        self._attempt_login()
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.failed_login_attempts, 1)
+
+        self._attempt_login()
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.failed_login_attempts, 2)
+
+    def test_lockout_after_max_attempts(self):
+        from config.security import AccountLockout
+
+        for _ in range(AccountLockout.MAX_ATTEMPTS):
+            self._attempt_login()
+
+        self.user.refresh_from_db()
+        self.assertIsNotNone(self.user.locked_until)
+
+        # Subsequent login is blocked with 403
+        response = self._attempt_login()
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertIn('locked', response.data['error'].lower())
+
+    def test_successful_login_resets_attempts(self):
+        from config.security import AccountLockout
+
+        for _ in range(3):
+            self._attempt_login()
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.failed_login_attempts, 3)
+
+        # Successful login
+        response = self._attempt_login(password='GoodPass123!@#')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.failed_login_attempts, 0)
+        self.assertIsNone(self.user.locked_until)
+
+    def test_nonexistent_user_no_enumeration(self):
+        """Login attempts with nonexistent email should not leak existence."""
+        response = self.client.post('/api/users/auth/', {
+            'email': 'nobody@example.com',
+            'password': 'wrong',
+        })
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class AdminLoginRegressionTest(APITestCase):
+    """Regression: admin must be able to log in even after failed attempts by others.
+
+    Bug history: admin was getting locked out / 401 even with correct password.
+    Root causes addressed:
+      - AccountLockout now reads from DB columns (User.failed_login_attempts, locked_until)
+      - is_active=True is enforced before authentication result is honored
+    """
+
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            email='admin@ediv.gov.ng',
+            password='Admin@12345678',
+            first_name='System',
+            last_name='Administrator',
+            role='SYSADMIN',
+            is_staff=True,
+            is_superuser=True,
+        )
+
+    def test_admin_login_with_correct_password(self):
+        response = self.client.post('/api/users/auth/', {
+            'email': 'admin@ediv.gov.ng',
+            'password': 'Admin@12345678',
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['user']['role'], 'SYSADMIN')
+
+    def test_admin_login_after_db_lockout_clears_via_diagnose(self):
+        """Simulate: admin got locked via wrong-password attempts, then 'unlocked'."""
+        from django.utils import timezone
+        from datetime import timedelta
+
+        self.admin.failed_login_attempts = 5
+        self.admin.locked_until = timezone.now() + timedelta(minutes=30)
+        self.admin.save()
+
+        # Without unlock, login is blocked
+        response = self.client.post('/api/users/auth/', {
+            'email': 'admin@ediv.gov.ng',
+            'password': 'Admin@12345678',
+        })
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+        # Simulate diagnose_admin --unlock
+        self.admin.failed_login_attempts = 0
+        self.admin.locked_until = None
+        self.admin.save()
+
+        response = self.client.post('/api/users/auth/', {
+            'email': 'admin@ediv.gov.ng',
+            'password': 'Admin@12345678',
+        })
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class AdminUnlockEndpointTest(APITestCase):
+    """Tests for POST /api/users/auth/unlock/ (one-shot admin unlock via HTTP)."""
+
+    def setUp(self):
+        from django.test import override_settings
+        # Lock the admin
+        from django.utils import timezone
+        from datetime import timedelta
+
+        self.admin = User.objects.create_user(
+            email='admin@ediv.gov.ng',
+            password='Admin@12345678',
+            first_name='System',
+            last_name='Administrator',
+            role='SYSADMIN',
+            is_staff=True,
+            is_superuser=True,
+        )
+        self.admin.failed_login_attempts = 5
+        self.admin.locked_until = timezone.now() + timedelta(minutes=30)
+        self.admin.is_active = False
+        self.admin.mfa_enabled = True
+        self.admin.save()
+
+    def test_unlock_rejects_missing_token(self):
+        response = self.client.post('/api/users/auth/unlock/', {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_unlock_rejects_wrong_token(self):
+        response = self.client.post(
+            '/api/users/auth/unlock/',
+            {},
+            format='json',
+            HTTP_X_UNLOCK_TOKEN='wrong-token',
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    @override_settings()
+    def test_unlock_rejects_when_env_var_unset(self):
+        import os
+        old = os.environ.pop('UNLOCK_TOKEN', None)
+        try:
+            response = self.client.post(
+                '/api/users/auth/unlock/',
+                {},
+                format='json',
+                HTTP_X_UNLOCK_TOKEN='anything',
+            )
+            self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        finally:
+            if old is not None:
+                os.environ['UNLOCK_TOKEN'] = old
+
+    def test_unlock_clears_lockout_with_valid_token(self):
+        import os
+        os.environ['UNLOCK_TOKEN'] = 'test-secret-123'
+
+        response = self.client.post(
+            '/api/users/auth/unlock/',
+            {'email': 'admin@ediv.gov.ng', 'password': 'NewAdmin@12345'},
+            format='json',
+            HTTP_X_UNLOCK_TOKEN='test-secret-123',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('after', response.data)
+        self.assertTrue(response.data['after']['password_works'])
+        self.assertEqual(response.data['after']['failed_login_attempts'], 0)
+        self.assertIsNone(response.data['after']['locked_until'])
+        self.assertFalse(response.data['after']['mfa_enabled'])
+
+        # Verify login works with new password
+        login_resp = self.client.post('/api/users/auth/', {
+            'email': 'admin@ediv.gov.ng',
+            'password': 'NewAdmin@12345',
+        })
+        self.assertEqual(login_resp.status_code, status.HTTP_200_OK)
+
+    def test_unlock_creates_admin_if_missing(self):
+        import os
+        os.environ['UNLOCK_TOKEN'] = 'test-secret-123'
+        User.objects.filter(email='newadmin@ediv.gov.ng').delete()
+
+        response = self.client.post(
+            '/api/users/auth/unlock/',
+            {'email': 'newadmin@ediv.gov.ng', 'password': 'NewAdmin@12345'},
+            format='json',
+            HTTP_X_UNLOCK_TOKEN='test-secret-123',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data.get('created'))
+
+        login_resp = self.client.post('/api/users/auth/', {
+            'email': 'newadmin@ediv.gov.ng',
+            'password': 'NewAdmin@12345',
+        })
+        self.assertEqual(login_resp.status_code, status.HTTP_200_OK)

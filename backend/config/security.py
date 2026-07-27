@@ -68,7 +68,14 @@ class PasswordValidator:
 # ---------------------------------------------------------------------------
 
 class AccountLockout:
-    """Account lockout management — uses Django cache for speed."""
+    """Account lockout — DB-backed (User.failed_login_attempts / locked_until).
+
+    Source of truth is the database, not the cache, because:
+      - Render free-tier Redis/cache may not be provisioned
+      - Cache state is lost on service restart, causing inconsistency
+      - DB columns already exist on the User model (User.failed_login_attempts,
+        User.locked_until) and persist across deploys.
+    """
 
     MAX_ATTEMPTS = 5
     LOCKOUT_DURATION = 1800  # 30 minutes in seconds
@@ -79,36 +86,65 @@ class AccountLockout:
 
     @classmethod
     def check_lockout(cls, user):
-        """Return (is_locked: bool, remaining_seconds: float)."""
-        lockout_data = cache.get(cls._cache_key(user.id))
+        """Return (is_locked: bool, remaining_seconds: float).
 
-        if lockout_data and lockout_data['attempts'] >= cls.MAX_ATTEMPTS:
-            unlock_ts = lockout_data['until']
-            now_ts = timezone.now().timestamp()
-            if now_ts < unlock_ts:
-                return True, unlock_ts - now_ts
-            else:
-                cache.delete(cls._cache_key(user.id))
+        Reads from DB columns. Cache is only used as a fast hint that may be
+        cleared; we always re-verify against DB.
+        """
+        from django.utils import timezone as _tz
+
+        if user.locked_until and user.locked_until > _tz.now():
+            remaining = (user.locked_until - _tz.now()).total_seconds()
+            return True, remaining
+
+        # Stale lockout in DB past its time — clear it
+        if user.locked_until and user.locked_until <= _tz.now():
+            user.locked_until = None
+            user.failed_login_attempts = 0
+            user.save(update_fields=['locked_until', 'failed_login_attempts'])
+
+        # Best-effort cache cleanup (do not rely on it)
+        try:
+            cache.delete(cls._cache_key(user.id))
+        except Exception:
+            pass
 
         return False, 0
 
     @classmethod
     def record_failed_attempt(cls, user):
-        """Increment failed attempts; lock if threshold reached."""
-        lockout_data = cache.get(cls._cache_key(user.id), {'attempts': 0, 'until': 0})
-        lockout_data['attempts'] += 1
+        """Increment failed attempts on the User row; lock if threshold reached."""
+        user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
 
-        if lockout_data['attempts'] >= cls.MAX_ATTEMPTS:
-            lockout_data['until'] = (
-                timezone.now() + timedelta(seconds=cls.LOCKOUT_DURATION)
-            ).timestamp()
+        if user.failed_login_attempts >= cls.MAX_ATTEMPTS:
+            user.locked_until = timezone.now() + timedelta(seconds=cls.LOCKOUT_DURATION)
 
-        cache.set(cls._cache_key(user.id), lockout_data, timeout=cls.LOCKOUT_DURATION)
+        user.save(update_fields=['failed_login_attempts', 'locked_until'])
+
+        # Mirror to cache for fast pre-checks (optional)
+        try:
+            cache.set(
+                cls._cache_key(user.id),
+                {
+                    'attempts': user.failed_login_attempts,
+                    'until': user.locked_until.timestamp() if user.locked_until else 0,
+                },
+                timeout=cls.LOCKOUT_DURATION,
+            )
+        except Exception:
+            pass
 
     @classmethod
     def reset_attempts(cls, user):
         """Clear failed attempts after successful login."""
-        cache.delete(cls._cache_key(user.id))
+        user.failed_login_attempts = 0
+        user.locked_until = None
+        user.save(update_fields=['failed_login_attempts', 'locked_until'])
+
+        try:
+            cache.delete(cls._cache_key(user.id))
+        except Exception:
+            pass
 
 
 # ---------------------------------------------------------------------------

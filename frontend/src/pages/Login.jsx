@@ -35,10 +35,18 @@ function Login() {
     e.preventDefault()
     const result = await dispatch(login({ email, password }))
     if (login.fulfilled.match(result)) {
-      if (result.payload.mfa_required) {
+      const payload = result.payload || {}
+      if (payload.mfa_required) {
         navigate('/mfa-verify')
-      } else {
+      } else if (payload.user && (payload.access || payload.temp_token)) {
         navigate('/dashboard')
+      } else {
+        // Malformed success response — surface as error rather than silently navigating
+        dispatch(clearError())
+        dispatch({
+          type: 'auth/login/rejected',
+          payload: { error: 'Server returned an unexpected response. Please try again.' },
+        })
       }
     }
   }
