@@ -18,6 +18,15 @@ export const login = createAsyncThunk(
       localStorage.setItem('refresh_token', response.data.refresh)
       return response.data
     } catch (error) {
+      // No response = network error or timeout (likely Render cold start)
+      if (!error.response) {
+        const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout')
+        return rejectWithValue({
+          error: isTimeout
+            ? 'Server is taking too long to respond (cold start). Please wait 30 seconds and try again.'
+            : 'Could not reach the login server. Please check your internet connection.',
+        })
+      }
       return rejectWithValue(error.response?.data || { error: 'Login failed' })
     }
   }

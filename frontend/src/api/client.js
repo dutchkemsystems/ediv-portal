@@ -26,7 +26,9 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 15000,
+  // Render free tier services sleep after 15min inactivity and need ~30s to wake up.
+  // Set timeout to 60s to give cold-start requests time to complete.
+  timeout: 60000,
 })
 
 api.interceptors.request.use(
