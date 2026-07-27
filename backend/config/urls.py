@@ -40,6 +40,24 @@ def debug_files(request):
     return JsonResponse(results)
 
 
+def debug_env(request):
+    """Debug endpoint — lists which env var keys are present (NOT values).
+
+    Used to verify env var propagation on Render without leaking secrets.
+    """
+    import os
+    keys = sorted(os.environ.keys())
+    return JsonResponse({
+        'total_keys': len(keys),
+        'unlock_token_present': 'UNLOCK_TOKEN' in os.environ,
+        'unlock_token_len': len(os.environ.get('UNLOCK_TOKEN', '')),
+        'admin_password_present': 'ADMIN_PASSWORD' in os.environ,
+        'admin_password_len': len(os.environ.get('ADMIN_PASSWORD', '')),
+        'django_debug': os.environ.get('DJANGO_DEBUG', 'unset'),
+        'sample_keys': [k for k in keys if any(x in k for x in ['UNLOCK', 'ADMIN', 'POSTGRES', 'DJANGO', 'JWT'])],
+    })
+
+
 def serve_frontend(request, path=''):
     """Serve the React frontend for all non-API routes"""
     # API routes that miss a URL pattern should return JSON 404, not HTML
@@ -82,6 +100,7 @@ def serve_frontend(request, path=''):
 urlpatterns = [
     path('health/', health_check),
     path('debug/files/', debug_files),
+    path('debug/env/', debug_env),
     path('admin/', admin.site.urls),
     path('api/users/', include('apps.users.urls')),
     path('api/schools/', include('apps.schools.urls')),
