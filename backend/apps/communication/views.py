@@ -23,7 +23,7 @@ class MessageViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         user = self.request.user
-        return Message.objects.filter(
+        return Message.objects.select_related('sender').prefetch_related('recipients').filter(
             models.Q(sender=user) | models.Q(recipients=user)
         ).distinct()
 

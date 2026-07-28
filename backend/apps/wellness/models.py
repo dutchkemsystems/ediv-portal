@@ -70,7 +70,7 @@ class WellnessCheckIn(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        unique_together = ['student', 'date']
+        constraints = [models.UniqueConstraint(fields=['student', 'date'], name='unique_wellnesscheckin_student_date')]
         ordering = ['-date']
         indexes = [
             models.Index(fields=['student']),

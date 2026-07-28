@@ -10,7 +10,7 @@ from django.conf import settings
 from django.db.models import Sum
 from rest_framework import views, status, permissions
 from rest_framework.response import Response
-from .models import Payment, StudentFee, PaymentMethod
+from .models import Payment, StudentFee
 from .korapay import KoraPayService
 
 logger = logging.getLogger(__name__)
@@ -107,7 +107,11 @@ class KoraPayWebhookView(views.APIView):
         signature = request.META.get('HTTP_X_KORAPAY_SIGNATURE', '')
         korapay = KoraPayService()
 
-        if korapay.webhook_secret and not korapay.verify_webhook_signature(
+        if not korapay.webhook_secret:
+            logger.warning('KoraPay webhook secret is not configured')
+            return JsonResponse({'error': 'Webhook not configured'}, status=500)
+
+        if not korapay.verify_webhook_signature(
             request.body, signature
         ):
             logger.warning('Invalid KoraPay webhook signature')

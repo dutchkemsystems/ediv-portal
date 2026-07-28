@@ -101,7 +101,7 @@ class StudentParent(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        unique_together = ['student', 'user']
+        constraints = [models.UniqueConstraint(fields=['student', 'user'], name='unique_studentparent_student_user')]
         ordering = ['-is_primary']
     
     def __str__(self):

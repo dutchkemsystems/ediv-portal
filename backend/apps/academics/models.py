@@ -37,7 +37,7 @@ class Class(models.Model):
     
     class Meta:
         ordering = ['school', 'level', 'section']
-        unique_together = ['school', 'name', 'academic_year', 'term']
+        constraints = [models.UniqueConstraint(fields=['school', 'name', 'academic_year', 'term'], name='unique_class_school_name_academicyear_term')]
         indexes = [
             models.Index(fields=['school']),
             models.Index(fields=['level']),
@@ -81,7 +81,7 @@ class Subject(models.Model):
 
 class ClassSubject(models.Model):
     class Meta:
-        unique_together = ['class_obj', 'subject']
+        constraints = [models.UniqueConstraint(fields=['class_obj', 'subject'], name='unique_classsubject_class_obj_subject')]
         verbose_name_plural = 'class subjects'
     
     class_obj = models.ForeignKey(Class, on_delete=models.CASCADE, related_name='class_subjects')
@@ -155,7 +155,7 @@ class ExamResult(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        unique_together = ['student', 'exam', 'subject']
+        constraints = [models.UniqueConstraint(fields=['student', 'exam', 'subject'], name='unique_examresult_student_exam_subject')]
         ordering = ['student', 'subject']
         indexes = [
             models.Index(fields=['student']),
@@ -193,7 +193,7 @@ class ReportCard(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        unique_together = ['student', 'academic_year', 'term']
+        constraints = [models.UniqueConstraint(fields=['student', 'academic_year', 'term'], name='unique_reportcard_student_academicyear_term')]
         ordering = ['-academic_year', '-term']
         verbose_name_plural = 'report cards'
     
@@ -207,7 +207,7 @@ class ReportCard(models.Model):
         if 11 <= self.class_position % 100 <= 13:
             suffix = 'th'
         else:
-            suffix = {1: 'st', '2': 'nd', '3': 'rd'}.get(self.class_position % 10, 'th')
+            suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(self.class_position % 10, 'th')
         return f"{self.class_position}{suffix}"
 
 
@@ -269,7 +269,7 @@ class StudentEnrollment(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        unique_together = ['student', 'class_obj', 'academic_year', 'term']
+        constraints = [models.UniqueConstraint(fields=['student', 'class_obj', 'academic_year', 'term'], name='unique_studentenrollment_student_class_academicyear_term')]
         ordering = ['-academic_year', '-term']
         verbose_name_plural = 'student enrollments'
     

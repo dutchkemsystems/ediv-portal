@@ -59,7 +59,7 @@ class FrenchClubMember(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        unique_together = ['club', 'student']
+        constraints = [models.UniqueConstraint(fields=['club', 'student'], name='unique_frenchclubmember_club_student')]
         ordering = ['club', 'student']
     
     def __str__(self):

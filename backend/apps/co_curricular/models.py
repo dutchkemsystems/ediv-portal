@@ -56,7 +56,7 @@ class ActivityParticipant(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        unique_together = ['activity', 'student']
+        constraints = [models.UniqueConstraint(fields=['activity', 'student'], name='unique_activityparticipant_activity_student')]
         ordering = ['activity', 'student']
     
     def __str__(self):
@@ -101,7 +101,7 @@ class CompetitionEntry(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        unique_together = ['competition', 'student']
+        constraints = [models.UniqueConstraint(fields=['competition', 'student'], name='unique_competitionentry_competition_student')]
         ordering = ['competition', 'position']
     
     def __str__(self):

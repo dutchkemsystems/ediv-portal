@@ -5,15 +5,6 @@ import {
   Button,
   Grid,
   Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -45,6 +36,10 @@ function Staff() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleAdd = () => {
+    setOpenDialog(true)
   }
 
   const handleDelete = async () => {
@@ -82,6 +77,7 @@ function Staff() {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
+          onClick={handleAdd}
           sx={{ bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1642' } }}
         >
           Add Staff

@@ -103,7 +103,7 @@ class Enrollment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        unique_together = ['course', 'student']
+        constraints = [models.UniqueConstraint(fields=['course', 'student'], name='unique_enrollment_course_student')]
         ordering = ['-enrollment_date']
     
     def __str__(self):

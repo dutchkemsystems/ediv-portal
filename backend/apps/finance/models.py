@@ -67,7 +67,7 @@ class StudentFee(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        unique_together = ['student', 'fee_structure']
+        constraints = [models.UniqueConstraint(fields=['student', 'fee_structure'], name='unique_studentfee_student_feestructure')]
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=['student']),

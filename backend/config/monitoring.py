@@ -136,11 +136,10 @@ class PerformanceMetrics:
     @staticmethod
     def get_cache_metrics():
         """Get cache performance metrics."""
-        from django.core.cache import cache
+        from django.core.cache import caches
         
         try:
-            from redis import Redis
-            redis_client = Redis.from_url(cache._server)
+            redis_client = caches['default'].client.get_client()
             info = redis_client.info()
             
             return {

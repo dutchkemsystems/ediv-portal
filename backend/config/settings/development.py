@@ -18,9 +18,13 @@ DATABASES = {
 # Email
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-# Debug Toolbar
-INSTALLED_APPS += ['debug_toolbar']
-MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']
+# Debug Toolbar (optional - install django-debug-toolbar to enable)
+try:
+    import debug_toolbar
+    INSTALLED_APPS += ['debug_toolbar']
+    MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']
+except ImportError:
+    pass
 INTERNAL_IPS = ['127.0.0.1']
 
 # CORS

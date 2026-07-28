@@ -1,3 +1,6 @@
+// DEPRECATED: This component is not imported anywhere.
+// The sidebar is implemented inline in Layout.jsx (lines 124-166).
+// This file is retained for reference only. Do not import.
 import React from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'

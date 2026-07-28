@@ -60,7 +60,7 @@ class CPDEnrollment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        unique_together = ['activity', 'staff']
+        constraints = [models.UniqueConstraint(fields=['activity', 'staff'], name='unique_cpdenrollment_activity_staff')]
         ordering = ['-enrollment_date']
     
     def __str__(self):
@@ -80,7 +80,7 @@ class CPDRecord(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        unique_together = ['staff', 'academic_year']
+        constraints = [models.UniqueConstraint(fields=['staff', 'academic_year'], name='unique_cpdrecord_staff_academicyear')]
         ordering = ['-academic_year']
     
     def __str__(self):

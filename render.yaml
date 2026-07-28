@@ -49,9 +49,7 @@ services:
           name: ediv-redis
           property: URL
       - key: CELERY_RESULT_BACKEND
-        fromKVPair:
-          name: ediv-redis
-          property: URL
+        value: redis://localhost:6379/1
       - key: KORA_PAY_PUBLIC_KEY
         sync: false
       - key: KORA_PAY_SECRET_KEY

@@ -66,7 +66,7 @@ class StudentTransport(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        unique_together = ['student', 'route', 'academic_year']
+        constraints = [models.UniqueConstraint(fields=['student', 'route', 'academic_year'], name='unique_studenttransport_student_route_academicyear')]
     
     def __str__(self):
         return f"{self.student.user.get_full_name()} - {self.route.name}"

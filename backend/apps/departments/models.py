@@ -59,7 +59,7 @@ class Unit(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        unique_together = ['department', 'code']
+        constraints = [models.UniqueConstraint(fields=['department', 'code'], name='unique_unit_department_code')]
         ordering = ['name']
     
     def __str__(self):

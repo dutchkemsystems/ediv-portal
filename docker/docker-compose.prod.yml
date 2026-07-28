@@ -74,7 +74,7 @@ services:
   backend:
     build:
       context: ../backend
-      dockerfile: ../docker/Dockerfile.backend.prod
+      dockerfile: ../docker/Dockerfile.backend
     container_name: ediv_backend
     restart: always
     command: >
@@ -102,7 +102,7 @@ services:
   celery_worker:
     build:
       context: ../backend
-      dockerfile: ../docker/Dockerfile.backend.prod
+      dockerfile: ../docker/Dockerfile.backend
     container_name: ediv_celery_worker
     restart: always
     command: celery -A config worker -l info --concurrency=4
@@ -123,7 +123,7 @@ services:
   celery_beat:
     build:
       context: ../backend
-      dockerfile: ../docker/Dockerfile.backend.prod
+      dockerfile: ../docker/Dockerfile.backend
     container_name: ediv_celery_beat
     restart: always
     command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler

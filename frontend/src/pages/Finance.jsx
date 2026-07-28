@@ -73,6 +73,16 @@ function Finance() {
     setCheckoutOpen(true)
   }
 
+  const handleSubmit = async () => {
+    try {
+      await api.post('/finance/fee-structures/', formData)
+      setOpenDialog(false)
+      fetchData()
+    } catch (error) {
+      console.error('Error creating fee structure:', error)
+    }
+  }
+
   const handlePaymentSuccess = () => {
     setCheckoutOpen(false)
     setSelectedFee(null)
@@ -255,7 +265,7 @@ function Finance() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-          <Button variant="contained" sx={{ bgcolor: '#1a237e' }} onClick={() => { setOpenDialog(false); fetchData() }}>
+          <Button variant="contained" sx={{ bgcolor: '#1a237e' }} onClick={handleSubmit}>
             Create
           </Button>
         </DialogActions>

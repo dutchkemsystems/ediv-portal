@@ -9,13 +9,17 @@ scrape_configs:
     metrics_path: '/metrics'
     scrape_interval: 30s
 
-  - job_name: 'redis'
-    static_configs:
-      - targets: ['redis:6379']
+  # Requires redis_exporter to be running alongside Redis.
+  # Uncomment when redis_exporter is configured.
+  # - job_name: 'redis'
+  #   static_configs:
+  #     - targets: ['redis:6379']
 
-  - job_name: 'postgres'
-    static_configs:
-      - targets: ['postgres:5432']
+  # Requires postgres_exporter to be running alongside PostgreSQL.
+  # Uncomment when postgres_exporter is configured.
+  # - job_name: 'postgres'
+  #   static_configs:
+  #     - targets: ['postgres:5432']
 
   - job_name: 'nginx'
     static_configs:

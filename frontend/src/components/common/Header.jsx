@@ -1,3 +1,6 @@
+// DEPRECATED: This component is not imported anywhere.
+// The header is implemented inline in Layout.jsx (lines 170-193).
+// This file is retained for reference only. Do not import.
 import React, { useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'

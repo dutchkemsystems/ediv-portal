@@ -36,11 +36,10 @@ def cache_result(timeout=300, key_prefix=''):
 
 def clear_cache_pattern(pattern):
     """Clear all cache keys matching pattern."""
-    from django.core.cache import cache
-    from redis import Redis
-    
+    from django.core.cache import caches
+
     try:
-        redis_client = Redis.from_url(cache._server)
+        redis_client = caches['default'].client.get_client()
         keys = redis_client.keys(f"ediv:{pattern}*")
         if keys:
             redis_client.delete(*keys)

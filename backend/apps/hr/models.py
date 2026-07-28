@@ -76,7 +76,7 @@ class JobApplication(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        unique_together = ['job_posting', 'applicant']
+        constraints = [models.UniqueConstraint(fields=['job_posting', 'applicant'], name='unique_jobapplication_jobposting_applicant')]
         ordering = ['-created_at']
     
     def __str__(self):
@@ -112,7 +112,7 @@ class Payslip(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        unique_together = ['staff', 'period']
+        constraints = [models.UniqueConstraint(fields=['staff', 'period'], name='unique_payslip_staff_period')]
         ordering = ['-period']
     
     def __str__(self):

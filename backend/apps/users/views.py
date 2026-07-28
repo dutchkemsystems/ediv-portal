@@ -88,7 +88,7 @@ class AuthViewSet(viewsets.ViewSet):
             pass
 
         user = authenticate(
-            email=email,
+            username=email,
             password=serializer.validated_data['password']
         )
 
@@ -96,7 +96,10 @@ class AuthViewSet(viewsets.ViewSet):
             try:
                 user_check = User.objects.get(email=email)
                 AccountLockout.record_failed_attempt(user_check)
-                AuditLogger.log_login(user_check, ip_address, False)
+                try:
+                    AuditLogger.log_login(user_check, ip_address, False)
+                except Exception:
+                    pass
             except User.DoesNotExist:
                 pass
             return Response(

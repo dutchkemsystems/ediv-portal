@@ -28,9 +28,9 @@ fi
 
 # Check for .env.production file
 if [ ! -f .env.production ]; then
-    echo -e "${YELLOW}.env.production file not found. Creating from template...${NC}"
-    cp .env.example .env.production
-    echo -e "${YELLOW}Please edit .env.production with your production settings.${NC}"
+    echo -e "${RED}.env.production file not found.${NC}"
+    echo -e "${YELLOW}Create a .env.production file with your production settings before deploying.${NC}"
+    echo -e "${YELLOW}Do NOT use .env.example for production - it has development defaults.${NC}"
     exit 1
 fi
 

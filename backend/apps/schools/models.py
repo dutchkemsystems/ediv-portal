@@ -79,7 +79,7 @@ class SchoolAcademicYear(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        unique_together = ['school', 'year']
+        constraints = [models.UniqueConstraint(fields=['school', 'year'], name='unique_schoolacademicyear_school_year')]
         ordering = ['-year']
     
     def __str__(self):

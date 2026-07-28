@@ -1,4 +1,4 @@
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -108,15 +108,32 @@ class ReportViewSet(viewsets.ModelViewSet):
             )
     
     def _get_report_data(self, report):
-        # This would be implemented based on report type
-        # For now, return empty list
+        """Fetch report data based on report type."""
+        from apps.schools.models import School
+        from apps.students.models import Student
+        from apps.staff.models import Staff
+        
+        if report.report_type == 'SCHOOLS':
+            return list(School.objects.filter(is_active=True).values(
+                'name', 'code', 'school_type', 'lga', 'email', 'phone'
+            ))
+        elif report.report_type == 'STUDENTS':
+            return list(Student.objects.filter(status='ACTIVE').select_related('school', 'user').values(
+                'admission_number', 'school__name', 'class_name_display',
+                'gender', 'date_of_birth'
+            ))
+        elif report.report_type == 'STAFF':
+            return list(Staff.objects.filter(is_active=True).select_related('user', 'school').values(
+                'staff_id', 'employee_number', 'category', 'designation',
+                'user__first_name', 'user__last_name', 'school__name'
+            ))
         return []
 
 
 class DashboardViewSet(viewsets.ModelViewSet):
     queryset = Dashboard.objects.select_related('owner').all()
     permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [DjangoFilterBackend]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['is_default']
     search_fields = ['name', 'description']
     ordering_fields = ['name', 'created_at']

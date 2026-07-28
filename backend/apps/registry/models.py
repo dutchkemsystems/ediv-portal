@@ -124,7 +124,7 @@ class DocumentVersion(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
-        unique_together = ['document', 'version_number']
+        constraints = [models.UniqueConstraint(fields=['document', 'version_number'], name='unique_documentversion_document_version')]
         ordering = ['-version_number']
     
     def __str__(self):

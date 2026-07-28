@@ -1,4 +1,4 @@
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Count, Sum, Avg, Q
@@ -11,7 +11,7 @@ class AnalyticsReportViewSet(viewsets.ModelViewSet):
     queryset = AnalyticsReport.objects.select_related('generated_by').all()
     serializer_class = AnalyticsReportSerializer
     permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [DjangoFilterBackend]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['report_type', 'is_scheduled', 'is_active']
     search_fields = ['title', 'description']
     ordering_fields = ['created_at', 'last_generated']

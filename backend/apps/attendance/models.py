@@ -28,7 +28,7 @@ class StudentAttendance(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        unique_together = ['student', 'date']
+        constraints = [models.UniqueConstraint(fields=['student', 'date'], name='unique_studentattendance_student_date')]
         ordering = ['-date', 'student']
         verbose_name_plural = 'student attendances'
         indexes = [
@@ -59,7 +59,7 @@ class StaffAttendance(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        unique_together = ['staff', 'date']
+        constraints = [models.UniqueConstraint(fields=['staff', 'date'], name='unique_staffattendance_staff_date')]
         ordering = ['-date', 'staff']
         verbose_name_plural = 'staff attendances'
         indexes = [
@@ -89,7 +89,7 @@ class AttendanceSummary(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        unique_together = ['school', 'academic_year', 'term']
+        constraints = [models.UniqueConstraint(fields=['school', 'academic_year', 'term'], name='unique_attendancesummary_school_academicyear_term')]
         ordering = ['-academic_year', '-term']
         verbose_name_plural = 'attendance summaries'
     
@@ -97,6 +97,6 @@ class AttendanceSummary(models.Model):
         return f"{self.school.name} - {self.academic_year} {self.term}"
     
     def calculate_rate(self):
-        if self.total_school_days > 0:
+        if self.total_school_days > 0 and self.school.current_enrollment > 0:
             self.attendance_rate = (self.total_present / (self.total_school_days * self.school.current_enrollment)) * 100
             self.save()

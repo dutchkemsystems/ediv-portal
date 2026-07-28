@@ -12,6 +12,7 @@ import {
   CircularProgress,
   List,
   ListItem,
+  ListItemButton,
   ListItemIcon,
   ListItemText,
   Chip,
@@ -20,11 +21,14 @@ import {
   School as SchoolIcon,
   People as PeopleIcon,
   Assignment as AssignmentIcon,
-  AttachMoney as MoneyIcon,
   Description as FileIcon,
+  AttachMoney as MoneyIcon,
+  Badge as BadgeIcon,
+  PendingActions as PendingIcon,
   Task as TaskIcon,
 } from '@mui/icons-material'
 import api from '../api/client'
+import DashboardCharts from '../components/common/DashboardCharts'
 
 function Dashboard() {
   const { user } = useSelector((state) => state.auth)
@@ -62,8 +66,10 @@ function Dashboard() {
   const statCards = [
     { title: 'Total Schools', value: stats?.total_schools || 0, icon: <SchoolIcon sx={{ fontSize: 48 }} />, color: '#1a237e', route: '/schools' },
     { title: 'Total Students', value: stats?.total_students || 0, icon: <PeopleIcon sx={{ fontSize: 48 }} />, color: '#f57c00', route: '/students' },
-    { title: 'Total Staff', value: stats?.total_staff || 0, icon: <PeopleIcon sx={{ fontSize: 48 }} />, color: '#388e3c', route: '/staff' },
+    { title: 'Total Staff', value: stats?.total_staff || 0, icon: <BadgeIcon sx={{ fontSize: 48 }} />, color: '#388e3c', route: '/staff' },
+    { title: 'Total Files', value: stats?.total_files || 0, icon: <FileIcon sx={{ fontSize: 48 }} />, color: '#7b1fa2', route: '/files' },
     { title: 'Active Files', value: stats?.active_files || 0, icon: <AssignmentIcon sx={{ fontSize: 48 }} />, color: '#d32f2f', route: '/registry' },
+    { title: 'Pending Files', value: stats?.pending_files || 0, icon: <PendingIcon sx={{ fontSize: 48 }} />, color: '#ff8f00', route: '/workflows' },
   ]
 
   const quickActions = {
@@ -112,7 +118,7 @@ function Dashboard() {
 
       <Grid container spacing={3} sx={{ mt: 2 }}>
         {statCards.map((stat, index) => (
-          <Grid item xs={12} sm={6} md={3} key={index}>
+          <Grid item xs={12} sm={6} md={2} key={index}>
             <Card>
               <CardActionArea onClick={() => navigate(stat.route)}>
                 <CardContent>
@@ -165,7 +171,7 @@ function Dashboard() {
                         <Chip
                           label={task.status}
                           size="small"
-                          color={task.status === 'COMPLETED' ? 'success' : task.status === 'PENDING' ? 'warning' : 'default'}
+                          color={task.status === 'COMPLETED' ? 'success' : task.status === 'PENDING' ? 'warning' : task.status === 'IN_PROGRESS' ? 'info' : 'default'}
                         />
                       }
                     />
@@ -184,15 +190,19 @@ function Dashboard() {
             </Typography>
             <List dense>
               {actions.map((action, idx) => (
-                <ListItem key={idx} button onClick={() => navigate(action.route)}>
-                  <ListItemIcon>{action.icon}</ListItemIcon>
-                  <ListItemText primary={action.label} />
+                <ListItem key={idx} disablePadding>
+                  <ListItemButton onClick={() => navigate(action.route)}>
+                    <ListItemIcon>{action.icon}</ListItemIcon>
+                    <ListItemText primary={action.label} />
+                  </ListItemButton>
                 </ListItem>
               ))}
             </List>
           </Paper>
         </Grid>
       </Grid>
+
+      <DashboardCharts />
     </Box>
   )
 }

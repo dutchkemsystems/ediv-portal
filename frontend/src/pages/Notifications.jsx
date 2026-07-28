@@ -38,7 +38,7 @@ function Notifications() {
   const [templates, setTemplates] = useState([])
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState(null)
+  const [stats, setStats] = useState({ total_sent: 0, total_failed: 0, total_templates: 0 })
   const [openDialog, setOpenDialog] = useState(false)
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState(null)
@@ -233,23 +233,23 @@ function Notifications() {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Total Templates"
-            value={templates.length}
+            value={stats.total_templates || templates.length}
             icon={<NotificationsIcon />}
             color="#1a237e"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Sent Today"
-            value={logs.filter(l => l.sent_at && new Date(l.sent_at).toDateString() === new Date().toDateString() && l.status === 'SENT').length}
+            title="Total Sent"
+            value={stats.total_sent || logs.filter(l => l.status === 'SENT').length}
             icon={<EmailIcon />}
             color="#388e3c"
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Failed"
-            value={logs.filter(l => l.status === 'FAILED').length}
+            title="Total Failed"
+            value={stats.total_failed || logs.filter(l => l.status === 'FAILED').length}
             icon={<NotificationsIcon />}
             color="#d32f2f"
           />

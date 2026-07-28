@@ -78,12 +78,17 @@ docker-compose up -d
 
 ### Default Credentials
 
-| Role | Email | Password |
-|------|-------|----------|
-| System Admin | admin@ediv.gov.ng | Admin@12345678 |
-| Tutor General | tg@ediv.gov.ng | TutorGen@12345 |
-| HR Head | hr@ediv.gov.ng | DeptHead@12345 |
-| Finance Director | finance@ediv.gov.ng | DeptHead@12345 |
+Default credentials are generated during the seed process. Run the seed commands and check the output for generated passwords:
+```bash
+docker-compose exec backend python manage.py seed_users
+```
+
+| Role | Email (example) |
+|------|-----------------|
+| System Admin | admin@ediv.gov.ng |
+| Tutor General | tg@ediv.gov.ng |
+| HR Head | hr@ediv.gov.ng |
+| Finance Director | finance@ediv.gov.ng |
 
 ## Development
 
@@ -161,7 +166,7 @@ See [Deployment Guide](docs/DEPLOYMENT.md) for production deployment instruction
 
 ```bash
 # Configure environment
-cp .env.production.example .env.production
+cp .env.example .env.production
 nano .env.production
 
 # Deploy

@@ -23,7 +23,7 @@ class Period(models.Model):
     
     class Meta:
         ordering = ['school', 'period_number']
-        unique_together = ['school', 'period_number']
+        constraints = [models.UniqueConstraint(fields=['school', 'period_number'], name='unique_period_school_periodnumber')]
     
     def __str__(self):
         return f"{self.name} ({self.start_time} - {self.end_time})"
@@ -43,7 +43,7 @@ class Timetable(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        unique_together = ['school', 'class_obj', 'academic_year', 'term']
+        constraints = [models.UniqueConstraint(fields=['school', 'class_obj', 'academic_year', 'term'], name='unique_timetable_school_class_academicyear_term')]
         ordering = ['school', 'academic_year']
     
     def __str__(self):
@@ -66,7 +66,7 @@ class TimetableEntry(models.Model):
     is_active = models.BooleanField(default=True)
     
     class Meta:
-        unique_together = ['timetable', 'day', 'period']
+        constraints = [models.UniqueConstraint(fields=['timetable', 'day', 'period'], name='unique_timetableentry_timetable_day_period')]
         ordering = ['day', 'period__period_number']
     
     def __str__(self):
@@ -82,7 +82,7 @@ class TeacherTimetable(models.Model):
     timetable = models.ForeignKey(Timetable, on_delete=models.CASCADE, related_name='teacher_timetables')
     
     class Meta:
-        unique_together = ['teacher', 'timetable']
+        constraints = [models.UniqueConstraint(fields=['teacher', 'timetable'], name='unique_teachertimetable_teacher_timetable')]
     
     def __str__(self):
         return f"{self.teacher.get_full_name()} - {self.timetable}"

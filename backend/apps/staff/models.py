@@ -203,6 +203,7 @@ class StaffPerformance(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
+        blank=True,
         related_name='performance_reviews'
     )
     review_date = models.DateField()
@@ -210,7 +211,7 @@ class StaffPerformance(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     class Meta:
-        unique_together = ['staff', 'academic_year', 'term']
+        constraints = [models.UniqueConstraint(fields=['staff', 'academic_year', 'term'], name='unique_staffperformance_staff_academicyear_term')]
         ordering = ['-academic_year', '-term']
         indexes = [
             models.Index(fields=['academic_year']),
