@@ -69,7 +69,7 @@ function DashboardCharts() {
     )
   }
 
-  const enrollmentChartData = enrollmentData ? {
+  const enrollmentChartData = enrollmentData?.length ? {
     labels: enrollmentData.map((item) => item.school__name),
     datasets: [
       {
@@ -82,7 +82,7 @@ function DashboardCharts() {
     ],
   } : null
 
-  const attendanceChartData = attendanceData ? {
+  const attendanceChartData = attendanceData?.length ? {
     labels: attendanceData.map((item) => item.status),
     datasets: [
       {

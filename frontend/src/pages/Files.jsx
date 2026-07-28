@@ -48,11 +48,10 @@ function Files() {
   const [formData, setFormData] = useState({
     file_number: '',
     title: '',
-    category: '',
+    file_type: '',
     status: 'ACTIVE',
     current_holder: '',
-    created_by: '',
-    priority: 'MEDIUM',
+    priority: 'NORMAL',
   })
 
   useEffect(() => {
@@ -85,11 +84,10 @@ function Files() {
     setFormData({
       file_number: '',
       title: '',
-      category: '',
+      file_type: '',
       status: 'ACTIVE',
       current_holder: '',
-      created_by: '',
-      priority: 'MEDIUM',
+      priority: 'NORMAL',
     })
     setOpenDialog(true)
   }
@@ -99,11 +97,10 @@ function Files() {
     setFormData({
       file_number: file.file_number,
       title: file.title,
-      category: file.category,
+      file_type: file.file_type,
       status: file.status,
       current_holder: file.current_holder,
-      created_by: file.created_by,
-      priority: file.priority || 'MEDIUM',
+      priority: file.priority || 'NORMAL',
     })
     setOpenDialog(true)
   }
@@ -147,7 +144,7 @@ function Files() {
       case 'ACTIVE': return 'success'
       case 'PENDING': return 'warning'
       case 'ARCHIVED': return 'default'
-      case 'CLOSED': return 'error'
+      case 'CONFIDENTIAL': return 'error'
       default: return 'default'
     }
   }
@@ -155,8 +152,9 @@ function Files() {
   const getPriorityColor = (priority) => {
     switch (priority) {
       case 'HIGH': return 'error'
-      case 'MEDIUM': return 'warning'
+      case 'NORMAL': return 'warning'
       case 'LOW': return 'info'
+      case 'URGENT': return 'error'
       default: return 'default'
     }
   }
@@ -168,13 +166,13 @@ function Files() {
   const columns = [
     { id: 'file_number', label: 'File Number' },
     { id: 'title', label: 'Title' },
-    { id: 'category', label: 'Category' },
+    { id: 'file_type', label: 'Type' },
     { id: 'status', label: 'Status', render: (row) => (
       <Chip label={row.status} size="small" color={getStatusColor(row.status)} />
     )},
-    { id: 'current_holder', label: 'Current Holder' },
+    { id: 'current_holder_name', label: 'Current Holder' },
     { id: 'priority', label: 'Priority', render: (row) => (
-      <Chip label={row.priority || 'MEDIUM'} size="small" color={getPriorityColor(row.priority)} />
+      <Chip label={row.priority || 'NORMAL'} size="small" color={getPriorityColor(row.priority)} />
     )},
   ]
 
@@ -263,12 +261,26 @@ function Files() {
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Category"
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              />
+              <FormControl fullWidth>
+                <InputLabel>File Type</InputLabel>
+                <Select
+                  value={formData.file_type || ''}
+                  onChange={(e) => setFormData({ ...formData, file_type: e.target.value })}
+                  label="File Type"
+                >
+                  <MenuItem value="LETTER">Letter</MenuItem>
+                  <MenuItem value="MEMO">Memo</MenuItem>
+                  <MenuItem value="REPORT">Report</MenuItem>
+                  <MenuItem value="FORM">Form</MenuItem>
+                  <MenuItem value="CONTRACT">Contract</MenuItem>
+                  <MenuItem value="POLICY">Policy</MenuItem>
+                  <MenuItem value="APPLICATION">Application</MenuItem>
+                  <MenuItem value="INVOICE">Invoice</MenuItem>
+                  <MenuItem value="RECEIPT">Receipt</MenuItem>
+                  <MenuItem value="MINUTES">Minutes</MenuItem>
+                  <MenuItem value="OTHER">Other</MenuItem>
+                </Select>
+              </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth>
@@ -281,24 +293,16 @@ function Files() {
                   <MenuItem value="ACTIVE">Active</MenuItem>
                   <MenuItem value="PENDING">Pending</MenuItem>
                   <MenuItem value="ARCHIVED">Archived</MenuItem>
-                  <MenuItem value="CLOSED">Closed</MenuItem>
+                  <MenuItem value="IN_TRANSIT">In Transit</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
-                label="Current Holder"
+                label="Current Holder (User ID)"
                 value={formData.current_holder}
                 onChange={(e) => setFormData({ ...formData, current_holder: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Created By"
-                value={formData.created_by}
-                onChange={(e) => setFormData({ ...formData, created_by: e.target.value })}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -309,9 +313,10 @@ function Files() {
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
                   label="Priority"
                 >
-                  <MenuItem value="HIGH">High</MenuItem>
-                  <MenuItem value="MEDIUM">Medium</MenuItem>
                   <MenuItem value="LOW">Low</MenuItem>
+                  <MenuItem value="NORMAL">Normal</MenuItem>
+                  <MenuItem value="HIGH">High</MenuItem>
+                  <MenuItem value="URGENT">Urgent</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -349,8 +354,8 @@ function Files() {
                       <MoveIcon color="primary" />
                     </ListItemIcon>
                     <ListItemText
-                      primary={`${movement.from_holder || 'Origin'} → ${movement.to_holder || 'Destination'}`}
-                      secondary={movement.date || movement.created_at || 'No date'}
+                      primary={`${movement.from_holder_name || movement.from_holder || 'Origin'} → ${movement.to_holder_name || movement.to_holder || 'Destination'}`}
+                      secondary={movement.movement_date || movement.created_at || 'No date'}
                     />
                   </ListItem>
                 ))

@@ -26,6 +26,8 @@ import {
   Badge as BadgeIcon,
   PendingActions as PendingIcon,
   Task as TaskIcon,
+  Settings as SettingsIcon,
+  Mail as CommunicationIcon,
 } from '@mui/icons-material'
 import api from '../api/client'
 import DashboardCharts from '../components/common/DashboardCharts'
@@ -93,6 +95,11 @@ function Dashboard() {
       { label: 'Fee Management', route: '/finance', icon: <MoneyIcon /> },
       { label: 'Budget Reports', route: '/reports', icon: <AssignmentIcon /> },
     ],
+    VP: [
+      { label: 'Staff Directory', route: '/staff', icon: <PeopleIcon /> },
+      { label: 'Student Records', route: '/students', icon: <PeopleIcon /> },
+      { label: 'Attendance', route: '/attendance', icon: <AssignmentIcon /> },
+    ],
     PRI: [
       { label: 'School Dashboard', route: '/schools', icon: <SchoolIcon /> },
       { label: 'Student Records', route: '/students', icon: <PeopleIcon /> },
@@ -101,6 +108,66 @@ function Dashboard() {
     TCH: [
       { label: 'My Classes', route: '/academics', icon: <SchoolIcon /> },
       { label: 'Attendance', route: '/attendance', icon: <AssignmentIcon /> },
+      { label: 'My Tasks', route: '/workflows', icon: <TaskIcon /> },
+    ],
+    NTS: [
+      { label: 'My Tasks', route: '/workflows', icon: <TaskIcon /> },
+      { label: 'Staff Directory', route: '/staff', icon: <PeopleIcon /> },
+      { label: 'View Reports', route: '/reports', icon: <AssignmentIcon /> },
+    ],
+    STD: [
+      { label: 'My Courses', route: '/academics', icon: <SchoolIcon /> },
+      { label: 'Attendance', route: '/attendance', icon: <AssignmentIcon /> },
+      { label: 'Messages', route: '/communication', icon: <CommunicationIcon /> },
+    ],
+    PRT: [
+      { label: 'My Child', route: '/students', icon: <PeopleIcon /> },
+      { label: 'Payments', route: '/finance', icon: <MoneyIcon /> },
+      { label: 'Messages', route: '/communication', icon: <CommunicationIcon /> },
+    ],
+    PS: [
+      { label: 'Manage Users', route: '/staff', icon: <PeopleIcon /> },
+      { label: 'View Reports', route: '/reports', icon: <AssignmentIcon /> },
+      { label: 'System Settings', route: '/', icon: <SettingsIcon /> },
+    ],
+    CC: [
+      { label: 'Co-Curricular', route: '/co-curricular', icon: <AssignmentIcon /> },
+      { label: 'View Reports', route: '/reports', icon: <AssignmentIcon /> },
+      { label: 'My Tasks', route: '/workflows', icon: <TaskIcon /> },
+    ],
+    REG: [
+      { label: 'File Registry', route: '/files', icon: <AssignmentIcon /> },
+      { label: 'Workflows', route: '/workflows', icon: <TaskIcon /> },
+      { label: 'View Reports', route: '/reports', icon: <AssignmentIcon /> },
+    ],
+    SA_OFF: [
+      { label: 'School Overview', route: '/schools', icon: <SchoolIcon /> },
+      { label: 'Attendance', route: '/attendance', icon: <AssignmentIcon /> },
+      { label: 'View Reports', route: '/reports', icon: <AssignmentIcon /> },
+    ],
+    REG_OFF: [
+      { label: 'File Registry', route: '/files', icon: <AssignmentIcon /> },
+      { label: 'Workflows', route: '/workflows', icon: <TaskIcon /> },
+      { label: 'View Reports', route: '/reports', icon: <AssignmentIcon /> },
+    ],
+    QA: [
+      { label: 'Inspections', route: '/inspection', icon: <AssignmentIcon /> },
+      { label: 'View Reports', route: '/reports', icon: <AssignmentIcon /> },
+      { label: 'My Tasks', route: '/workflows', icon: <TaskIcon /> },
+    ],
+    EMIS: [
+      { label: 'Analytics', route: '/analytics', icon: <AssignmentIcon /> },
+      { label: 'View Reports', route: '/reports', icon: <AssignmentIcon /> },
+      { label: 'Manage Data', route: '/schools', icon: <SchoolIcon /> },
+    ],
+    PLAN: [
+      { label: 'Analytics', route: '/analytics', icon: <AssignmentIcon /> },
+      { label: 'View Reports', route: '/reports', icon: <AssignmentIcon /> },
+      { label: 'Manage Data', route: '/schools', icon: <SchoolIcon /> },
+    ],
+    AUDIT: [
+      { label: 'Finance Audit', route: '/finance', icon: <MoneyIcon /> },
+      { label: 'View Reports', route: '/reports', icon: <AssignmentIcon /> },
       { label: 'My Tasks', route: '/workflows', icon: <TaskIcon /> },
     ],
   }

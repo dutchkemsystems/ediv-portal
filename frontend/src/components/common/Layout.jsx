@@ -96,6 +96,13 @@ const getMenuItems = (role) => {
     EMIS: ['/', '/reports', '/analytics', '/notifications'],
     PLAN: ['/', '/reports', '/analytics', '/notifications'],
     REG: ['/', '/registry', '/files', '/workflows', '/notifications'],
+    REG_OFF: ['/', '/registry', '/files', '/workflows', '/notifications'],
+    SA_OFF: ['/', '/schools', '/students', '/reports', '/notifications'],
+    NTS: ['/', '/workflows', '/reports', '/notifications'],
+    PRT: ['/', '/students', '/finance', '/communication', '/notifications'],
+    ICT: ['/', '/assets', '/reports', '/notifications'],
+    LEGAL: ['/', '/files', '/workflows', '/notifications'],
+    PROCUREMENT: ['/', '/assets', '/reports', '/notifications'],
     PRI: ['/', '/schools', '/students', '/staff', '/academics', '/attendance', '/timetable', '/reports', '/discipline', '/library', '/notifications'],
     VP: ['/', '/students', '/staff', '/academics', '/attendance', '/timetable', '/reports', '/discipline', '/notifications'],
     TCH: ['/', '/students', '/academics', '/attendance', '/timetable', '/e-learning', '/discipline', '/notifications'],
@@ -135,7 +142,7 @@ function Layout({ children }) {
       <Divider />
       <Box sx={{ px: 2, py: 1, bgcolor: '#f5f5f5' }}>
         <Typography variant="subtitle2" noWrap fontSize="0.8rem">
-          {user?.first_name} {user?.last_name}
+          {user?.first_name && user?.last_name ? `${user.first_name} ${user.last_name}` : user?.email || 'Dashboard'}
         </Typography>
         <Typography variant="caption" color="text.secondary">{user?.role}</Typography>
       </Box>

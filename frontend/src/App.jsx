@@ -1,8 +1,9 @@
-import React, { Suspense, lazy } from 'react'
+import React, { Suspense, lazy, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 import { CircularProgress, Box } from '@mui/material'
 import Layout from './components/common/Layout'
+import { fetchUser } from './store/authSlice'
 
 const Login = lazy(() => import('./pages/Login'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -49,6 +50,15 @@ function Loading() {
 }
 
 function App() {
+  const dispatch = useDispatch()
+  const { isAuthenticated, user } = useSelector((state) => state.auth)
+
+  useEffect(() => {
+    if (isAuthenticated && !user) {
+      dispatch(fetchUser())
+    }
+  }, [dispatch, isAuthenticated, user])
+
   return (
     <Suspense fallback={<Loading />}>
       <Routes>

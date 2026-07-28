@@ -49,12 +49,9 @@ function Communication() {
   const [viewMode, setViewMode] = useState('messages')
   const [formData, setFormData] = useState({
     subject: '',
-    sender: '',
-    recipient: '',
-    message: '',
+    body: '',
+    message_type: 'INTERNAL',
     priority: 'NORMAL',
-    category: 'GENERAL',
-    date_sent: '',
   })
 
   useEffect(() => {
@@ -86,12 +83,9 @@ function Communication() {
     setSelectedMessage(null)
     setFormData({
       subject: '',
-      sender: '',
-      recipient: '',
-      message: '',
+      body: '',
+      message_type: 'INTERNAL',
       priority: 'NORMAL',
-      category: 'GENERAL',
-      date_sent: '',
     })
     setOpenDialog(true)
   }
@@ -100,12 +94,9 @@ function Communication() {
     setSelectedMessage(message)
     setFormData({
       subject: message.subject,
-      sender: message.sender,
-      recipient: message.recipient,
-      message: message.message,
+      body: message.body,
+      message_type: message.message_type || 'INTERNAL',
       priority: message.priority || 'NORMAL',
-      category: message.category || 'GENERAL',
-      date_sent: message.date_sent || '',
     })
     setOpenDialog(true)
   }
@@ -165,36 +156,36 @@ function Communication() {
 
   const columns = [
     { id: 'subject', label: 'Subject' },
-    { id: 'sender', label: 'From' },
-    { id: 'recipient', label: 'To' },
-    { id: 'read', label: 'Status', render: (row) => (
+    { id: 'sender_name', label: 'From' },
+    { id: 'recipient_names', label: 'To', render: (row) => (
+      <Typography variant="body2" noWrap sx={{ maxWidth: 150 }}>
+        {Array.isArray(row.recipient_names) ? row.recipient_names.join(', ') : row.recipient_names || ''}
+      </Typography>
+    )},
+    { id: 'is_read', label: 'Status', render: (row) => (
       <Chip
-        icon={row.read ? <ReadIcon /> : <UnreadIcon />}
-        label={row.read ? 'Read' : 'Unread'}
+        icon={row.is_read ? <ReadIcon /> : <UnreadIcon />}
+        label={row.is_read ? 'Read' : 'Unread'}
         size="small"
-        color={row.read ? 'default' : 'primary'}
-        variant={row.read ? 'outlined' : 'filled'}
+        color={row.is_read ? 'default' : 'primary'}
+        variant={row.is_read ? 'outlined' : 'filled'}
       />
     )},
     { id: 'priority', label: 'Priority', render: (row) => (
       <Chip label={row.priority || 'NORMAL'} size="small" color={getPriorityColor(row.priority)} />
     )},
-    { id: 'category', label: 'Category', render: (row) => (
-      <Chip label={row.category || 'GENERAL'} size="small" color={getCategoryColor(row.category)} />
+    { id: 'message_type', label: 'Type', render: (row) => (
+      <Chip label={row.message_type || 'INTERNAL'} size="small" />
     )},
-    { id: 'date_sent', label: 'Date' },
   ]
 
   const circularColumns = [
-    { id: 'subject', label: 'Subject' },
-    { id: 'sender', label: 'From' },
-    { id: 'category', label: 'Category', render: (row) => (
-      <Chip label={row.category || 'GENERAL'} size="small" color={getCategoryColor(row.category)} />
-    )},
+    { id: 'title', label: 'Title' },
+    { id: 'issued_by_name', label: 'From' },
     { id: 'priority', label: 'Priority', render: (row) => (
       <Chip label={row.priority || 'NORMAL'} size="small" color={getPriorityColor(row.priority)} />
     )},
-    { id: 'date_sent', label: 'Date' },
+    { id: 'effective_date', label: 'Effective Date' },
   ]
 
   if (loading) {
@@ -244,7 +235,7 @@ function Communication() {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Unread"
-            value={messages.filter(m => !m.read).length}
+            value={messages.filter(m => !m.is_read).length}
             icon={<UnreadIcon />}
             color="#f57c00"
           />

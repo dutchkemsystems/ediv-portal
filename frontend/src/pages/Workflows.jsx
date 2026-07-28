@@ -50,8 +50,6 @@ function Workflows() {
     description: '',
     status: 'DRAFT',
     trigger_type: '',
-    assigned_to: '',
-    due_date: '',
   })
 
   useEffect(() => {
@@ -170,7 +168,7 @@ function Workflows() {
   }
 
   const getWorkflowTasks = (workflowId) => {
-    return tasks.filter(t => t.workflow === workflowId || t.workflow_id === workflowId)
+    return tasks.filter(t => t.workflow_instance === workflowId || t.workflow_instance_id === workflowId)
   }
 
   const columns = [
@@ -184,8 +182,6 @@ function Workflows() {
       <Chip label={row.status} size="small" color={getStatusColor(row.status)} />
     )},
     { id: 'trigger_type', label: 'Trigger Type' },
-    { id: 'assigned_to', label: 'Assigned To' },
-    { id: 'due_date', label: 'Due Date' },
   ]
 
   if (loading) {
@@ -297,24 +293,6 @@ function Workflows() {
                 onChange={(e) => setFormData({ ...formData, trigger_type: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Assigned To"
-                value={formData.assigned_to}
-                onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Due Date"
-                type="date"
-                InputLabelProps={{ shrink: true }}
-                value={formData.due_date}
-                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-              />
-            </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
@@ -349,7 +327,7 @@ function Workflows() {
                       <TaskIcon color={task.status === 'COMPLETED' ? 'success' : 'action'} />
                     </ListItemIcon>
                     <ListItemText
-                      primary={task.title || task.name}
+                      primary={task.step_name || task.name || `Task #${index + 1}`}
                       secondary={
                         <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
                           <Chip label={task.status} size="small" color={getTaskStatusColor(task.status)} />

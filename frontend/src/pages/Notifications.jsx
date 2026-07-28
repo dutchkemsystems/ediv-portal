@@ -44,9 +44,8 @@ function Notifications() {
   const [selectedTemplate, setSelectedTemplate] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
-    title: '',
-    message: '',
-    notification_type: '',
+    subject: '',
+    body: '',
     channel: '',
   })
 
@@ -89,9 +88,8 @@ function Notifications() {
     setSelectedTemplate(null)
     setFormData({
       name: '',
-      title: '',
-      message: '',
-      notification_type: '',
+      subject: '',
+      body: '',
       channel: '',
     })
     setOpenDialog(true)
@@ -101,9 +99,8 @@ function Notifications() {
     setSelectedTemplate(template)
     setFormData({
       name: template.name,
-      title: template.title,
-      message: template.message,
-      notification_type: template.notification_type,
+      subject: template.subject,
+      body: template.body,
       channel: template.channel,
     })
     setOpenDialog(true)
@@ -196,11 +193,11 @@ function Notifications() {
         variant="outlined"
       />
     )},
-    { id: 'status', label: 'Status', render: (row) => (
+    { id: 'is_sent', label: 'Status', render: (row) => (
       <Chip
-        label={row.status}
+        label={row.is_sent ? 'SENT' : 'FAILED'}
         size="small"
-        color={row.status === 'SENT' ? 'success' : row.status === 'FAILED' ? 'error' : 'warning'}
+        color={row.is_sent ? 'success' : 'error'}
       />
     )},
     { id: 'sent_at', label: 'Sent At', render: (row) => (
@@ -241,7 +238,7 @@ function Notifications() {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Total Sent"
-            value={stats.total_sent || logs.filter(l => l.status === 'SENT').length}
+            value={stats.total_sent || logs.filter(l => l.is_sent).length}
             icon={<EmailIcon />}
             color="#388e3c"
           />
@@ -249,7 +246,7 @@ function Notifications() {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Total Failed"
-            value={stats.total_failed || logs.filter(l => l.status === 'FAILED').length}
+            value={stats.total_failed || logs.filter(l => !l.is_sent).length}
             icon={<NotificationsIcon />}
             color="#d32f2f"
           />
