@@ -81,19 +81,35 @@ const authSlice = createSlice({
       .addCase(login.rejected, (state, action) => {
         state.loading = false
         const err = action.payload
+        // Backend uses DRF + custom_exception_handler that wraps errors as:
+        //   { success: false, error: { status_code, message } }
+        // Unwrap that first, then fall back to common shapes.
+        let unwrapped = err
+        if (err && typeof err === 'object' && err.error && typeof err.error === 'object') {
+          unwrapped = err.error.message
+        }
         // Ensure error is always a string, never an object
-        if (typeof err === 'string') {
-          state.error = err
-        } else if (typeof err?.error === 'string') {
-          state.error = err.error
-        } else if (typeof err?.detail === 'string') {
-          state.error = err.detail
-        } else if (typeof err?.message === 'string') {
-          state.error = err.message
-        } else if (err && typeof err === 'object') {
-          // Extract first string value from error object
-          const firstVal = Object.values(err).find(v => typeof v === 'string')
-          state.error = firstVal || 'Login failed. Please check your credentials.'
+        if (typeof unwrapped === 'string') {
+          state.error = unwrapped
+        } else if (typeof unwrapped?.error === 'string') {
+          state.error = unwrapped.error
+        } else if (typeof unwrapped?.detail === 'string') {
+          state.error = unwrapped.detail
+        } else if (typeof unwrapped?.message === 'string') {
+          state.error = unwrapped.message
+        } else if (unwrapped && typeof unwrapped === 'object') {
+          // DRF validation errors: {field: ["error msg", ...]}
+          // Flatten into first human-readable message
+          const flat = []
+          for (const v of Object.values(unwrapped)) {
+            if (typeof v === 'string') flat.push(v)
+            else if (Array.isArray(v)) {
+              for (const item of v) {
+                if (typeof item === 'string') flat.push(item)
+              }
+            }
+          }
+          state.error = flat[0] || 'Login failed. Please check your credentials.'
         } else {
           state.error = 'Login failed. Please check your credentials.'
         }
