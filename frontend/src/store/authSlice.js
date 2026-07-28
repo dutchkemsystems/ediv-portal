@@ -25,6 +25,18 @@ export const logout = createAsyncThunk('auth/logout', async () => {
   }
 })
 
+export const fetchUser = createAsyncThunk(
+  'auth/fetchUser',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/users/profile/')
+      return response.data
+    } catch (error) {
+      return rejectWithValue(error.response?.data || { error: 'Failed to fetch user' })
+    }
+  }
+)
+
 const authSlice = createSlice({
   name: 'auth',
   initialState: {
@@ -33,11 +45,14 @@ const authSlice = createSlice({
     loading: false,
     error: null,
   },
-  reducers: {
-    clearError: (state) => {
-      state.error = null
+    reducers: {
+      clearError: (state) => {
+        state.error = null
+      },
+      setUser: (state, action) => {
+        state.user = action.payload
+      },
     },
-  },
   extraReducers: (builder) => {
     builder
       .addCase(login.pending, (state) => {
@@ -57,8 +72,23 @@ const authSlice = createSlice({
         state.isAuthenticated = false
         state.user = null
       })
+      .addCase(fetchUser.pending, (state) => {
+        state.loading = true
+      })
+      .addCase(fetchUser.fulfilled, (state, action) => {
+        state.loading = false
+        state.user = action.payload
+        state.isAuthenticated = true
+      })
+      .addCase(fetchUser.rejected, (state) => {
+        state.loading = false
+        state.isAuthenticated = false
+        state.user = null
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+      })
   },
 })
 
-export const { clearError } = authSlice.actions
+export const { clearError, setUser } = authSlice.actions
 export default authSlice.reducer
