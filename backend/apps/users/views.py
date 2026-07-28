@@ -3,7 +3,7 @@ from datetime import timedelta
 from rest_framework import viewsets, permissions, status, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from django.contrib.auth import authenticate
 from django.core.cache import cache
 from django.core.mail import send_mail
@@ -282,7 +282,10 @@ class AuthViewSet(viewsets.ViewSet):
         AuditLogger.log_login(user, ip_address, True, user_agent=user_agent)
 
         if user.mfa_enabled:
-            temp_token = RefreshToken()
+            # Use AccessToken (not RefreshToken) so mfa_verify can decode it as one.
+            # AccessToken has type='access'; RefreshToken has type='refresh'.
+            # simplejwt's TokenBackend rejects tokens decoded as the wrong type.
+            temp_token = AccessToken()
             temp_token['user_id'] = user.id
             temp_token.set_exp(lifetime=timedelta(minutes=5))
             return Response({
