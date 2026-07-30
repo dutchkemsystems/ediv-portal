@@ -170,6 +170,10 @@ Authorization: Bearer <access_token>
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | /api/reports/reports/ | List all reports |
+| POST | /api/reports/reports/ | Create a report |
+| GET | /api/reports/reports/{id}/ | Get report details |
+| GET | /api/reports/dashboards/ | List dashboards |
+| GET | /api/reports/widgets/ | List widgets |
 | POST | /api/reports/reports/{id}/export/ | Export report |
 | POST | /api/reports/import_data/ | Import data |
 
@@ -183,6 +187,191 @@ Authorization: Bearer <access_token>
 | GET | /api/analytics/stats/attendance_stats/ | Get attendance statistics |
 | GET | /api/analytics/stats/financial_stats/ | Get financial statistics |
 | GET | /api/analytics/stats/recent_activity/ | Get recent activity |
+| GET | /api/analytics/reports/ | List analytics reports |
+| GET | /api/analytics/kpis/ | List KPIs |
+
+### HR
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/hr/job-postings/ | List job postings |
+| POST | /api/hr/job-postings/ | Create job posting |
+| GET | /api/hr/applications/ | List job applications |
+| GET | /api/hr/payroll-periods/ | List payroll periods |
+| GET | /api/hr/payslips/ | List payslips |
+
+### Communication
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/communication/messages/ | List messages |
+| GET | /api/communication/conversations/ | List conversations |
+| GET | /api/communication/circulars/ | List circulars |
+
+### Notifications
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/notifications/notifications/ | List notifications |
+| PUT | /api/notifications/notifications/{id}/ | Mark as read |
+
+### Departments
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/departments/departments/ | List departments |
+| POST | /api/departments/departments/ | Create department |
+| GET | /api/departments/units/ | List department units |
+
+### Registry (E-Registry)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/registry/documents/ | List documents |
+| POST | /api/registry/documents/ | Create document |
+| GET | /api/registry/correspondences/ | List correspondences |
+| GET | /api/registry/memos/ | List memos |
+
+### Workflows
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/workflows/workflows/ | List all workflows |
+| POST | /api/workflows/workflows/ | Create a new workflow |
+| GET | /api/workflows/instances/ | List workflow instances |
+| GET | /api/workflows/tasks/ | List tasks |
+
+### Inspection
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/inspection/inspections/ | List inspections |
+| POST | /api/inspection/inspections/ | Create inspection |
+| GET | /api/inspection/checklists/ | List checklists |
+| GET | /api/inspection/actions/ | List inspection actions |
+
+### Library
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/library/books/ | List books |
+| POST | /api/library/books/ | Add book |
+| GET | /api/library/loans/ | List book loans |
+| POST | /api/library/loans/ | Checkout book |
+
+### Transport
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/transport/vehicles/ | List vehicles |
+| POST | /api/transport/vehicles/ | Add vehicle |
+| GET | /api/transport/routes/ | List bus routes |
+| POST | /api/transport/routes/ | Create route |
+
+### CPD (Professional Development)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/cpd/activities/ | List CPD activities |
+| GET | /api/cpd/records/ | List CPD records |
+
+### Wellness
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/wellness/counseling-sessions/ | List counseling sessions |
+| GET | /api/wellness/check-ins/ | List wellness check-ins |
+| GET | /api/wellness/resources/ | List wellness resources |
+
+### Alumni
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/alumni/members/ | List alumni members |
+| GET | /api/alumni/events/ | List alumni events |
+| GET | /api/alumni/donations/ | List alumni donations |
+
+### Assets
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/assets/assets/ | List assets |
+| POST | /api/assets/assets/ | Register asset |
+| GET | /api/assets/maintenance/ | List maintenance records |
+
+### Discipline
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/discipline/incidents/ | List incidents |
+| POST | /api/discipline/incidents/ | Report incident |
+| GET | /api/discipline/behavior-plans/ | List behavior plans |
+
+### Co-Curricular
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/co-curricular/activities/ | List activities |
+| GET | /api/co-curricular/competitions/ | List competitions |
+
+### French Unit
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/french/programs/ | List French programs |
+| GET | /api/french/clubs/ | List French clubs |
+
+### E-Learning
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/e-learning/courses/ | List courses |
+| POST | /api/e-learning/courses/ | Create course |
+
+### Parent-Teacher
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/parent-teacher/meetings/ | List PTA meetings |
+| GET | /api/parent-teacher/conferences/ | List conferences |
+
+### Timetable
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/timetable/periods/ | List periods |
+| POST | /api/timetable/periods/ | Create period |
+| GET | /api/timetable/timetables/ | List timetables |
+
+### Infrastructure
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/infrastructure/facilities/ | List facilities |
+| GET | /api/infrastructure/maintenance-requests/ | List maintenance requests |
+| GET | /api/infrastructure/projects/ | List projects |
+
+### Data Import/Export
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/data-import-export/jobs/ | List import jobs |
+
+### Mail Workflow
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/mail-workflow/incoming-mail/ | List incoming mail |
+| GET | /api/mail-workflow/outgoing-mail/ | List outgoing mail |
+| GET | /api/mail-workflow/correspondences/ | List correspondences |
+
+### Audit
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/audit/logs/ | List audit logs |
+| GET | /api/audit/compliance-items/ | List compliance items |
+| GET | /api/audit/violations/ | List violations |
 
 ## Query Parameters
 
