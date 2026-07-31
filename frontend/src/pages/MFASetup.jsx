@@ -158,7 +158,20 @@ function MFASetup() {
 
               {qrCodeUrl && (
                 <Box sx={{ textAlign: 'center', mb: 2 }}>
-                  <img src={qrCodeUrl} alt="MFA QR Code" style={{ maxWidth: 200, border: '2px solid #eee', borderRadius: 8 }} />
+                  {qrCodeUrl.startsWith('data:') ? (
+                    <img
+                      src={qrCodeUrl}
+                      alt="MFA QR Code"
+                      style={{ maxWidth: 200, border: '2px solid #eee', borderRadius: 8 }}
+                    />
+                  ) : (
+                    <Box className="manual-entry" sx={{ p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        QR code generation unavailable. Enter this code manually:
+                      </Typography>
+                      <Chip label={secret} sx={{ fontFamily: 'monospace', fontSize: '1.1rem' }} />
+                    </Box>
+                  )}
                 </Box>
               )}
 

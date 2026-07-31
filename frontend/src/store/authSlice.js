@@ -60,6 +60,11 @@ const authSlice = createSlice({
     clearMFARequired: (state) => {
       state.mfa_required = false
     },
+    setAuthenticated: (state, action) => {
+      state.isAuthenticated = true
+      state.user = action.payload?.user || state.user
+      state.mfa_required = false
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -122,5 +127,5 @@ const authSlice = createSlice({
   },
 })
 
-export const { clearError, clearMFARequired } = authSlice.actions
+export const { clearError, clearMFARequired, setAuthenticated } = authSlice.actions
 export default authSlice.reducer

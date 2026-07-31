@@ -14,12 +14,14 @@ import {
 import { VerifiedUser as MFAIcon } from '@mui/icons-material'
 import api from '../api/client'
 import { notify } from '../utils/notifications'
+import { setAuthenticated } from '../store/authSlice'
 
 function MFAVerify() {
   const [mfaCode, setMfaCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
+  const dispatch = useDispatch()
 
   const tempToken = localStorage.getItem('temp_token')
   const pendingUser = JSON.parse(localStorage.getItem('pending_user') || '{}')
@@ -45,6 +47,7 @@ function MFAVerify() {
       localStorage.removeItem('temp_token')
       localStorage.removeItem('pending_user')
 
+      dispatch(setAuthenticated({ user: response.data.user }))
       notify.success('MFA verification successful')
       navigate('/dashboard')
     } catch (err) {
