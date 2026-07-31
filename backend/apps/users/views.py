@@ -255,7 +255,8 @@ class AuthViewSet(viewsets.ViewSet):
             pass
 
         user = authenticate(
-            email=email,
+            request=request,
+            username=email,
             password=serializer.validated_data['password']
         )
 
@@ -412,7 +413,7 @@ class AuthViewSet(viewsets.ViewSet):
 
         # Invalidate all existing sessions
         from config.security import SessionManager
-        SessionManager.invalidate_all_sessions(user)
+        SessionManager.revoke_all_sessions(user)
 
         AuditLogger.log_action(user, 'PASSWORD_RESET', 'user', user.id)
 

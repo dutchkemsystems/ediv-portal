@@ -1,0 +1,198 @@
+<h2>SYSADMIN Dashboard Layout</h2>
+<p class="subtitle">Comprehensive system overview with KPI cards, charts, and activity feed</p>
+
+<div class="mockup">
+  <div class="mockup-header">SYSADMIN Dashboard — Full Layout Mockup</div>
+  <div class="mockup-body" style="padding: 0; overflow: hidden;">
+
+    <!-- Welcome Banner -->
+    <div style="background: linear-gradient(135deg, #C8102E 0%, #8B0000 100%); color: white; padding: 20px 24px;">
+      <div style="font-size: 1.3rem; font-weight: 700;">Welcome back, System Administrator</div>
+      <div style="font-size: 0.85rem; opacity: 0.9; margin-top: 4px;">Education District IV — System Overview</div>
+      <div style="display: flex; gap: 12px; margin-top: 12px;">
+        <span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 12px; font-size: 0.75rem;">Last login: Today, 9:15 AM</span>
+        <span style="background: rgba(0,132,61,0.8); padding: 4px 12px; border-radius: 12px; font-size: 0.75rem;">System Online</span>
+      </div>
+    </div>
+
+    <!-- KPI Cards Row -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 20px 24px;">
+      <div style="background: white; border-radius: 8px; padding: 16px; border-left: 4px solid #C8102E; box-shadow: 0 1px 4px rgba(0,0,0,0.08);">
+        <div style="font-size: 1.8rem; font-weight: 700; color: #C8102E;">95</div>
+        <div style="font-size: 0.8rem; color: #666;">Total Schools</div>
+        <div style="font-size: 0.7rem; color: #2E7D32; margin-top: 4px;">↑ 3 new this term</div>
+      </div>
+      <div style="background: white; border-radius: 8px; padding: 16px; border-left: 4px solid #1565C0; box-shadow: 0 1px 4px rgba(0,0,0,0.08);">
+        <div style="font-size: 1.8rem; font-weight: 700; color: #1565C0;">82,450</div>
+        <div style="font-size: 0.8rem; color: #666;">Total Students</div>
+        <div style="font-size: 0.7rem; color: #2E7D32; margin-top: 4px;">↑ 1,200 enrollment</div>
+      </div>
+      <div style="background: white; border-radius: 8px; padding: 16px; border-left: 4px solid #00843D; box-shadow: 0 1px 4px rgba(0,0,0,0.08);">
+        <div style="font-size: 1.8rem; font-weight: 700; color: #00843D;">5,280</div>
+        <div style="font-size: 0.8rem; color: #666;">Total Staff</div>
+        <div style="font-size: 0.7rem; color: #2E7D32; margin-top: 4px;">↑ 45 new hires</div>
+      </div>
+      <div style="background: white; border-radius: 8px; padding: 16px; border-left: 4px solid #6A1B9A; box-shadow: 0 1px 4px rgba(0,0,0,0.08);">
+        <div style="font-size: 1.8rem; font-weight: 700; color: #6A1B9A;">₦12.4M</div>
+        <div style="font-size: 0.8rem; color: #666;">Revenue Collected</div>
+        <div style="font-size: 0.7rem; color: #2E7D32; margin-top: 4px;">78% collection rate</div>
+      </div>
+    </div>
+
+    <!-- Second KPI Row -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 0 24px 20px;">
+      <div style="background: white; border-radius: 8px; padding: 16px; border-left: 4px solid #E65100; box-shadow: 0 1px 4px rgba(0,0,0,0.08);">
+        <div style="font-size: 1.8rem; font-weight: 700; color: #E65100;">342</div>
+        <div style="font-size: 0.8rem; color: #666;">Active Files</div>
+        <div style="font-size: 0.7rem; color: #F57C00; margin-top: 4px;">28 pending action</div>
+      </div>
+      <div style="background: white; border-radius: 8px; padding: 16px; border-left: 4px solid #37474F; box-shadow: 0 1px 4px rgba(0,0,0,0.08);">
+        <div style="font-size: 1.8rem; font-weight: 700; color: #37474F;">94.2%</div>
+        <div style="font-size: 0.8rem; color: #666;">Attendance Rate</div>
+        <div style="font-size: 0.7rem; color: #2E7D32; margin-top: 4px;">↑ 1.3% from last week</div>
+      </div>
+      <div style="background: white; border-radius: 8px; padding: 16px; border-left: 4px solid #00695C; box-shadow: 0 1px 4px rgba(0,0,0,0.08);">
+        <div style="font-size: 1.8rem; font-weight: 700; color: #00695C;">156</div>
+        <div style="font-size: 0.8rem; color: #666;">Active Users</div>
+        <div style="font-size: 0.7rem; color: #2E7D32; margin-top: 4px;">12 online now</div>
+      </div>
+      <div style="background: white; border-radius: 8px; padding: 16px; border-left: 4px solid #AD1457; box-shadow: 0 1px 4px rgba(0,0,0,0.08);">
+        <div style="font-size: 1.8rem; font-weight: 700; color: #AD1457;">12</div>
+        <div style="font-size: 0.8rem; color: #666;">Pending Tasks</div>
+        <div style="font-size: 0.7rem; color: #F57C00; margin-top: 4px;">3 overdue</div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; padding: 0 24px 20px;">
+      <!-- Bar Chart: Students per LGA -->
+      <div style="background: white; border-radius: 8px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);">
+        <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 12px;">Students by LGA</div>
+        <div style="display: flex; align-items: flex-end; gap: 24px; height: 140px; padding: 0 16px;">
+          <div style="text-align: center; flex: 1;">
+            <div style="background: #C8102E; height: 90px; border-radius: 4px 4px 0 0; width: 60px; margin: 0 auto;"></div>
+            <div style="font-size: 0.7rem; color: #666; margin-top: 6px;">Apapa</div>
+            <div style="font-size: 0.75rem; font-weight: 600;">26,800</div>
+          </div>
+          <div style="text-align: center; flex: 1;">
+            <div style="background: #1565C0; height: 120px; border-radius: 4px 4px 0 0; width: 60px; margin: 0 auto;"></div>
+            <div style="font-size: 0.7rem; color: #666; margin-top: 6px;">Mainland</div>
+            <div style="font-size: 0.75rem; font-weight: 600;">32,100</div>
+          </div>
+          <div style="text-align: center; flex: 1;">
+            <div style="background: #00843D; height: 100px; border-radius: 4px 4px 0 0; width: 60px; margin: 0 auto;"></div>
+            <div style="font-size: 0.7rem; color: #666; margin-top: 6px;">Surulere</div>
+            <div style="font-size: 0.75rem; font-weight: 600;">23,550</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Donut Chart: Staff by Role -->
+      <div style="background: white; border-radius: 8px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);">
+        <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 12px;">Staff Distribution</div>
+        <div style="display: flex; justify-content: center; align-items: center; height: 140px;">
+          <div style="width: 120px; height: 120px; border-radius: 50%; background: conic-gradient(#C8102E 0% 65%, #1565C0 65% 80%, #00843D 80% 90%, #E65100 90% 100%); position: relative;">
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70px; height: 70px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem;">5,280</div>
+          </div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; justify-content: center;">
+          <span style="font-size: 0.65rem;"><span style="display: inline-block; width: 8px; height: 8px; background: #C8102E; border-radius: 2px; margin-right: 4px;"></span>Teachers 65%</span>
+          <span style="font-size: 0.65rem;"><span style="display: inline-block; width: 8px; height: 8px; background: #1565C0; border-radius: 2px; margin-right: 4px;"></span>Admin 15%</span>
+          <span style="font-size: 0.65rem;"><span style="display: inline-block; width: 8px; height: 8px; background: #00843D; border-radius: 2px; margin-right: 4px;"></span>Support 10%</span>
+          <span style="font-size: 0.65rem;"><span style="display: inline-block; width: 8px; height: 8px; background: #E65100; border-radius: 2px; margin-right: 4px;"></span>Other 10%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Row: Activity + Quick Actions -->
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px; padding: 0 24px 24px;">
+      <!-- Recent Activity -->
+      <div style="background: white; border-radius: 8px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div style="font-weight: 600; font-size: 0.9rem;">Recent Activity</div>
+          <span style="font-size: 0.7rem; color: #C8102E; cursor: pointer;">View All →</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: #f9f9f9; border-radius: 6px;">
+            <div style="width: 32px; height: 32px; background: #E3F2FD; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #1565C0; font-size: 0.8rem;">📄</div>
+            <div style="flex: 1;">
+              <div style="font-size: 0.8rem; font-weight: 500;">File #EDIV/REG/2024/089 transferred</div>
+              <div style="font-size: 0.7rem; color: #888;">Registry → Finance Director • 15 min ago</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: #f9f9f9; border-radius: 6px;">
+            <div style="width: 32px; height: 32px; background: #E8F5E9; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #2E7D32; font-size: 0.8rem;">✅</div>
+            <div style="flex: 1;">
+              <div style="font-size: 0.8rem; font-weight: 500;">Staff promotion approval completed</div>
+              <div style="font-size: 0.7rem; color: #888;">HR Module • 42 min ago</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: #f9f9f9; border-radius: 6px;">
+            <div style="width: 32px; height: 32px; background: #FFF3E0; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #E65100; font-size: 0.8rem;">⚠️</div>
+            <div style="flex: 1;">
+              <div style="font-size: 0.8rem; font-weight: 500;">3 overdue tasks require attention</div>
+              <div style="font-size: 0.7rem; color: #888;">Workflows • 1 hour ago</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: #f9f9f9; border-radius: 6px;">
+            <div style="width: 32px; height: 32px; background: #F3E5F5; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #6A1B9A; font-size: 0.8rem;">💰</div>
+            <div style="flex: 1;">
+              <div style="font-size: 0.8rem; font-weight: 500;">₦2.4M fee payment batch processed</div>
+              <div style="font-size: 0.7rem; color: #888;">Finance • 2 hours ago</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions + System Status -->
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <!-- Quick Actions -->
+        <div style="background: white; border-radius: 8px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);">
+          <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 12px;">Quick Actions</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #FFF5F5; border-radius: 6px; cursor: pointer; border: 1px solid #FFCDD2;">
+              <span style="color: #C8102E;">🏫</span>
+              <span style="font-size: 0.8rem; font-weight: 500;">Manage Schools</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #E3F2FD; border-radius: 6px; cursor: pointer; border: 1px solid #BBDEFB;">
+              <span style="color: #1565C0;">👥</span>
+              <span style="font-size: 0.8rem; font-weight: 500;">Manage Users</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #E8F5E9; border-radius: 6px; cursor: pointer; border: 1px solid #C8E6C9;">
+              <span style="color: #2E7D32;">📊</span>
+              <span style="font-size: 0.8rem; font-weight: 500;">View Reports</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #F3E5F5; border-radius: 6px; cursor: pointer; border: 1px solid #E1BEE7;">
+              <span style="color: #6A1B9A;">⚙️</span>
+              <span style="font-size: 0.8rem; font-weight: 500;">System Settings</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- System Status -->
+        <div style="background: white; border-radius: 8px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);">
+          <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 12px;">System Status</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.75rem; color: #666;">Database</span>
+              <span style="font-size: 0.7rem; color: #2E7D32; font-weight: 500;">● Online</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.75rem; color: #666;">API Server</span>
+              <span style="font-size: 0.7rem; color: #2E7D32; font-weight: 500;">● Online</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.75rem; color: #666;">Storage</span>
+              <span style="font-size: 0.7rem; color: #666; font-weight: 500;">67% used</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.75rem; color: #666;">Uptime</span>
+              <span style="font-size: 0.7rem; color: #2E7D32; font-weight: 500;">99.9%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

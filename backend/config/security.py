@@ -282,7 +282,7 @@ class SessionManager:
 
     # Role → max concurrent sessions
     ROLE_MAX_SESSIONS = {
-        'SYSADMIN': 3, 'TG': 3, 'PS': 3,
+        'SYSADMIN': 3, 'TG_PS': 3,
         'HR': 3, 'FIN': 3, 'AUDIT': 3, 'QA': 3, 'CC': 3,
         'EMIS': 3, 'PLAN': 3, 'PROC': 3, 'PA': 3, 'SA': 3,
         'FRENCH': 3, 'REG': 3,

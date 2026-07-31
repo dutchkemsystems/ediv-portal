@@ -9,8 +9,7 @@ class User(AbstractUser):
     
     class Role(models.TextChoices):
         SYSADMIN = 'SYSADMIN', 'System Administrator'
-        TG = 'TG', 'Tutor General'
-        PS = 'PS', 'Permanent Secretary'
+        TG_PS = 'TG_PS', 'Tutor General/Permanent Secretary'
         HR = 'HR', 'Admin & HR Head'
         FIN = 'FIN', 'Finance Director'
         AUDIT = 'AUDIT', 'Internal Audit Head'
@@ -71,24 +70,24 @@ class User(AbstractUser):
     
     @property
     def is_head_office_staff(self):
-        return self.role in ['TG', 'PS', 'HR', 'FIN', 'AUDIT', 'QA', 'CC', 'EMIS', 'PLAN', 'PROC', 'PA', 'SA', 'FRENCH', 'REG', 'REG_OFF']
-    
+        return self.role in ['TG_PS', 'HR', 'FIN', 'AUDIT', 'QA', 'CC', 'EMIS', 'PLAN', 'PROC', 'PA', 'SA', 'FRENCH', 'REG', 'REG_OFF']
+
     @property
     def is_admin_level(self):
-        return self.role in ['SYSADMIN', 'TG', 'PS']
+        return self.role in ['SYSADMIN', 'TG_PS']
     
     def can_access_module(self, module):
         """Check if user can access a specific module based on role."""
         permissions = {
-            'dashboard': ['SYSADMIN', 'TG', 'PS', 'HR', 'FIN', 'AUDIT', 'QA', 'CC', 'EMIS', 'PLAN', 'PROC', 'PA', 'SA', 'FRENCH', 'REG', 'PRI', 'VP', 'TCH', 'STD', 'PAR'],
-            'registry': ['SYSADMIN', 'TG', 'PS', 'HR', 'FIN', 'AUDIT', 'QA', 'CC', 'EMIS', 'PLAN', 'PROC', 'PA', 'SA', 'FRENCH', 'REG', 'REG_OFF', 'PRI', 'VP', 'TCH', 'STD', 'PAR'],
-            'hr': ['SYSADMIN', 'TG', 'PS', 'HR'],
-            'finance': ['SYSADMIN', 'TG', 'PS', 'FIN'],
-            'qa': ['SYSADMIN', 'TG', 'PS', 'QA'],
-            'academics': ['SYSADMIN', 'TG', 'PS', 'PRI', 'VP', 'TCH', 'STD', 'PAR'],
-            'attendance': ['SYSADMIN', 'TG', 'PS', 'PRI', 'VP', 'TCH', 'STD', 'PAR'],
-            'co_curricular': ['SYSADMIN', 'TG', 'PS', 'CC', 'PRI', 'VP', 'TCH', 'STD'],
-            'reports': ['SYSADMIN', 'TG', 'PS', 'HR', 'FIN', 'AUDIT', 'QA', 'CC', 'EMIS', 'PLAN', 'PROC', 'PA', 'SA', 'FRENCH', 'REG', 'PRI', 'VP', 'TCH', 'STD', 'PAR'],
+            'dashboard': ['SYSADMIN', 'TG_PS', 'HR', 'FIN', 'AUDIT', 'QA', 'CC', 'EMIS', 'PLAN', 'PROC', 'PA', 'SA', 'FRENCH', 'REG', 'PRI', 'VP', 'TCH', 'STD', 'PAR'],
+            'registry': ['SYSADMIN', 'TG_PS', 'HR', 'FIN', 'AUDIT', 'QA', 'CC', 'EMIS', 'PLAN', 'PROC', 'PA', 'SA', 'FRENCH', 'REG', 'REG_OFF', 'PRI', 'VP', 'TCH', 'STD', 'PAR'],
+            'hr': ['SYSADMIN', 'TG_PS', 'HR'],
+            'finance': ['SYSADMIN', 'TG_PS', 'FIN'],
+            'qa': ['SYSADMIN', 'TG_PS', 'QA'],
+            'academics': ['SYSADMIN', 'TG_PS', 'PRI', 'VP', 'TCH', 'STD', 'PAR'],
+            'attendance': ['SYSADMIN', 'TG_PS', 'PRI', 'VP', 'TCH', 'STD', 'PAR'],
+            'co_curricular': ['SYSADMIN', 'TG_PS', 'CC', 'PRI', 'VP', 'TCH', 'STD'],
+            'reports': ['SYSADMIN', 'TG_PS', 'HR', 'FIN', 'AUDIT', 'QA', 'CC', 'EMIS', 'PLAN', 'PROC', 'PA', 'SA', 'FRENCH', 'REG', 'PRI', 'VP', 'TCH', 'STD', 'PAR'],
         }
         return module in permissions and self.role in permissions[module]
 

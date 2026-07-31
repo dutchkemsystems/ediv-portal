@@ -44,7 +44,7 @@ class Command(BaseCommand):
             defaults={
                 'first_name': 'Abimbola',
                 'last_name': 'Adesanya',
-                'role': 'TG',
+                'role': 'TG_PS',
                 'phone_number': '+2348010000002',
                 'is_staff': True,
             },
