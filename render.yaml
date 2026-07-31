@@ -1,49 +1,29 @@
 services:
   - type: web
-    name: ediv-portal
+    name: ediv-portal-backend
     runtime: python
-    pythonVersion: "3.11"
+    plan: free
     buildCommand: |
-      pip install -r backend/requirements/render.txt
-      cd frontend && npm install && npm run build
-      cd ../backend && python manage.py collectstatic --noinput
-    startCommand: cd backend && python manage.py migrate --noinput && python manage.py ensure_admin && python manage.py seed_departments && python manage.py seed_schools && python manage.py seed_users ; cd backend && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 120
+      pip install -r requirements.txt
+      cd frontend && npm install && npm run build && cd ..
+      python manage.py collectstatic --noinput
+    startCommand: python manage.py migrate --noinput && python manage.py ensure_admin && python manage.py seed_departments && python manage.py seed_schools && python manage.py seed_users ; gunicorn ediv_portal.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 120
     envVars:
       - key: DJANGO_SETTINGS_MODULE
-        value: config.settings.production
+        value: ediv_portal.settings
+      - key: PYTHONPATH
+        value: /opt/render/project/src/backend
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ediv-db
+          property: connectionString
       - key: DJANGO_SECRET_KEY
         generateValue: true
       - key: DJANGO_DEBUG
         value: "False"
       - key: DJANGO_ALLOWED_HOSTS
-        value: "*.onrender.com,localhost,127.0.0.1"
-      - key: FRONTEND_URL
-        value: https://ediv-frontend-static.onrender.com
-      - key: POSTGRES_HOST
-        fromDatabase:
-          name: ediv-db
-          property: host
-      - key: POSTGRES_PORT
-        fromDatabase:
-          name: ediv-db
-          property: port
-      - key: POSTGRES_DB
-        fromDatabase:
-          name: ediv-db
-          property: database
-      - key: POSTGRES_USER
-        fromDatabase:
-          name: ediv-db
-          property: user
-      - key: POSTGRES_PASSWORD
-        fromDatabase:
-          name: ediv-db
-          property: password
+        value: "ediv-portal-backend.onrender.com,localhost,127.0.0.1"
       - key: REDIS_URL
-        sync: false
-      - key: CELERY_BROKER_URL
-        sync: false
-      - key: CELERY_RESULT_BACKEND
         sync: false
       - key: KORA_PAY_PUBLIC_KEY
         sync: false
@@ -55,21 +35,9 @@ services:
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
-      - key: TG_PASSWORD
-        sync: false
-      - key: HEAD_OFFICE_PASSWORD
-        sync: false
-      - key: SCHOOL_STAFF_PASSWORD
-        sync: false
-      - key: TEACHER_PASSWORD
-        sync: false
-      - key: STUDENT_PASSWORD
-        sync: false
-      - key: EDIV_WHITELISTED_IPS
-        sync: false
-      - key: UNLOCK_TOKEN
-        sync: false
-    healthCheckPath: /health
+      - key: FRONTEND_URL
+        value: https://ediv-frontend-static.onrender.com
+    healthCheckPath: /health/
     autoDeploy: true
 
 databases:
