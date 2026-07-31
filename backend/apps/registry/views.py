@@ -67,7 +67,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
         doc = self.get_object()
         user = request.user
 
-        if user.role not in ('SYSADMIN', 'TG', 'PS', 'HR', 'FIN', 'AUDIT', 'QA', 'REG'):
+        if user.role not in ('SYSADMIN', 'TG_PS', 'HR', 'FIN', 'AUDIT', 'QA', 'REG'):
             return Response(
                 {'error': 'You do not have permission to approve documents.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -93,7 +93,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
         doc = self.get_object()
         user = request.user
 
-        if user.role not in ('SYSADMIN', 'TG', 'PS', 'HR', 'FIN', 'AUDIT', 'QA', 'REG'):
+        if user.role not in ('SYSADMIN', 'TG_PS', 'HR', 'FIN', 'AUDIT', 'QA', 'REG'):
             return Response(
                 {'error': 'You do not have permission to reject documents.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -161,7 +161,7 @@ class MemoWorkflowViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role in ('SYSADMIN', 'TG', 'PS'):
+        if user.role in ('SYSADMIN', 'TG_PS'):
             return MemoWorkflow.objects.select_related('document', 'document__created_by').all()
         return MemoWorkflow.objects.select_related('document', 'document__created_by').filter(
             db_models.Q(document__created_by=user) |
@@ -177,13 +177,39 @@ class MemoWorkflowViewSet(viewsets.ModelViewSet):
             resource_id=memo.id, description=f"Created {memo.workflow_type} workflow for {memo.document.reference_number}",
         )
 
+    @action(detail=True, methods=['post'], url_path='submit')
+    def submit_memo(self, request, pk=None):
+        """Submit a draft memo for approval — transitions DRAFT to UNDER_APPROVAL."""
+        memo = self.get_object()
+        if memo.status != 'DRAFT':
+            return Response({'error': 'Only draft memos can be submitted'}, status=status.HTTP_400_BAD_REQUEST)
+
+        memo.status = 'UNDER_APPROVAL'
+        memo.save(update_fields=['status', 'updated_at'])
+
+        # Create approval record for TG_PS or SYSADMIN
+        approvers = User.objects.filter(role__in=['SYSADMIN', 'TG_PS'], is_active=True)[:1]
+        for approver in approvers:
+            MemoApproval.objects.create(
+                memo_workflow=memo,
+                approver=approver,
+                approval_order=1,
+                status='PENDING',
+            )
+
+        AuditLogger.log_action(
+            user=request.user, action='UPDATE', resource_type='MemoWorkflow',
+            resource_id=memo.id, description=f"Submitted {memo.document.reference_number} for approval",
+        )
+        return Response({'status': 'submitted'})
+
     @action(detail=True, methods=['post'], url_path='approve')
     def approve_memo(self, request, pk=None):
         memo = self.get_object()
         user = request.user
         comments = request.data.get('comments', '')
 
-        if user.role not in ('SYSADMIN', 'TG', 'PS', 'PRI', 'VP'):
+        if user.role not in ('SYSADMIN', 'TG_PS', 'PRI', 'VP'):
             return Response({'error': 'No permission to approve.'}, status=status.HTTP_403_FORBIDDEN)
 
         approval = MemoApproval.objects.filter(
@@ -215,7 +241,7 @@ class MemoWorkflowViewSet(viewsets.ModelViewSet):
         user = request.user
         comments = request.data.get('comments', '')
 
-        if user.role not in ('SYSADMIN', 'TG', 'PS', 'PRI', 'VP'):
+        if user.role not in ('SYSADMIN', 'TG_PS', 'PRI', 'VP'):
             return Response({'error': 'No permission to reject.'}, status=status.HTTP_403_FORBIDDEN)
 
         approval = MemoApproval.objects.filter(

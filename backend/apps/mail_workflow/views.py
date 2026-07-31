@@ -33,7 +33,7 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role in ('SYSADMIN', 'TG', 'PS'):
+        if user.role in ('SYSADMIN', 'TG_PS'):
             return IncomingMail.objects.select_related('received_by', 'department').all()
         return IncomingMail.objects.select_related('received_by', 'department').filter(
             db_models.Q(received_by=user) |
@@ -217,7 +217,7 @@ class MailAssignmentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role in ('SYSADMIN', 'TG', 'PS'):
+        if user.role in ('SYSADMIN', 'TG_PS'):
             return MailAssignment.objects.select_related('mail', 'assigned_by', 'assigned_to').all()
         return MailAssignment.objects.select_related('mail', 'assigned_by', 'assigned_to').filter(
             db_models.Q(assigned_by=user) | db_models.Q(assigned_to=user)
@@ -234,7 +234,7 @@ class OutgoingMailViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role in ('SYSADMIN', 'TG', 'PS'):
+        if user.role in ('SYSADMIN', 'TG_PS'):
             return OutgoingMail.objects.select_related('created_by', 'department').all()
         return OutgoingMail.objects.select_related('created_by', 'department').filter(
             db_models.Q(created_by=user) | db_models.Q(approvals__approver=user)
@@ -272,7 +272,7 @@ class OutgoingMailViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='approve')
     def approve_mail(self, request, pk=None):
         mail_obj = self.get_object()
-        if request.user.role not in ('SYSADMIN', 'TG', 'PS'):
+        if request.user.role not in ('SYSADMIN', 'TG_PS'):
             return Response({'error': 'Only Admin/TG/PS can approve.'}, status=status.HTTP_403_FORBIDDEN)
 
         comments = request.data.get('comments', '')
@@ -293,7 +293,7 @@ class OutgoingMailViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='reject')
     def reject_mail(self, request, pk=None):
         mail_obj = self.get_object()
-        if request.user.role not in ('SYSADMIN', 'TG', 'PS'):
+        if request.user.role not in ('SYSADMIN', 'TG_PS'):
             return Response({'error': 'Only Admin/TG/PS can reject.'}, status=status.HTTP_403_FORBIDDEN)
 
         comments = request.data.get('comments', '')
@@ -354,7 +354,7 @@ class SchoolHQCorrespondenceViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role in ('SYSADMIN', 'TG', 'PS'):
+        if user.role in ('SYSADMIN', 'TG_PS'):
             return SchoolHQCorrespondence.objects.select_related('sender', 'recipient', 'school', 'department').all()
         return SchoolHQCorrespondence.objects.select_related('sender', 'recipient', 'school', 'department').filter(
             db_models.Q(sender=user) | db_models.Q(recipient=user)
@@ -431,7 +431,7 @@ class MailCorrespondenceViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role in ('SYSADMIN', 'TG', 'PS'):
+        if user.role in ('SYSADMIN', 'TG_PS'):
             return MailCorrespondence.objects.select_related('sender', 'recipient', 'department', 'school').all()
         return MailCorrespondence.objects.select_related('sender', 'recipient', 'department', 'school').filter(
             db_models.Q(sender=user) | db_models.Q(recipient=user)

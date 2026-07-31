@@ -12,7 +12,7 @@ class IsAdminOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return True
-        return request.user.role in ['SYSADMIN', 'TG', 'AUDIT']
+        return request.user.role in ['SYSADMIN', 'TG_PS', 'AUDIT']
 
 
 class AuditLogViewSet(viewsets.ModelViewSet):
@@ -29,7 +29,7 @@ class AuditLogViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role in ['SYSADMIN', 'TG', 'AUDIT']:
+        if user.role in ['SYSADMIN', 'TG_PS', 'AUDIT']:
             return AuditLog.objects.select_related('user').all()
         return AuditLog.objects.select_related('user').filter(user=user)
 

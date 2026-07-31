@@ -75,7 +75,7 @@ class ImportJobViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role in ('SYSADMIN', 'TG', 'PS'):
+        if user.role in ('SYSADMIN', 'TG_PS'):
             return ImportJob.objects.all()
         return ImportJob.objects.filter(created_by=user)
 

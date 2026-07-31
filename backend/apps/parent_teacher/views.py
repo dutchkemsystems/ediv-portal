@@ -35,7 +35,7 @@ class ParentTeacherMessageViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role in ['SYSADMIN', 'TG', 'PS']:
+        if user.role in ['SYSADMIN', 'TG_PS']:
             return ParentTeacherMessage.objects.select_related('sender', 'recipient', 'student__user').all()
         return ParentTeacherMessage.objects.select_related('sender', 'recipient', 'student__user').filter(
             sender=user

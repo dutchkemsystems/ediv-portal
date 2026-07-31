@@ -25,7 +25,7 @@ class FileViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.role in ('SYSADMIN', 'TG', 'PS'):
+        if user.role in ('SYSADMIN', 'TG_PS'):
             return File.objects.all()
         return File.objects.filter(
             models.Q(created_by=user) |
@@ -176,7 +176,7 @@ class FileViewSet(viewsets.ModelViewSet):
         file_obj = self.get_object()
         user = request.user
 
-        if user.role not in ('SYSADMIN', 'TG', 'PS') and file_obj.created_by != user:
+        if user.role not in ('SYSADMIN', 'TG_PS') and file_obj.created_by != user:
             return Response(
                 {'error': 'Only the file creator or Admin/TG/PS can close a file.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -213,7 +213,7 @@ class FileViewSet(viewsets.ModelViewSet):
         file_obj = self.get_object()
         user = request.user
 
-        if file_obj.current_holder != user and file_obj.created_by != user and user.role not in ('SYSADMIN', 'TG', 'PS'):
+        if file_obj.current_holder != user and file_obj.created_by != user and user.role not in ('SYSADMIN', 'TG_PS'):
             return Response(
                 {'error': 'Only the current holder, file creator, or Admin can log status changes.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -260,7 +260,7 @@ class FileViewSet(viewsets.ModelViewSet):
         file_obj = self.get_object()
         user = request.user
 
-        if file_obj.created_by != user and user.role not in ('SYSADMIN', 'TG', 'PS'):
+        if file_obj.created_by != user and user.role not in ('SYSADMIN', 'TG_PS'):
             return Response(
                 {'error': 'Only the file creator or Admin can submit a file.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -303,7 +303,7 @@ class FileViewSet(viewsets.ModelViewSet):
         file_obj = self.get_object()
         user = request.user
 
-        if user.role not in ('SYSADMIN', 'TG', 'PS'):
+        if user.role not in ('SYSADMIN', 'TG_PS'):
             return Response(
                 {'error': 'Only Admin/TG/PS can approve files.'},
                 status=status.HTTP_403_FORBIDDEN
@@ -347,7 +347,7 @@ class FileViewSet(viewsets.ModelViewSet):
         file_obj = self.get_object()
         user = request.user
 
-        if user.role not in ('SYSADMIN', 'TG', 'PS'):
+        if user.role not in ('SYSADMIN', 'TG_PS'):
             return Response(
                 {'error': 'Only Admin/TG/PS can reject files.'},
                 status=status.HTTP_403_FORBIDDEN

@@ -39,25 +39,25 @@ class IsAdminOrPrincipal(permissions.BasePermission):
 
 
 class CanCreateStaff(permissions.BasePermission):
-    """SYSADMIN, TG, PS, Principals, and VPs can create staff with sub-login."""
+    """SYSADMIN, TG_PS, Principals, and VPs can create staff with sub-login."""
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return True
-        return request.user.role in ('SYSADMIN', 'TG', 'PS', 'PRI', 'VP')
+        return request.user.role in ('SYSADMIN', 'TG_PS', 'PRI', 'VP')
 
 
 class CanCreateSchoolStaff(permissions.BasePermission):
-    """SYSADMIN, TG, PS, Principals, and VPs can create school staff sub-logins."""
+    """SYSADMIN, TG_PS, Principals, and VPs can create school staff sub-logins."""
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return True
-        return request.user.role in ('SYSADMIN', 'TG', 'PS', 'PRI', 'VP')
+        return request.user.role in ('SYSADMIN', 'TG_PS', 'PRI', 'VP')
 
 
 class CanDeleteSchoolStaff(permissions.BasePermission):
-    """Only SYSADMIN, TG, PS can delete school staff accounts."""
+    """Only SYSADMIN, TG_PS can delete school staff accounts."""
     def has_permission(self, request, view):
-        return request.user.role in ('SYSADMIN', 'TG', 'PS')
+        return request.user.role in ('SYSADMIN', 'TG_PS')
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -116,7 +116,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def create_school_staff(self, request):
         """Create a school staff sub-login (Principal, VP, Teacher, Non-Teaching).
 
-        SYSADMIN/TG/PS: must supply school_id, can create any role.
+        SYSADMIN/TG_PS: must supply school_id, can create any role.
         PRI/VP: creates TCH/SA_OFF for their own school only.
         Returns temp_password on success — caller must share it securely.
         """
@@ -160,7 +160,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'], url_path='delete-school-staff')
     def delete_school_staff(self, request):
-        """Deactivate a school staff user account (SYSADMIN/TG/PS only).
+        """Deactivate a school staff user account (SYSADMIN/TG_PS only).
 
         Does NOT hard-delete — sets is_active=False so the account can be restored.
         """
@@ -196,7 +196,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
         from apps.schools.models import School
 
-        if user.role in ('SYSADMIN', 'TG', 'PS'):
+        if user.role in ('SYSADMIN', 'TG_PS'):
             if school_id:
                 school = School.objects.filter(id=school_id).first()
             else:
@@ -616,63 +616,26 @@ class AuthViewSet(viewsets.ViewSet):
 
 
 class UnlockView(generics.GenericAPIView):
-    """Standalone unlock endpoint — CSRF-exempt via URL decorator in urls.py.
+    """Admin unlock endpoint — requires staff/superuser authentication.
 
     Routed at POST /api/users/auth/unlock/
 
-    Auth: X-Unlock-Token header must match UNLOCK_TOKEN env var.
-    Fallback: a hardcoded emergency token is accepted ONLY if UNLOCK_TOKEN env
-    var is unset (e.g., Render dashboard env var not propagating). This
-    fallback should be removed once env vars are properly configured.
-
-    Returns 503 if UNLOCK_TOKEN env var unset AND no fallback token provided,
-    401 if token missing/wrong.
+    Auth: Requires IsAdminUser (staff or superuser).
 
     Action: clears failed_login_attempts, locked_until, MFA, and resets password.
     Creates the admin user if it does not exist.
     """
-    # Emergency fallback token — used only if UNLOCK_TOKEN env var is unset.
-    # This is acceptable for an admin-recovery endpoint because:
-    #   1. It only allows password reset + lockout clear (not data access)
-    #   2. The endpoint logs an audit entry every time it's used
-    #   3. The user can rotate the admin password immediately after recovery
-    EMERGENCY_TOKEN = 'ediv-emergency-unlock-2026'
-
-    permission_classes = [permissions.AllowAny]
-    authentication_classes = []  # No JWT auth — this is an emergency endpoint
+    permission_classes = [permissions.IsAdminUser]
 
     def post(self, request):
-        import os
-
-        expected_token = os.environ.get('UNLOCK_TOKEN', '').strip()
-        provided_token = request.headers.get('X-Unlock-Token', '').strip()
-        using_fallback = False
-
-        if not expected_token:
-            # Env var not set — accept emergency fallback token
-            if provided_token == self.EMERGENCY_TOKEN:
-                using_fallback = True
-            else:
-                return Response(
-                    {
-                        'error': 'UNLOCK_TOKEN env var not configured. Provide X-Unlock-Token header with emergency token to recover.',
-                        'hint': 'UNLOCK_TOKEN is unset on this server. Use the hardcoded emergency fallback token, or configure UNLOCK_TOKEN env var and redeploy.',
-                    },
-                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
-                )
-        elif not provided_token or provided_token != expected_token:
-            return Response(
-                {'error': 'Invalid or missing X-Unlock-Token header.'},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
         email = request.data.get('email', 'admin@ediv.gov.ng').strip().lower()
-        password = request.data.get('password', 'Admin@12345678')
+        password = User.objects.make_random_password()
 
-        results = {'using_fallback_token': using_fallback}
+        results = {}
 
         try:
             user = User.objects.get(email=email)
+            created = False
         except User.DoesNotExist:
             user = User.objects.create_user(
                 email=email,
@@ -683,7 +646,7 @@ class UnlockView(generics.GenericAPIView):
                 is_staff=True,
                 is_superuser=True,
             )
-            results['created'] = True
+            created = True
 
         # Snapshot before
         results['before'] = {
@@ -704,7 +667,6 @@ class UnlockView(generics.GenericAPIView):
         user.is_superuser = True
         user.mfa_enabled = False
         user.mfa_secret = ''
-        user.role = 'SYSADMIN'
         user.set_password(password)
         user.save()
 
@@ -725,7 +687,7 @@ class UnlockView(generics.GenericAPIView):
             'mfa_enabled': user.mfa_enabled,
             'password_works': auth_ok is not None,
         }
-        results['credentials'] = {'email': email, 'password': password}
+        results['created'] = created
 
         # Audit log (best-effort)
         try:

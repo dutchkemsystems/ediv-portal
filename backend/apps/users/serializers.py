@@ -124,7 +124,7 @@ class CreateSchoolStaffSerializer(serializers.Serializer):
     """Create a Principal, Vice-Principal, Teacher, or Non-Teaching staff sub-login.
 
     Allowed callers:
-      - SYSADMIN, TG, PS  → can create any school staff, must supply school_id
+      - SYSADMIN, TG_PS  → can create any school staff, must supply school_id
       - PRI, VP           → can create teachers/non-teaching for their own school only
     """
     first_name = serializers.CharField(max_length=150)
@@ -152,7 +152,7 @@ class CreateSchoolStaffSerializer(serializers.Serializer):
 
         from apps.schools.models import School
 
-        if user.role in ('SYSADMIN', 'TG', 'PS'):
+        if user.role in ('SYSADMIN', 'TG_PS'):
             # Admin-level caller: must provide school_id
             school_id = attrs.get('school_id')
             if not school_id:
@@ -233,7 +233,7 @@ class CreateSchoolStaffSerializer(serializers.Serializer):
 class DeleteSchoolStaffSerializer(serializers.Serializer):
     """Delete a school staff user account (Principal, VP, Teacher, etc.).
 
-    Allowed callers: SYSADMIN, TG, PS only.
+    Allowed callers: SYSADMIN, TG_PS only.
     """
     user_id = serializers.IntegerField()
 
@@ -248,13 +248,13 @@ class DeleteSchoolStaffSerializer(serializers.Serializer):
         request = self.context['request']
         caller = request.user
 
-        if caller.role not in ('SYSADMIN', 'TG', 'PS'):
-            raise PermissionDenied('Only Admin/TG/PS can delete staff accounts.')
+        if caller.role not in ('SYSADMIN', 'TG_PS'):
+            raise PermissionDenied('Only Admin/TG_PS can delete staff accounts.')
 
         target_user = User.objects.get(id=attrs['user_id'])
 
         # Cannot delete other admins
-        if target_user.role in ('SYSADMIN', 'TG', 'PS'):
+        if target_user.role in ('SYSADMIN', 'TG_PS'):
             raise serializers.ValidationError({'detail': 'Cannot delete admin-level accounts via this endpoint.'})
 
         # Cannot delete yourself
@@ -323,7 +323,7 @@ class CreateStaffSerializer(serializers.Serializer):
 
         from apps.schools.models import School
 
-        if user.role in ('SYSADMIN', 'TG', 'PS'):
+        if user.role in ('SYSADMIN', 'TG_PS'):
             school_id = attrs.get('school_id')
             if not school_id:
                 raise serializers.ValidationError({'school_id': 'Required for admin users.'})

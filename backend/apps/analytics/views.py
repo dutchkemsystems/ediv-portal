@@ -376,8 +376,8 @@ class DashboardStatsViewSet(viewsets.ViewSet):
         recent_incidents = list(
             DisciplinaryIncident.objects.filter(student__school=school)
             .select_related('student__user')
-            .order_by('-date')[:5]
-            .values('id', 'student__user__first_name', 'student__user__last_name', 'incident_type', 'severity', 'status', 'date')
+            .order_by('-incident_date')[:5]
+            .values('id', 'student__user__first_name', 'student__user__last_name', 'incident_type', 'severity', 'status', 'incident_date')
         )
 
         # Fee collection
@@ -420,7 +420,7 @@ class DashboardStatsViewSet(viewsets.ViewSet):
     def teacher_dashboard(self, request):
         from apps.staff.models import Staff
         from apps.students.models import Student
-        from apps.attendance.models import StudentAttendance
+        from apps.attendance.models import StudentAttendance, StaffAttendance
         from datetime import date, timedelta
 
         user = request.user
@@ -452,7 +452,6 @@ class DashboardStatsViewSet(viewsets.ViewSet):
         )
 
         # Staff attendance for the school
-        from apps.staff.models import StaffAttendance
         staff_present = StaffAttendance.objects.filter(
             staff__school=staff_profile.school, date=today, status='PRESENT'
         ).count()
@@ -516,7 +515,7 @@ class DashboardStatsViewSet(viewsets.ViewSet):
         from django.db.models import Sum
 
         user = request.user
-        children = Student.objects.filter(parent_user=user, status='ACTIVE').select_related('school')
+        children = Student.objects.filter(parents__user=user, status='ACTIVE').select_related('school', 'class_name').distinct()
 
         children_data = []
         for child in children:
@@ -534,7 +533,7 @@ class DashboardStatsViewSet(viewsets.ViewSet):
                 'name': child.user.get_full_name(),
                 'admission_number': child.admission_number,
                 'school': child.school.name if child.school else '',
-                'class_name': child.class_name_display,
+                'class_name': child.class_name.name if child.class_name else '',
                 'total_due': total_due,
                 'total_paid': total_paid,
                 'balance': balance,

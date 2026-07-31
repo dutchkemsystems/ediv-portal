@@ -62,7 +62,7 @@ class User(AbstractUser):
     
     @property
     def is_department_head(self):
-        return self.role in ['HR', 'FIN', 'AUDIT', 'QA', 'CC', 'EMIS', 'PLAN', 'PROC', 'PA', 'SA', 'FRENCH', 'REG']
+        return self.role in ['SYSADMIN', 'TG_PS', 'HR', 'FIN', 'AUDIT', 'QA', 'CC', 'EMIS', 'PLAN', 'PROC', 'PA', 'SA', 'FRENCH', 'REG']
     
     @property
     def is_school_staff(self):
