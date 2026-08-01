@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.contrib.auth import get_user_model
 
 
 class FileCategory(models.TextChoices):
@@ -162,6 +163,12 @@ class FileAttachment(models.Model):
     document = models.FileField(upload_to='files/attachments/')
     original_filename = models.CharField(max_length=300)
     file_size = models.IntegerField(default=0)
+    mime_type = models.CharField(max_length=100, blank=True)
+    file_format = models.CharField(max_length=20, blank=True, choices=[
+        ('doc', 'DOC'), ('docx', 'DOCX'), ('xls', 'XLS'), ('xlsx', 'XLSX'),
+        ('pdf', 'PDF'), ('jpeg', 'JPEG'), ('png', 'PNG'), ('csv', 'CSV'),
+        ('txt', 'TXT'), ('other', 'Other'),
+    ])
     uploaded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -193,3 +200,144 @@ class FileComment(models.Model):
     
     def __str__(self):
         return f"{self.file.file_number} - {self.author.get_full_name()}"
+
+
+class WorkflowConfig(models.Model):
+    """Configurable workflow deadlines and rules per step."""
+    DIRECTION_CHOICES = [
+        ('INCOMING', 'Incoming'),
+        ('OUTGOING', 'Outgoing'),
+        ('INTERNAL', 'Internal'),
+    ]
+    
+    step_name = models.CharField(max_length=100)
+    direction = models.CharField(max_length=20, choices=DIRECTION_CHOICES, default='INCOMING')
+    default_deadline_hours = models.IntegerField(default=24)
+    escalation_level = models.IntegerField(default=1)
+    is_active = models.BooleanField(default=True)
+    notification_enabled = models.BooleanField(default=True)
+    notification_reminder_hours = models.IntegerField(default=4)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['step_name', 'direction'],
+                name='unique_step_direction'
+            )
+        ]
+        ordering = ['direction', 'step_name']
+
+    def __str__(self):
+        return f"{self.step_name} ({self.direction}) - {self.default_deadline_hours}h"
+
+
+class FileTemplate(models.Model):
+    """Reusable file templates for quick file creation."""
+    CATEGORY_CHOICES = [
+        ('CORRESPONDENCE', 'Correspondence'),
+        ('MEMO', 'Memo'),
+        ('CIRCULAR', 'Circular'),
+        ('REPORT', 'Report'),
+        ('POLICY', 'Policy'),
+        ('CONTRACT', 'Contract'),
+        ('FINANCIAL', 'Financial'),
+        ('INSPECTION', 'Inspection'),
+        ('OTHER', 'Other'),
+    ]
+    
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='OTHER')
+    file_type = models.CharField(max_length=50, blank=True)
+    file_category = models.CharField(max_length=20, blank=True)
+    default_department = models.ForeignKey(
+        'departments.Department',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='file_templates'
+    )
+    default_classification = models.CharField(
+        max_length=20,
+        choices=[('PUBLIC', 'Public'), ('INTERNAL', 'Internal'), ('CONFIDENTIAL', 'Confidential'), ('RESTRICTED', 'Restricted')],
+        default='INTERNAL'
+    )
+    default_priority = models.CharField(
+        max_length=20,
+        choices=[('LOW', 'Low'), ('NORMAL', 'Normal'), ('HIGH', 'High'), ('URGENT', 'Urgent')],
+        default='NORMAL'
+    )
+    template_content = models.TextField(blank=True, help_text='Default content/body for files created from this template')
+    template_fields = models.JSONField(default=dict, blank=True, help_text='JSON schema for required fields when using this template')
+    is_active = models.BooleanField(default=True)
+    usage_count = models.IntegerField(default=0)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='created_file_templates')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-usage_count', 'name']
+
+    def __str__(self):
+        return f"{self.name} ({self.category})"
+
+
+class OfflineQueue(models.Model):
+    """Queue for offline sync operations from mobile."""
+    ACTION_TYPES = [
+        ('CREATE', 'Create'),
+        ('UPDATE', 'Update'),
+        ('MOVE', 'Move'),
+        ('ARCHIVE', 'Archive'),
+    ]
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('PROCESSING', 'Processing'),
+        ('COMPLETED', 'Completed'),
+        ('FAILED', 'Failed'),
+    ]
+
+    object_id = models.CharField(max_length=100)
+    action_type = models.CharField(max_length=20, choices=ACTION_TYPES)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='offline_queue')
+    data = models.JSONField(default=dict)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    attempt_count = models.IntegerField(default=0)
+    error_message = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['status', 'created_at']),
+            models.Index(fields=['user', 'status']),
+        ]
+
+    def __str__(self):
+        return f"{self.action_type} - {self.object_id} ({self.status})"
+
+
+class FileClassification(models.Model):
+    """AI-powered file classification results."""
+    file = models.OneToOneField(File, on_delete=models.CASCADE, related_name='ai_classification')
+    suggested_department = models.CharField(max_length=50, blank=True)
+    department_confidence = models.FloatField(default=0)
+    urgency = models.CharField(max_length=20, choices=[
+        ('LOW', 'Low'), ('MEDIUM', 'Medium'), ('HIGH', 'High'), ('URGENT', 'Urgent'),
+    ], default='MEDIUM')
+    sensitivity = models.CharField(max_length=20, choices=[
+        ('PUBLIC', 'Public'), ('PRIVATE', 'Private'), ('RESTRICTED', 'Restricted'),
+    ], default='PUBLIC')
+    file_type_suggestion = models.CharField(max_length=50, blank=True)
+    keywords = models.JSONField(default=list)
+    overall_confidence = models.FloatField(default=0)
+    classified_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name_plural = 'file classifications'
+
+    def __str__(self):
+        return f"Classification for {self.file.file_number}"

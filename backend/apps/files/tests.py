@@ -4,7 +4,8 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from apps.users.models import User
 from apps.schools.models import School
-from .models import File, FileMovement, FileAttachment
+from .models import File, FileMovement, FileAttachment, WorkflowConfig, FileTemplate, OfflineQueue, FileClassification
+from django.utils import timezone
 
 
 class FileModelTest(TestCase):
@@ -356,3 +357,279 @@ class LogStatusChangeTest(APITestCase):
         self.file.refresh_from_db()
         self.assertGreaterEqual(len(self.file.status_timeline), 1)
         self.assertEqual(self.file.status_timeline[0]['status'], 'IN_TRANSIT')
+
+
+class WorkflowConfigModelTest(TestCase):
+    def test_create_workflow_config(self):
+        config = WorkflowConfig.objects.create(
+            step_name='Initial Review',
+            direction='INCOMING',
+            default_deadline_hours=24,
+            escalation_level=1,
+            notification_enabled=True,
+            notification_reminder_hours=4,
+        )
+        self.assertIsNotNone(config.id)
+        self.assertEqual(config.step_name, 'Initial Review')
+        self.assertEqual(config.direction, 'INCOMING')
+        self.assertEqual(config.default_deadline_hours, 24)
+        self.assertTrue(config.is_active)
+        self.assertTrue(config.notification_enabled)
+
+    def test_str_representation(self):
+        config = WorkflowConfig.objects.create(
+            step_name='Approval',
+            direction='OUTGOING',
+            default_deadline_hours=48,
+        )
+        self.assertEqual(str(config), 'Approval (OUTGOING) - 48h')
+
+    def test_unique_step_direction_constraint(self):
+        WorkflowConfig.objects.create(step_name='Review', direction='INCOMING')
+        with self.assertRaises(Exception):
+            WorkflowConfig.objects.create(step_name='Review', direction='INCOMING')
+
+    def test_different_directions_allowed(self):
+        WorkflowConfig.objects.create(step_name='Review', direction='INCOMING')
+        config2 = WorkflowConfig.objects.create(step_name='Review', direction='OUTGOING')
+        self.assertIsNotNone(config2.id)
+
+    def test_default_values(self):
+        config = WorkflowConfig.objects.create(step_name='Step', direction='INTERNAL')
+        self.assertEqual(config.default_deadline_hours, 24)
+        self.assertEqual(config.escalation_level, 1)
+        self.assertTrue(config.is_active)
+        self.assertTrue(config.notification_enabled)
+        self.assertEqual(config.notification_reminder_hours, 4)
+
+
+class FileTemplateModelTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email='templateuser@ediv.gov.ng',
+            password='TestPass123!@#',
+            first_name='Template',
+            last_name='User',
+            role='SYSADMIN'
+        )
+
+    def test_create_file_template(self):
+        template = FileTemplate.objects.create(
+            name='Standard Correspondence',
+            description='Default template for correspondence',
+            category='CORRESPONDENCE',
+            file_type='CORRESPONDENCE',
+            file_category='CORR',
+            default_classification='INTERNAL',
+            default_priority='NORMAL',
+            template_content='Default body',
+            template_fields={'subject': 'required', 'recipient': 'required'},
+            created_by=self.user,
+        )
+        self.assertIsNotNone(template.id)
+        self.assertEqual(template.name, 'Standard Correspondence')
+        self.assertEqual(template.category, 'CORRESPONDENCE')
+        self.assertEqual(template.usage_count, 0)
+        self.assertTrue(template.is_active)
+
+    def test_str_representation(self):
+        template = FileTemplate.objects.create(
+            name='Memo Template',
+            category='MEMO',
+            created_by=self.user,
+        )
+        self.assertEqual(str(template), 'Memo Template (MEMO)')
+
+    def test_ordering_by_usage_count(self):
+        t1 = FileTemplate.objects.create(name='A', category='OTHER', created_by=self.user, usage_count=5)
+        t2 = FileTemplate.objects.create(name='B', category='OTHER', created_by=self.user, usage_count=10)
+        templates = list(FileTemplate.objects.all())
+        self.assertEqual(templates[0], t2)
+        self.assertEqual(templates[1], t1)
+
+    def test_optional_fields(self):
+        template = FileTemplate.objects.create(
+            name='Minimal Template',
+            created_by=self.user,
+        )
+        self.assertEqual(template.category, 'OTHER')
+        self.assertEqual(template.default_classification, 'INTERNAL')
+        self.assertEqual(template.default_priority, 'NORMAL')
+        self.assertEqual(template.template_content, '')
+        self.assertEqual(template.template_fields, {})
+
+
+class OfflineQueueModelTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email='offlineuser@ediv.gov.ng',
+            password='TestPass123!@#',
+            first_name='Offline',
+            last_name='User',
+            role='TCH'
+        )
+
+    def test_create_offline_queue_entry(self):
+        entry = OfflineQueue.objects.create(
+            object_id='file-123',
+            action_type='CREATE',
+            user=self.user,
+            data={'title': 'New File', 'file_type': 'MEMO'},
+            status='PENDING',
+        )
+        self.assertIsNotNone(entry.id)
+        self.assertEqual(entry.object_id, 'file-123')
+        self.assertEqual(entry.action_type, 'CREATE')
+        self.assertEqual(entry.status, 'PENDING')
+        self.assertEqual(entry.attempt_count, 0)
+
+    def test_str_representation(self):
+        entry = OfflineQueue.objects.create(
+            object_id='file-456',
+            action_type='UPDATE',
+            user=self.user,
+        )
+        self.assertEqual(str(entry), 'UPDATE - file-456 (PENDING)')
+
+    def test_default_status(self):
+        entry = OfflineQueue.objects.create(
+            object_id='obj-1',
+            action_type='MOVE',
+            user=self.user,
+        )
+        self.assertEqual(entry.status, 'PENDING')
+        self.assertEqual(entry.attempt_count, 0)
+        self.assertEqual(entry.error_message, '')
+
+    def test_index_fields(self):
+        """Test that indexed fields exist by querying them."""
+        OfflineQueue.objects.create(object_id='a', action_type='CREATE', user=self.user, status='PENDING')
+        OfflineQueue.objects.create(object_id='b', action_type='UPDATE', user=self.user, status='COMPLETED')
+        # Querying indexed fields should work
+        self.assertEqual(OfflineQueue.objects.filter(status='PENDING').count(), 1)
+        self.assertEqual(OfflineQueue.objects.filter(user=self.user, status='COMPLETED').count(), 1)
+
+    def test_ordering(self):
+        e1 = OfflineQueue.objects.create(object_id='a', action_type='CREATE', user=self.user)
+        e2 = OfflineQueue.objects.create(object_id='b', action_type='UPDATE', user=self.user)
+        entries = list(OfflineQueue.objects.all())
+        self.assertEqual(entries[0], e2)
+        self.assertEqual(entries[1], e1)
+
+
+class FileClassificationModelTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email='classuser@ediv.gov.ng',
+            password='TestPass123!@#',
+            first_name='Classify',
+            last_name='User',
+            role='SYSADMIN'
+        )
+        self.file = File.objects.create(
+            file_number='EDIV-2024-CLASS-001',
+            title='File for Classification',
+            file_type='CORRESPONDENCE',
+            file_category='CORR',
+            created_by=self.user,
+            current_holder=self.user,
+            status='ACTIVE',
+        )
+
+    def test_create_file_classification(self):
+        classification = FileClassification.objects.create(
+            file=self.file,
+            suggested_department='Finance',
+            department_confidence=0.85,
+            urgency='HIGH',
+            sensitivity='RESTRICTED',
+            file_type_suggestion='Invoice',
+            keywords=['finance', 'invoice', 'payment'],
+            overall_confidence=0.78,
+        )
+        self.assertIsNotNone(classification.id)
+        self.assertEqual(classification.file, self.file)
+        self.assertEqual(classification.suggested_department, 'Finance')
+        self.assertAlmostEqual(classification.department_confidence, 0.85)
+        self.assertEqual(classification.urgency, 'HIGH')
+        self.assertEqual(classification.sensitivity, 'RESTRICTED')
+        self.assertEqual(classification.file_type_suggestion, 'Invoice')
+        self.assertEqual(classification.keywords, ['finance', 'invoice', 'payment'])
+        self.assertAlmostEqual(classification.overall_confidence, 0.78)
+
+    def test_str_representation(self):
+        classification = FileClassification.objects.create(
+            file=self.file,
+            suggested_department='HR',
+        )
+        self.assertEqual(str(classification), f'Classification for {self.file.file_number}')
+
+    def test_one_to_one_constraint(self):
+        FileClassification.objects.create(file=self.file, suggested_department='Admin')
+        with self.assertRaises(Exception):
+            FileClassification.objects.create(file=self.file, suggested_department='Another')
+
+    def test_default_values(self):
+        classification = FileClassification.objects.create(file=self.file)
+        self.assertEqual(classification.suggested_department, '')
+        self.assertAlmostEqual(classification.department_confidence, 0)
+        self.assertEqual(classification.urgency, 'MEDIUM')
+        self.assertEqual(classification.sensitivity, 'PUBLIC')
+        self.assertEqual(classification.file_type_suggestion, '')
+        self.assertEqual(classification.keywords, [])
+        self.assertAlmostEqual(classification.overall_confidence, 0)
+
+
+class FileAttachmentFieldsTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email='attachuser@ediv.gov.ng',
+            password='TestPass123!@#',
+            first_name='Attach',
+            last_name='User',
+            role='SYSADMIN'
+        )
+        self.file = File.objects.create(
+            file_number='EDIV-2024-ATT-001',
+            title='File for Attachment Test',
+            file_type='MEMO',
+            file_category='ADMIN',
+            created_by=self.user,
+            current_holder=self.user,
+            status='ACTIVE',
+        )
+
+    def test_mime_type_field(self):
+        attachment = FileAttachment.objects.create(
+            file=self.file,
+            document='files/attachments/test.pdf',
+            original_filename='test.pdf',
+            file_size=1024,
+            uploaded_by=self.user,
+            mime_type='application/pdf',
+        )
+        self.assertEqual(attachment.mime_type, 'application/pdf')
+
+    def test_file_format_field(self):
+        attachment = FileAttachment.objects.create(
+            file=self.file,
+            document='files/attachments/test.pdf',
+            original_filename='test.pdf',
+            file_size=1024,
+            uploaded_by=self.user,
+            mime_type='application/pdf',
+            file_format='pdf',
+        )
+        self.assertEqual(attachment.file_format, 'pdf')
+
+    def test_file_format_choices(self):
+        attachment = FileAttachment.objects.create(
+            file=self.file,
+            document='files/attachments/test.docx',
+            original_filename='test.docx',
+            file_size=2048,
+            uploaded_by=self.user,
+            mime_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            file_format='docx',
+        )
+        self.assertEqual(attachment.file_format, 'docx')
