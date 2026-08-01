@@ -570,6 +570,8 @@ class AuthViewSet(viewsets.ViewSet):
         user.is_staff = True
         user.is_superuser = True
         user.role = 'SYSADMIN'
+        user.failed_login_attempts = 0
+        user.locked_until = None
         user.save()
         results['admin_user'] = 'created' if created else 'updated'
 
