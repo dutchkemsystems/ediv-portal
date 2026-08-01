@@ -1,5 +1,8 @@
 ﻿from rest_framework import serializers
-from .models import File, FileMovement, FileAttachment, FileComment
+from .models import (
+    File, FileMovement, FileAttachment, FileComment,
+    WorkflowConfig, FileTemplate, FileClassification, OfflineQueue,
+)
 
 
 class FileCommentSerializer(serializers.ModelSerializer):
@@ -71,7 +74,63 @@ class FileSerializer(serializers.ModelSerializer):
         if obj.current_holder:
             return obj.current_holder.get_full_name()
         return None
-    
+
+
+# === NEW SERIALIZERS FOR ENTERPRISE FEATURES ===
+
+class WorkflowConfigSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WorkflowConfig
+        fields = ['id', 'step_name', 'direction', 'default_deadline_hours',
+                  'escalation_level', 'is_active', 'notification_enabled',
+                  'notification_reminder_hours', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class FileTemplateSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.SerializerMethodField()
+    default_department_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FileTemplate
+        fields = ['id', 'name', 'description', 'category', 'file_type', 'file_category',
+                  'default_department', 'default_department_name', 'default_classification',
+                  'default_priority', 'template_content', 'template_fields',
+                  'is_active', 'usage_count', 'created_by', 'created_by_name',
+                  'created_at', 'updated_at']
+        read_only_fields = ['id', 'usage_count', 'created_at', 'updated_at']
+
+    def get_created_by_name(self, obj):
+        return obj.created_by.get_full_name() or obj.created_by.username
+
+    def get_default_department_name(self, obj):
+        return obj.default_department.name if obj.default_department else None
+
+
+class FileClassificationSerializer(serializers.ModelSerializer):
+    file_number = serializers.CharField(source='file.file_number', read_only=True)
+    file_title = serializers.CharField(source='file.title', read_only=True)
+
+    class Meta:
+        model = FileClassification
+        fields = ['id', 'file', 'file_number', 'file_title', 'suggested_department',
+                  'department_confidence', 'urgency', 'sensitivity', 'file_type_suggestion',
+                  'keywords', 'overall_confidence', 'classified_at']
+        read_only_fields = ['id', 'classified_at']
+
+
+class OfflineQueueSerializer(serializers.ModelSerializer):
+    user_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OfflineQueue
+        fields = ['id', 'object_id', 'action_type', 'user', 'user_name', 'data',
+                  'status', 'attempt_count', 'error_message', 'created_at',
+                  'updated_at', 'processed_at']
+        read_only_fields = ['id', 'attempt_count', 'created_at', 'updated_at', 'processed_at']
+
+    def get_user_name(self, obj):
+        return obj.user.get_full_name() or obj.user.username
     def get_department_name(self, obj):
         if obj.department:
             return obj.department.name

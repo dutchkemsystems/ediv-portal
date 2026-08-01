@@ -1,12 +1,18 @@
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from django.db import models
+from django.http import HttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import File, FileMovement, FileAttachment, FileComment, FileStatus, FileCategory, SecurityClassification
+from .models import (
+    File, FileMovement, FileAttachment, FileComment, FileStatus, FileCategory, SecurityClassification,
+    WorkflowConfig, FileTemplate, FileClassification, OfflineQueue,
+)
 from .serializers import (
     FileSerializer, FileListSerializer,
-    FileMovementSerializer, FileAttachmentSerializer, FileCommentSerializer
+    FileMovementSerializer, FileAttachmentSerializer, FileCommentSerializer,
+    WorkflowConfigSerializer, FileTemplateSerializer, FileClassificationSerializer, OfflineQueueSerializer,
 )
 
 
@@ -460,3 +466,366 @@ class FileCommentViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     filterset_fields = ['file']
     ordering_fields = ['created_at']
+
+
+# === NEW VIEWS FOR ENTERPRISE FEATURES ===
+
+
+class WorkflowConfigViewSet(viewsets.ModelViewSet):
+    """CRUD for workflow configuration."""
+    queryset = WorkflowConfig.objects.all()
+    serializer_class = WorkflowConfigSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['direction', 'is_active']
+    search_fields = ['step_name']
+
+
+class FileTemplateViewSet(viewsets.ModelViewSet):
+    """CRUD for file templates."""
+    queryset = FileTemplate.objects.select_related('created_by', 'default_department').all()
+    serializer_class = FileTemplateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['category', 'is_active']
+    search_fields = ['name', 'description']
+    ordering_fields = ['usage_count', 'created_at', 'name']
+
+    @action(detail=True, methods=['post'], url_path='generate-file')
+    def generate_file(self, request, pk=None):
+        """Generate a new File from this template."""
+        template = self.get_object()
+        title = request.data.get('title')
+        field_values = request.data.get('field_values', {})
+
+        if not title:
+            return Response({'error': 'title is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        from .services.template_service import TemplateService
+        try:
+            file_obj = TemplateService.generate_file_from_template(
+                template=template,
+                title=title,
+                created_by=request.user,
+                field_values=field_values,
+            )
+            return Response({
+                'message': f"File {file_obj.file_number} created from template.",
+                'file_id': file_obj.id,
+                'file_number': file_obj.file_number,
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'], url_path='stats')
+    def usage_stats(self, request):
+        """Get template usage statistics."""
+        from .services.template_service import TemplateService
+        stats = TemplateService.get_template_usage_stats()
+        return Response(stats)
+
+
+class FileClassificationViewSet(viewsets.ModelViewSet):
+    """CRUD for file classifications."""
+    queryset = FileClassification.objects.select_related('file').all()
+    serializer_class = FileClassificationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['urgency', 'sensitivity', 'suggested_department']
+
+    @action(detail=False, methods=['post'], url_path='classify')
+    def classify_file(self, request):
+        """Classify a single file."""
+        file_id = request.data.get('file_id')
+        if not file_id:
+            return Response({'error': 'file_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            file_obj = File.objects.get(id=file_id)
+        except File.DoesNotExist:
+            return Response({'error': 'File not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        from .services.classification_service import ClassificationService
+        classification = ClassificationService.classify_file(file=file_obj)
+        return Response(FileClassificationSerializer(classification).data)
+
+    @action(detail=False, methods=['post'], url_path='bulk-classify')
+    def bulk_classify(self, request):
+        """Classify multiple files at once."""
+        file_ids = request.data.get('file_ids', [])
+
+        from .services.classification_service import ClassificationService
+        results = ClassificationService.bulk_classify(file_ids=file_ids if file_ids else None)
+        return Response({
+            'classified': len(results),
+            'results': FileClassificationSerializer(results, many=True).data,
+        })
+
+    @action(detail=True, methods=['get'], url_path='suggestions')
+    def suggestions(self, request, pk=None):
+        """Get classification suggestions for a file without saving."""
+        classification = self.get_object()
+        from .services.classification_service import ClassificationService
+        suggestions = ClassificationService.get_classification_suggestions(classification.file)
+        return Response(suggestions)
+
+
+class OfflineQueueViewSet(viewsets.ModelViewSet):
+    """CRUD for offline sync queue."""
+    queryset = OfflineQueue.objects.select_related('user').all()
+    serializer_class = OfflineQueueSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['status', 'action_type', 'user']
+
+    @action(detail=False, methods=['post'], url_path='queue')
+    def queue_action(self, request):
+        """Add an action to the offline queue."""
+        object_id = request.data.get('object_id')
+        action_type = request.data.get('action_type')
+        data = request.data.get('data', {})
+
+        if not object_id or not action_type:
+            return Response({'error': 'object_id and action_type are required.'},
+                          status=status.HTTP_400_BAD_REQUEST)
+
+        from .services.offline_sync_service import OfflineSyncService
+        item = OfflineSyncService.queue_action(
+            user=request.user,
+            object_id=object_id,
+            action_type=action_type,
+            data=data,
+        )
+        return Response(OfflineQueueSerializer(item).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['post'], url_path='process')
+    def process_queue(self, request):
+        """Process pending items in the queue."""
+        from .services.offline_sync_service import OfflineSyncService
+        result = OfflineSyncService.process_queue(user=request.user)
+        return Response(result)
+
+    @action(detail=False, methods=['get'], url_path='pending-count')
+    def pending_count(self, request):
+        """Get count of pending items."""
+        from .services.offline_sync_service import OfflineSyncService
+        count = OfflineSyncService.get_pending_count(user=request.user)
+        return Response({'pending_count': count})
+
+    @action(detail=False, methods=['post'], url_path='retry-failed')
+    def retry_failed(self, request):
+        """Retry failed items."""
+        from .services.offline_sync_service import OfflineSyncService
+        result = OfflineSyncService.retry_failed(user=request.user)
+        return Response(result)
+
+
+# === SEARCH AND IMPORT/EXPORT VIEWS ===
+
+
+class FileSearchView(APIView):
+    """Advanced file search endpoint."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from .services.search_service import SearchService
+
+        params = {
+            'query': request.query_params.get('q'),
+            'file_type': request.query_params.get('file_type'),
+            'status': request.query_params.get('status'),
+            'classification': request.query_params.get('classification'),
+            'priority': request.query_params.get('priority'),
+            'department': request.query_params.get('department'),
+            'school': request.query_params.get('school'),
+            'created_by': request.query_params.get('created_by'),
+            'current_holder': request.query_params.get('current_holder'),
+            'date_from': request.query_params.get('date_from'),
+            'date_to': request.query_params.get('date_to'),
+            'sort_by': request.query_params.get('sort', '-created_at'),
+            'limit': int(request.query_params.get('limit', 50)),
+            'offset': int(request.query_params.get('offset', 0)),
+        }
+
+        # Remove None values
+        params = {k: v for k, v in params.items() if v is not None}
+
+        results = SearchService.search_files(**params)
+        return Response(results)
+
+
+class FileSearchSuggestionsView(APIView):
+    """Search suggestions endpoint."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        query = request.query_params.get('q', '')
+        limit = int(request.query_params.get('limit', 10))
+
+        from .services.search_service import SearchService
+        suggestions = SearchService.get_search_suggestions(query, limit=limit)
+        return Response(suggestions)
+
+
+class FileImportView(APIView):
+    """Import files from documents."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        uploaded_file = request.FILES.get('file')
+        file_format = request.data.get('format')
+        department = request.data.get('department')
+        default_classification = request.data.get('classification', 'INTERNAL')
+        default_priority = request.data.get('priority', 'NORMAL')
+
+        if not uploaded_file:
+            return Response({'error': 'No file provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not file_format:
+            # Auto-detect from filename
+            filename = uploaded_file.name.lower()
+            ext_map = {'.doc': 'doc', '.docx': 'docx', '.xls': 'xls', '.xlsx': 'xlsx',
+                       '.pdf': 'pdf', '.jpeg': 'jpeg', '.jpg': 'jpeg', '.png': 'png',
+                       '.csv': 'csv', '.txt': 'txt'}
+            import os
+            ext = os.path.splitext(filename)[1]
+            file_format = ext_map.get(ext, 'txt')
+
+        from .services.import_export_service import ImportExportService
+        from departments.models import Department
+
+        dept = None
+        if department:
+            try:
+                dept = Department.objects.get(id=department)
+            except Department.DoesNotExist:
+                pass
+
+        result = ImportExportService.import_file(
+            uploaded_file=uploaded_file,
+            file_format=file_format,
+            created_by=request.user,
+            department=dept,
+            default_classification=default_classification,
+            default_priority=default_priority,
+        )
+
+        return Response({
+            'file_id': result['file'].id if result.get('file') else None,
+            'file_number': result['file'].file_number if result.get('file') else None,
+            'attachments': len(result.get('attachments', [])),
+            'errors': result.get('errors', []),
+        })
+
+
+class FileExportView(APIView):
+    """Export files to various formats."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        file_ids = request.data.get('file_ids', [])
+        export_format = request.data.get('format', 'xlsx')
+
+        if not file_ids:
+            return Response({'error': 'No file IDs provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        files = File.objects.filter(id__in=file_ids)
+        if not files.exists():
+            return Response({'error': 'No files found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        from .services.import_export_service import ImportExportService
+
+        try:
+            content = ImportExportService.export_files(
+                file_ids=file_ids,
+                export_format=export_format,
+                exported_by=request.user,
+            )
+
+            content_type_map = {
+                'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'csv': 'text/csv',
+                'pdf': 'application/pdf',
+                'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            }
+
+            response = HttpResponse(content.read(), content_type=content_type_map.get(export_format, 'application/octet-stream'))
+            response['Content-Disposition'] = f'attachment; filename="{content.name}"'
+            return response
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class FileBulkImportView(APIView):
+    """Bulk import from CSV/XLSX."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        uploaded_file = request.FILES.get('file')
+        file_format = request.data.get('format', 'csv')
+        department = request.data.get('department')
+
+        if not uploaded_file:
+            return Response({'error': 'No file provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        from .services.import_export_service import ImportExportService
+        from departments.models import Department
+
+        dept = None
+        if department:
+            try:
+                dept = Department.objects.get(id=department)
+            except Department.DoesNotExist:
+                pass
+
+        result = ImportExportService.bulk_import(
+            uploaded_file=uploaded_file,
+            file_format=file_format,
+            created_by=request.user,
+            department=dept,
+        )
+
+        return Response(result)
+
+
+class NotificationListView(APIView):
+    """List user notifications."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        unread_only = request.query_params.get('unread_only', 'false').lower() == 'true'
+        limit = int(request.query_params.get('limit', 50))
+
+        from .services.notification_service import NotificationService
+        notifications = NotificationService.get_user_notifications(
+            user=request.user,
+            unread_only=unread_only,
+            limit=limit,
+        )
+
+        # Serialize notifications
+        data = []
+        for n in notifications:
+            data.append({
+                'id': n.id,
+                'title': getattr(n, 'title', ''),
+                'message': getattr(n, 'message', ''),
+                'is_read': getattr(n, 'is_read', False),
+                'created_at': getattr(n, 'created_at', None),
+                'notification_type': getattr(n, 'notification_type', ''),
+            })
+
+        return Response(data)
+
+
+class NotificationReadView(APIView):
+    """Mark notification as read."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk=None):
+        from .services.notification_service import NotificationService
+        success = NotificationService.mark_notification_read(pk, request.user)
+        if success:
+            return Response({'message': 'Notification marked as read.'})
+        return Response({'error': 'Notification not found.'}, status=status.HTTP_404_NOT_FOUND)
