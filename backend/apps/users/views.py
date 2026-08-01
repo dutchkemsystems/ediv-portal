@@ -232,6 +232,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class AuthViewSet(viewsets.ViewSet):
+    authentication_classes = []  # No JWT auth required for login/MFA endpoints
     permission_classes = [permissions.AllowAny]
 
     def create(self, request):
