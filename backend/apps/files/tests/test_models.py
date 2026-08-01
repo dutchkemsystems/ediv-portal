@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from apps.users.models import User
 from apps.schools.models import School
-from .models import File, FileMovement, FileAttachment, WorkflowConfig, FileTemplate, OfflineQueue, FileClassification
+from apps.files.models import File, FileMovement, FileAttachment, WorkflowConfig, FileTemplate, OfflineQueue, FileClassification
 from django.utils import timezone
 
 
