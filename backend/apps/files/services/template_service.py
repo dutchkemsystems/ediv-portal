@@ -1,11 +1,18 @@
 """Template service for reusable file templates."""
 import datetime
+import logging
+from django.core.files.base import ContentFile
 from django.utils import timezone
-from apps.files.models import File, FileMovement, FileTemplate
+from apps.files.models import File, FileMovement, FileAttachment, FileTemplate
+
+logger = logging.getLogger(__name__)
 
 
 class TemplateService:
     """Service for managing file templates and generating files from templates."""
+
+    # Supported template file formats
+    SUPPORTED_TEMPLATE_FORMATS = ['doc', 'docx', 'xls', 'xlsx', 'pdf', 'csv', 'txt']
 
     @staticmethod
     def create_template(*, name, description, category, file_type, file_category,

@@ -4,6 +4,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.db import models
 from django.http import HttpResponse
+from django.utils import timezone
+from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import (
     File, FileMovement, FileAttachment, FileComment, FileStatus, FileCategory, SecurityClassification,
@@ -13,7 +15,11 @@ from .serializers import (
     FileSerializer, FileListSerializer,
     FileMovementSerializer, FileAttachmentSerializer, FileCommentSerializer,
     WorkflowConfigSerializer, FileTemplateSerializer, FileClassificationSerializer, OfflineQueueSerializer,
+    WorkflowAdvanceSerializer, FileMoveWorkflowSerializer,
 )
+from .services.file_movement_service import FileMovementService
+
+User = get_user_model()
 
 
 class FileViewSet(viewsets.ModelViewSet):
@@ -68,21 +74,44 @@ class FileViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='move')
     def move_file(self, request, pk=None):
-        """Move a file to another holder. Creates a FileMovement record and updates current_holder.
-
-        Body: { "to_holder_id": <int>, "action": <str>, "remarks": <str>, "expected_return_date": <date> }
-        """
+        """Move file with workflow awareness. Supports both basic and workflow-advanced moves."""
         file_obj = self.get_object()
         to_holder_id = request.data.get('to_holder_id')
         action_type = request.data.get('action', 'Forwarded')
         remarks = request.data.get('remarks', '')
         expected_return = request.data.get('expected_return_date')
+        use_workflow = request.data.get('use_workflow', False)
 
+        if use_workflow:
+            # Use workflow-aware movement
+            from .services.file_movement_service import FileMovementService
+            to_holder = None
+            if to_holder_id:
+                try:
+                    to_holder = User.objects.get(id=to_holder_id)
+                except User.DoesNotExist:
+                    return Response({'error': 'Target user not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+            try:
+                movement = FileMovementService.move_file(
+                    file=file_obj,
+                    from_holder=request.user,
+                    to_holder=to_holder,
+                    action=action_type,
+                    remarks=remarks,
+                    expected_return_date=expected_return,
+                )
+                return Response({
+                    'message': f"File {file_obj.file_number} moved to step {file_obj.current_workflow_step}.",
+                    'movement': FileMovementSerializer(movement).data,
+                })
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Legacy movement (backward compatible)
         if not to_holder_id:
             return Response({'error': 'to_holder_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
         try:
             to_holder = User.objects.get(id=to_holder_id)
         except User.DoesNotExist:
@@ -829,3 +858,276 @@ class NotificationReadView(APIView):
         if success:
             return Response({'message': 'Notification marked as read.'})
         return Response({'error': 'Notification not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+
+# === DASHBOARD AND BULK ENDPOINTS ===
+
+
+class FileDashboardView(APIView):
+    """Dashboard endpoint providing file statistics and recent activity."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        from django.db.models import Count, Q
+        from django.utils import timezone
+        from datetime import timedelta
+
+        # My files stats
+        my_files = File.objects.filter(
+            Q(created_by=user) | Q(current_holder=user)
+        )
+
+        # Status counts
+        status_counts = dict(
+            my_files.values_list('status').annotate(count=Count('id')).values_list('status', 'count')
+        )
+
+        # Priority counts
+        priority_counts = dict(
+            my_files.values_list('priority').annotate(count=Count('id')).values_list('priority', 'count')
+        )
+
+        # Recent files (last 7 days)
+        week_ago = timezone.now() - timedelta(days=7)
+        recent_files = my_files.filter(created_at__gte=week_ago).count()
+
+        # Pending actions (files I need to act on)
+        pending_action = my_files.filter(
+            status__in=['IN_TRANSIT', 'PENDING']
+        ).count()
+
+        # Overdue files
+        overdue = my_files.filter(
+            due_date__lt=timezone.now().date(),
+            status__in=['ACTIVE', 'IN_TRANSIT', 'PENDING']
+        ).count()
+
+        # Recent movements involving me
+        recent_movements = FileMovement.objects.filter(
+            Q(from_holder=user) | Q(to_holder=user)
+        ).select_related('file', 'from_holder', 'to_holder').order_by('-movement_date')[:10]
+
+        movements_data = [{
+            'id': m.id,
+            'file_number': m.file.file_number,
+            'file_title': m.file.title,
+            'action': m.action,
+            'from': m.from_holder.get_full_name() or m.from_holder.username,
+            'to': m.to_holder.get_full_name() if m.to_holder else None,
+            'date': m.movement_date.isoformat(),
+        } for m in recent_movements]
+
+        return Response({
+            'status_counts': status_counts,
+            'priority_counts': priority_counts,
+            'total_files': my_files.count(),
+            'recent_files': recent_files,
+            'pending_action': pending_action,
+            'overdue': overdue,
+            'recent_movements': movements_data,
+        })
+
+
+class FileBulkActionView(APIView):
+    """Bulk actions on multiple files."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        action = request.data.get('action')
+        file_ids = request.data.get('file_ids', [])
+        notes = request.data.get('notes', '')
+
+        if not file_ids:
+            return Response({'error': 'No file IDs provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        files = File.objects.filter(id__in=file_ids)
+        results = {'success': 0, 'failed': 0, 'errors': []}
+
+        for file_obj in files:
+            try:
+                if action == 'archive':
+                    FileMovementService.archive_file(
+                        file=file_obj, archived_by=request.user, notes=notes
+                    )
+                elif action == 'escalate':
+                    FileMovementService.escalate_file(
+                        file=file_obj, escalated_by=request.user, reason=notes
+                    )
+                elif action == 'advance':
+                    FileMovementService.advance_workflow(
+                        file=file_obj, user=request.user, notes=notes
+                    )
+                else:
+                    results['errors'].append({
+                        'file_id': file_obj.id,
+                        'error': f'Unknown action: {action}'
+                    })
+                    results['failed'] += 1
+                    continue
+                results['success'] += 1
+            except Exception as e:
+                results['errors'].append({'file_id': file_obj.id, 'error': str(e)})
+                results['failed'] += 1
+
+        return Response(results)
+
+
+class WorkflowVisualizationView(APIView):
+    """Workflow visualization endpoint showing file journey with step progress."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk=None):
+        result = FileMovementService.get_workflow_visualization(pk)
+        if not result:
+            return Response({'error': 'File not found.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(result)
+
+
+# === ENTERPRISE WORKFLOW ENDPOINTS ===
+
+
+class WorkflowAdvanceView(APIView):
+    """Advance file to next workflow step."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk=None):
+        try:
+            file_obj = File.objects.get(id=pk)
+        except File.DoesNotExist:
+            return Response({'error': 'File not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = WorkflowAdvanceSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            movement = FileMovementService.advance_workflow(
+                file=file_obj,
+                user=request.user,
+                action=serializer.validated_data.get('action', 'FORWARDED'),
+                notes=serializer.validated_data.get('notes', ''),
+            )
+
+            # Index for search
+            from .services.search_service import SearchService
+            SearchService.index_file(file_obj)
+
+            return Response({
+                'message': f"File {file_obj.file_number} advanced to step {file_obj.current_workflow_step}.",
+                'movement': FileMovementSerializer(movement).data,
+                'current_step': file_obj.current_workflow_step,
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class WorkflowMoveView(APIView):
+    """Move file through workflow with specific target step."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk=None):
+        try:
+            file_obj = File.objects.get(id=pk)
+        except File.DoesNotExist:
+            return Response({'error': 'File not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = FileMoveWorkflowSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        to_holder_id = serializer.validated_data.get('to_holder_id')
+        to_holder = None
+        if to_holder_id:
+            try:
+                to_holder = User.objects.get(id=to_holder_id)
+            except User.DoesNotExist:
+                return Response({'error': 'Target user not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if not to_holder:
+            # Auto-assign from workflow
+            next_step = FileMovementService._get_next_step(
+                file_obj.current_workflow_step or 0,
+                file_obj.direction or 'INCOMING'
+            )
+            if next_step:
+                recipients = FileMovementService._get_recipients_for_step(
+                    next_step['step'], file_obj.direction or 'INCOMING'
+                )
+                to_holder = recipients.first() if recipients.exists() else file_obj.current_holder
+
+        try:
+            movement = FileMovementService.move_file(
+                file=file_obj,
+                from_holder=request.user,
+                to_holder=to_holder,
+                action=serializer.validated_data.get('action', 'FORWARDED'),
+                remarks=serializer.validated_data.get('remarks', ''),
+                expected_return_date=serializer.validated_data.get('expected_return_date'),
+                completion_notes=serializer.validated_data.get('completion_notes', ''),
+                target_step=serializer.validated_data.get('target_step'),
+            )
+
+            from .services.search_service import SearchService
+            SearchService.index_file(file_obj)
+
+            return Response({
+                'message': f"File {file_obj.file_number} moved successfully.",
+                'movement': FileMovementSerializer(movement).data,
+            })
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class WorkflowDetailView(APIView):
+    """Get complete workflow details for a file."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk=None):
+        from .services.file_movement_service import FileMovementService
+        result = FileMovementService.get_workflow_visualization(pk)
+        if not result:
+            return Response({'error': 'File not found.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(result)
+
+
+class OverdueFilesView(APIView):
+    """Get overdue files and trigger auto-escalation."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from django.db.models import Q
+        overdue = File.objects.filter(
+            Q(expected_completion_date__lt=timezone.now().date()) |
+            Q(due_date__lt=timezone.now().date()),
+            status__in=['ACTIVE', 'IN_TRANSIT', 'PENDING', 'UNDER_REVIEW'],
+        ).select_related('created_by', 'current_holder', 'department')
+
+        data = [{
+            'id': f.id,
+            'file_number': f.file_number,
+            'title': f.title,
+            'status': f.status,
+            'priority': f.priority,
+            'escalation_status': f.escalation_status,
+            'current_holder': f.current_holder.get_full_name() if f.current_holder else None,
+            'due_date': f.due_date.isoformat() if f.due_date else None,
+            'expected_completion_date': f.expected_completion_date.isoformat() if f.expected_completion_date else None,
+        } for f in overdue]
+
+        return Response({'count': len(data), 'files': data})
+
+    def post(self, request):
+        """Trigger auto-escalation of overdue files."""
+        result = FileMovementService.check_and_escalate_overdue()
+        return Response(result)
+
+
+class ReindexSearchView(APIView):
+    """Reindex all files in Elasticsearch."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        from .services.search_service import SearchService
+        result = SearchService.reindex_all()
+        return Response(result)

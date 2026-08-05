@@ -6,6 +6,9 @@ from .views import (
     OfflineQueueViewSet, FileSearchView, FileSearchSuggestionsView,
     FileImportView, FileExportView, FileBulkImportView,
     NotificationListView, NotificationReadView,
+    FileDashboardView, FileBulkActionView, WorkflowVisualizationView,
+    WorkflowAdvanceView, WorkflowMoveView, WorkflowDetailView,
+    OverdueFilesView, ReindexSearchView,
 )
 
 router = DefaultRouter()
@@ -27,4 +30,12 @@ urlpatterns = [
     path('bulk-import/', FileBulkImportView.as_view(), name='file-bulk-import'),
     path('notifications/', NotificationListView.as_view(), name='notification-list'),
     path('notifications/<int:pk>/read/', NotificationReadView.as_view(), name='notification-read'),
+    path('dashboard/', FileDashboardView.as_view(), name='file-dashboard'),
+    path('bulk-action/', FileBulkActionView.as_view(), name='file-bulk-action'),
+    path('workflow/<int:pk>/', WorkflowVisualizationView.as_view(), name='file-workflow'),
+    path('workflow/<int:pk>/advance/', WorkflowAdvanceView.as_view(), name='workflow-advance'),
+    path('workflow/<int:pk>/move/', WorkflowMoveView.as_view(), name='workflow-move'),
+    path('workflow/<int:pk>/detail/', WorkflowDetailView.as_view(), name='workflow-detail'),
+    path('overdue/', OverdueFilesView.as_view(), name='overdue-files'),
+    path('reindex/', ReindexSearchView.as_view(), name='reindex-search'),
 ]

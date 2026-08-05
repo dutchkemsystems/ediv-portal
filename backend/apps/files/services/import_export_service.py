@@ -1,18 +1,59 @@
 """Import/export service for file data operations."""
 import io
 import csv
+import os
 import datetime
-import traceback
+import logging
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from apps.files.models import File, FileAttachment, FileMovement
+
+logger = logging.getLogger(__name__)
 
 
 class ImportExportService:
     """Service for importing and exporting files in multiple formats."""
 
-    SUPPORTED_IMPORT_FORMATS = ['doc', 'docx', 'xls', 'xlsx', 'pdf', 'jpeg', 'png', 'csv', 'txt']
+    SUPPORTED_IMPORT_FORMATS = ['doc', 'docx', 'xls', 'xlsx', 'pdf', 'jpeg', 'jpg', 'png', 'csv', 'txt']
     SUPPORTED_EXPORT_FORMATS = ['xlsx', 'csv', 'pdf', 'docx']
+
+    # MIME type to format mapping for auto-detection
+    MIME_FORMAT_MAP = {
+        'application/pdf': 'pdf',
+        'application/msword': 'doc',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+        'application/vnd.ms-excel': 'xls',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+        'image/jpeg': 'jpeg',
+        'image/png': 'png',
+        'text/csv': 'csv',
+        'text/plain': 'txt',
+    }
+
+    EXT_FORMAT_MAP = {
+        '.doc': 'doc', '.docx': 'docx', '.xls': 'xls', '.xlsx': 'xlsx',
+        '.pdf': 'pdf', '.jpeg': 'jpeg', '.jpg': 'jpeg', '.png': 'png',
+        '.csv': 'csv', '.txt': 'txt',
+    }
+
+    @staticmethod
+    def detect_format(uploaded_file) -> str:
+        """
+        Auto-detect file format from filename extension or MIME type.
+
+        Priority: filename extension → MIME type → 'txt' fallback
+        """
+        filename = getattr(uploaded_file, 'name', '')
+        if filename:
+            ext = os.path.splitext(filename)[1].lower()
+            if ext in ImportExportService.EXT_FORMAT_MAP:
+                return ImportExportService.EXT_FORMAT_MAP[ext]
+
+        content_type = getattr(uploaded_file, 'content_type', '')
+        if content_type in ImportExportService.MIME_FORMAT_MAP:
+            return ImportExportService.MIME_FORMAT_MAP[content_type]
+
+        return 'txt'
 
     @staticmethod
     def import_file(*, uploaded_file, file_format, created_by,
@@ -76,7 +117,7 @@ class ImportExportService:
                     if 'description' in d:
                         description = d['description']
 
-            elif file_format in ('docx', 'pdf'):
+            elif file_format in ('docx', 'doc', 'pdf'):
                 uploaded_file.seek(0)
                 try:
                     doc_data = ImportExportService._import_document(uploaded_file, file_format)
@@ -84,7 +125,7 @@ class ImportExportService:
                 except ImportError as e:
                     errors.append(f'Missing library for {file_format}: {str(e)}')
 
-            elif file_format in ('jpeg', 'png'):
+            elif file_format in ('jpeg', 'jpg', 'png'):
                 uploaded_file.seek(0)
                 try:
                     img_data = ImportExportService._import_image(uploaded_file, file_format)
@@ -177,6 +218,10 @@ class ImportExportService:
             wb.close()
             return {'headers': headers, 'data': data, 'row_count': max(ws.max_row - 1, 0)}
 
+        elif file_format == 'xls':
+            # Legacy .xls format via xlrd
+            return ImportExportService._import_legacy_xls(uploaded_file)
+
         elif file_format == 'csv':
             uploaded_file.seek(0)
             raw = uploaded_file.read()
@@ -191,6 +236,56 @@ class ImportExportService:
         return {}
 
     @staticmethod
+    def _import_legacy_xls(uploaded_file) -> dict:
+        """Import legacy .xls (BIFF format) via xlrd."""
+        try:
+            import xlrd
+            uploaded_file.seek(0)
+            wb = xlrd.open_workbook(file_contents=uploaded_file.read())
+            ws = wb.sheet_by_index(0)
+            headers = []
+            data = {}
+            if ws.nrows > 0:
+                headers = [str(ws.cell_value(0, c)) for c in range(ws.ncols)]
+            if ws.nrows > 1:
+                for c in range(ws.ncols):
+                    if c < len(headers):
+                        val = ws.cell_value(1, c)
+                        data[headers[c].lower().strip()] = str(val) if val != '' else ''
+            return {
+                'headers': headers,
+                'data': data,
+                'row_count': max(ws.nrows - 1, 0),
+                'sheet_count': wb.nsheets,
+            }
+        except ImportError:
+            logger.warning("xlrd not installed, falling back to openpyxl for .xls")
+            # Try openpyxl as fallback (modern .xls may work)
+            try:
+                import openpyxl
+                uploaded_file.seek(0)
+                wb = openpyxl.load_workbook(uploaded_file, read_only=True, data_only=True)
+                ws = wb.active
+                headers = []
+                data = {}
+                for row_idx, row in enumerate(ws.iter_rows(values_only=True), 1):
+                    if row_idx == 1:
+                        headers = [str(cell) for cell in row if cell is not None]
+                    elif row_idx == 2:
+                        for col_idx, header in enumerate(headers):
+                            if col_idx < len(row) and row[col_idx] is not None:
+                                data[header.lower().strip()] = str(row[col_idx])
+                        break
+                wb.close()
+                return {'headers': headers, 'data': data, 'row_count': max(ws.max_row - 1, 0)}
+            except Exception as e:
+                logger.error(f"openpyxl fallback for .xls failed: {e}")
+        except Exception as e:
+            logger.error(f"xlrd import for .xls failed: {e}")
+
+        return {'headers': [], 'data': {}, 'row_count': 0}
+
+    @staticmethod
     def _import_document(uploaded_file, file_format) -> dict:
         """Import Word/PDF document. Returns extracted text."""
         if file_format == 'docx':
@@ -198,6 +293,10 @@ class ImportExportService:
             doc = Document(uploaded_file)
             text = '\n'.join([para.text for para in doc.paragraphs if para.text])
             return {'text': text, 'paragraph_count': len(doc.paragraphs)}
+
+        elif file_format == 'doc':
+            # Legacy .doc format - try textract first, then antiword, then raw
+            return ImportExportService._import_legacy_doc(uploaded_file)
 
         elif file_format == 'pdf':
             import PyPDF2
@@ -208,6 +307,68 @@ class ImportExportService:
             return {'text': text, 'page_count': len(reader.pages)}
 
         return {'text': '', 'page_count': 0}
+
+    @staticmethod
+    def _import_legacy_doc(uploaded_file) -> dict:
+        """Import legacy .doc (OLE format) document."""
+        # Try textract first - supports .doc natively
+        try:
+            import textract
+            uploaded_file.seek(0)
+            text = textract.process(uploaded_file)
+            if isinstance(text, bytes):
+                text = text.decode('utf-8', errors='replace')
+            return {'text': str(text), 'extraction_method': 'textract'}
+        except ImportError:
+            pass
+        except Exception as e:
+            logger.warning(f"textract failed for .doc: {e}")
+
+        # Fallback: try extracting via antiword command-line tool
+        try:
+            import subprocess
+            import tempfile
+            uploaded_file.seek(0)
+            with tempfile.NamedTemporaryFile(suffix='.doc', delete=False) as tmp:
+                tmp.write(uploaded_file.read())
+                tmp_path = tmp.name
+            try:
+                result = subprocess.run(
+                    ['antiword', tmp_path],
+                    capture_output=True, text=True, timeout=30
+                )
+                if result.returncode == 0:
+                    return {'text': result.stdout, 'extraction_method': 'antiword'}
+            finally:
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+        except Exception as e:
+            logger.warning(f"antiword fallback for .doc failed: {e}")
+
+        # Last resort: read raw bytes - might get some readable text
+        try:
+            uploaded_file.seek(0)
+            raw = uploaded_file.read()
+            # Extract readable ASCII text from binary
+            text_chunks = []
+            current = bytearray()
+            for byte in raw:
+                if 32 <= byte < 127 or byte in (9, 10, 13):
+                    current.append(byte)
+                else:
+                    if len(current) > 3:
+                        text_chunks.append(current.decode('ascii', errors='replace'))
+                    current = bytearray()
+            if len(current) > 3:
+                text_chunks.append(current.decode('ascii', errors='replace'))
+            text = '\n'.join(text_chunks)[:5000]
+            return {'text': text, 'extraction_method': 'raw_bytes'}
+        except Exception as e:
+            logger.warning(f"Raw extraction for .doc failed: {e}")
+
+        return {'text': '', 'extraction_method': 'none'}
 
     @staticmethod
     def _import_image(uploaded_file, file_format) -> dict:

@@ -48,6 +48,17 @@ class SecurityClassification(models.TextChoices):
 
 
 class File(models.Model):
+    DIRECTION_CHOICES = [
+        ('INCOMING', 'Incoming'),
+        ('OUTGOING', 'Outgoing'),
+        ('INTERNAL', 'Internal'),
+    ]
+    ESCALATION_STATUS_CHOICES = [
+        ('NORMAL', 'Normal'),
+        ('ESCALATED', 'Escalated'),
+        ('URGENT', 'Urgent'),
+    ]
+
     file_number = models.CharField(max_length=50, unique=True)
     title = models.CharField(max_length=300)
     file_type = models.CharField(max_length=20, choices=FileType.choices)
@@ -87,11 +98,29 @@ class File(models.Model):
         ('HIGH', 'High'),
         ('URGENT', 'Urgent'),
     ], default='NORMAL')
+    direction = models.CharField(max_length=20, choices=DIRECTION_CHOICES, default='INCOMING')
     due_date = models.DateField(null=True, blank=True)
     tags = models.JSONField(default=list)
     status_timeline = models.JSONField(default=list, blank=True,
         help_text='List of {timestamp, status, changed_by_id, changed_by_name, notes} entries')
     expected_completion_date = models.DateField(null=True, blank=True)
+    current_workflow_step = models.IntegerField(default=1,
+        help_text='Current step in the file movement workflow')
+    escalation_status = models.CharField(max_length=20, choices=ESCALATION_STATUS_CHOICES, default='NORMAL')
+    escalation_reason = models.TextField(blank=True)
+    escalated_at = models.DateTimeField(null=True, blank=True)
+    assigned_department = models.ForeignKey(
+        'departments.Department',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='assigned_files',
+        help_text='Auto-assigned department based on AI classification'
+    )
+    created_offline = models.BooleanField(default=False)
+    offline_created_at = models.DateTimeField(null=True, blank=True)
+    updated_offline = models.BooleanField(default=False)
+    last_offline_update = models.DateTimeField(null=True, blank=True)
+    last_moved_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -103,10 +132,23 @@ class File(models.Model):
             models.Index(fields=['status']),
             models.Index(fields=['created_by']),
             models.Index(fields=['current_holder']),
+            models.Index(fields=['direction']),
+            models.Index(fields=['escalation_status']),
+            models.Index(fields=['current_workflow_step']),
+            models.Index(fields=['assigned_department']),
+            models.Index(fields=['priority', 'status']),
         ]
-    
+
     def __str__(self):
         return f"{self.file_number} - {self.title}"
+
+    @property
+    def is_overdue(self):
+        """Check if file is overdue based on expected completion."""
+        if self.expected_completion_date:
+            from django.utils import timezone
+            return self.expected_completion_date < timezone.now().date()
+        return False
 
 
 class FileMovement(models.Model):
@@ -122,6 +164,7 @@ class FileMovement(models.Model):
         COMMENTED = 'COMMENTED', 'Commented'
         ARCHIVED = 'ARCHIVED', 'Archived'
         DELETED = 'DELETED', 'Deleted'
+        RECEIVED = 'RECEIVED', 'Received'
 
     file = models.ForeignKey(File, on_delete=models.CASCADE, related_name='movements')
     from_holder = models.ForeignKey(
@@ -142,8 +185,17 @@ class FileMovement(models.Model):
     actual_return_date = models.DateField(null=True, blank=True)
     is_returned = models.BooleanField(default=False)
     completion_notes = models.TextField(blank=True)
+    workflow_step = models.IntegerField(default=0,
+        help_text='Workflow step number at time of movement')
+    from_location = models.CharField(max_length=50, blank=True,
+        help_text='Location code where file was before movement')
+    to_location = models.CharField(max_length=50, blank=True,
+        help_text='Location code where file is going')
+    expected_completion = models.DateTimeField(null=True, blank=True,
+        help_text='Expected completion datetime for this step')
+    is_overdue = models.BooleanField(default=False)
     movement_date = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
         ordering = ['-movement_date']
         verbose_name_plural = 'file movements'
@@ -152,8 +204,11 @@ class FileMovement(models.Model):
             models.Index(fields=['from_holder']),
             models.Index(fields=['to_holder']),
             models.Index(fields=['movement_date']),
+            models.Index(fields=['workflow_step']),
+            models.Index(fields=['is_overdue']),
+            models.Index(fields=['from_location', 'to_location']),
         ]
-    
+
     def __str__(self):
         return f"{self.file.file_number} - {self.from_holder.get_full_name()} to {self.to_holder.get_full_name() if self.to_holder else 'N/A'}"
 

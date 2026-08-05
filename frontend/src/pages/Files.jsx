@@ -1,49 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import {
-  Box,
-  Typography,
-  Button,
-  Grid,
-  Card,
-  CardContent,
-  Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Tabs,
-  Tab,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Container,
-  LinearProgress,
-  Stepper,
-  Step,
-  StepLabel,
-  IconButton,
-  Alert,
-  Tooltip,
+  Box, Typography, Button, Grid, Card, CardContent, Chip, Dialog, DialogTitle,
+  DialogContent, DialogActions, TextField, FormControl, InputLabel, Select,
+  MenuItem, Tabs, Tab, Paper, Table, TableBody, TableCell, TableContainer,
+  TableHead, TableRow, Container, LinearProgress, Stepper, Step, StepLabel,
+  IconButton, Alert, Tooltip, Divider,
 } from '@mui/material'
 import {
-  Add as AddIcon,
-  FolderOpen as FileIcon,
-  MoveUp as MoveIcon,
-  Send as SubmitIcon,
-  CheckCircle as ApproveIcon,
-  Cancel as RejectIcon,
-  Upgrade as EscalateIcon,
-  Archive as ArchiveIcon,
-  Refresh as RefreshIcon,
+  Add as AddIcon, FolderOpen as FileIcon, MoveUp as MoveIcon, Send as SubmitIcon,
+  CheckCircle as ApproveIcon, Cancel as RejectIcon, Upgrade as EscalateIcon,
+  Archive as ArchiveIcon, Refresh as RefreshIcon, PlayArrow as AdvanceIcon,
+  Warning as WarningIcon, Timeline as WorkflowIcon, Search as SearchIcon,
 } from '@mui/icons-material'
 import DataTable from '../components/common/DataTable'
 import StatCard from '../components/common/StatCard'
@@ -108,7 +75,11 @@ const MOVE_ACTIONS = [
   { value: 'ARCHIVED', label: 'Archived' },
 ]
 
-const FILE_STEPS = ['Draft', 'Active', 'Pending', 'In Transit', 'Under Review', 'Approved', 'Rejected', 'Closed', 'Archived']
+const DIRECTIONS = [
+  { value: 'INCOMING', label: 'Incoming' },
+  { value: 'OUTGOING', label: 'Outgoing' },
+  { value: 'INTERNAL', label: 'Internal' },
+]
 
 function Files() {
   const [files, setFiles] = useState([])
@@ -120,6 +91,9 @@ function Files() {
   const [selectedFile, setSelectedFile] = useState(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [staffList, setStaffList] = useState([])
+  const [workflowData, setWorkflowData] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState(null)
   const [formData, setFormData] = useState({
     title: '',
     file_type: 'CORRESPONDENCE',
@@ -127,6 +101,7 @@ function Files() {
     status: 'DRAFT',
     classification: 'CONFIDENTIAL',
     priority: 'NORMAL',
+    direction: 'INCOMING',
     description: '',
   })
   const [moveData, setMoveData] = useState({
@@ -134,6 +109,7 @@ function Files() {
     action: 'FORWARDED',
     remarks: '',
     expected_return_date: '',
+    use_workflow: true,
   })
 
   const fetchFiles = useCallback(async () => {
@@ -160,26 +136,41 @@ function Files() {
   const handleAdd = () => {
     setSelectedFile(null)
     setFormData({
-      title: '',
-      file_type: 'CORRESPONDENCE',
-      file_category: 'ADMIN',
-      status: 'DRAFT',
-      classification: 'CONFIDENTIAL',
-      priority: 'NORMAL',
-      description: '',
+      title: '', file_type: 'CORRESPONDENCE', file_category: 'ADMIN',
+      status: 'DRAFT', classification: 'CONFIDENTIAL', priority: 'NORMAL',
+      direction: 'INCOMING', description: '',
     })
     setOpenDialog(true)
   }
 
   const handleMove = (file) => {
     setSelectedFile(file)
-    setMoveData({ to_holder_id: '', action: 'FORWARDED', remarks: '', expected_return_date: '' })
+    setMoveData({ to_holder_id: '', action: 'FORWARDED', remarks: '', expected_return_date: '', use_workflow: true })
     setOpenMovementDialog(true)
   }
 
-  const handleViewDetail = (file) => {
+  const handleViewDetail = async (file) => {
     setSelectedFile(file)
     setDetailOpen(true)
+    try {
+      const res = await api.get(`/files/workflow/${file.id}/detail/`)
+      setWorkflowData(res.data)
+    } catch {
+      setWorkflowData(null)
+    }
+  }
+
+  const handleAdvanceWorkflow = async (file) => {
+    try {
+      const res = await api.post(`/files/workflow/${file.id}/advance/`, {
+        action: 'FORWARDED',
+        notes: 'Workflow advanced',
+      })
+      notify.success(`File advanced to step ${res.data.current_step}`)
+      fetchFiles()
+    } catch (error) {
+      notify.error(error.response?.data?.error || 'Failed to advance workflow')
+    }
   }
 
   const handleReceive = async (file) => {
@@ -234,26 +225,33 @@ function Files() {
 
   const handleEscalateFile = async (file) => {
     setSelectedFile(file)
-    setMoveData({ to_holder_id: '', action: 'ESCALATED', remarks: '', expected_return_date: '' })
+    setMoveData({ to_holder_id: '', action: 'ESCALATED', remarks: '', expected_return_date: '', use_workflow: false })
     setOpenMovementDialog(true)
   }
 
   const handleSubmitMove = async () => {
     try {
-      const endpoint = moveData.action === 'ESCALATED'
-        ? `/files/files/${selectedFile.id}/escalate/`
-        : `/files/files/${selectedFile.id}/move/`
-
-      const payload = moveData.action === 'ESCALATED'
-        ? { to_holder_id: parseInt(moveData.to_holder_id), notes: moveData.remarks }
-        : {
-            to_holder_id: parseInt(moveData.to_holder_id),
-            action: moveData.action,
-            remarks: moveData.remarks,
-            expected_return_date: moveData.expected_return_date || undefined,
-          }
-
-      await api.post(endpoint, payload)
+      if (moveData.action === 'ESCALATED') {
+        await api.post(`/files/files/${selectedFile.id}/escalate/`, {
+          to_holder_id: parseInt(moveData.to_holder_id),
+          notes: moveData.remarks,
+        })
+      } else if (moveData.use_workflow) {
+        await api.post(`/files/workflow/${selectedFile.id}/move/`, {
+          to_holder_id: moveData.to_holder_id ? parseInt(moveData.to_holder_id) : null,
+          action: moveData.action,
+          remarks: moveData.remarks,
+          expected_return_date: moveData.expected_return_date || null,
+        })
+      } else {
+        await api.post(`/files/files/${selectedFile.id}/move/`, {
+          to_holder_id: parseInt(moveData.to_holder_id),
+          action: moveData.action,
+          remarks: moveData.remarks,
+          expected_return_date: moveData.expected_return_date || undefined,
+          use_workflow: false,
+        })
+      }
       notify.success(moveData.action === 'ESCALATED' ? 'File escalated' : 'File moved successfully')
       setOpenMovementDialog(false)
       fetchFiles()
@@ -273,92 +271,59 @@ function Files() {
     }
   }
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'DRAFT': return 'default'
-      case 'ACTIVE': return 'success'
-      case 'PENDING': return 'warning'
-      case 'IN_TRANSIT': return 'info'
-      case 'UNDER_REVIEW': return 'warning'
-      case 'APPROVED': return 'success'
-      case 'REJECTED': return 'error'
-      case 'CLOSED': return 'default'
-      case 'ARCHIVED': return 'default'
-      default: return 'default'
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) { setSearchResults(null); return }
+    try {
+      const res = await api.get(`/files/search/?q=${encodeURIComponent(searchQuery)}`)
+      setSearchResults(res.data)
+    } catch {
+      notify.error('Search failed')
     }
   }
 
-  const getClassificationColor = (classification) => {
-    switch (classification) {
-      case 'PUBLIC': return 'success'
-      case 'CONFIDENTIAL': return 'warning'
-      case 'RESTRICTED': return 'error'
-      case 'TOP_SECRET': return 'error'
-      default: return 'default'
-    }
+  const getStatusColor = (status) => {
+    const colors = { DRAFT: 'default', ACTIVE: 'success', PENDING: 'warning', IN_TRANSIT: 'info',
+      UNDER_REVIEW: 'warning', APPROVED: 'success', REJECTED: 'error', CLOSED: 'default', ARCHIVED: 'default' }
+    return colors[status] || 'default'
   }
 
   const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'HIGH': return 'error'
-      case 'URGENT': return 'error'
-      case 'NORMAL': return 'info'
-      case 'LOW': return 'default'
-      default: return 'default'
-    }
+    const colors = { HIGH: 'error', URGENT: 'error', NORMAL: 'info', LOW: 'default' }
+    return colors[priority] || 'default'
+  }
+
+  const getClassificationColor = (c) => {
+    const colors = { PUBLIC: 'success', CONFIDENTIAL: 'warning', RESTRICTED: 'error', TOP_SECRET: 'error' }
+    return colors[c] || 'default'
   }
 
   const activeFiles = files.filter(f => !['ARCHIVED', 'CLOSED'].includes(f.status))
   const archivedFiles = files.filter(f => ['ARCHIVED', 'CLOSED'].includes(f.status))
-  const displayedFiles = tabValue === 0 ? activeFiles : archivedFiles
+  const displayedFiles = searchResults ? searchResults.results : (tabValue === 0 ? activeFiles : archivedFiles)
+  const overdueFiles = files.filter(f => f.is_overdue)
 
-  const activeStep = selectedFile
-    ? FILE_STEPS.findIndex(s => s.toLowerCase().replace(' ', '_') === selectedFile.status)
-    : 0
-
-  const columns = [
-    { id: 'file_number', label: 'File Number' },
-    { id: 'title', label: 'Title' },
-    { id: 'file_category', label: 'Category', render: (row) => {
-      const cat = FILE_CATEGORIES.find(c => c.value === row.file_category)
-      return <Chip label={cat?.label || row.file_category} size="small" />
-    }},
-    { id: 'file_type', label: 'Type' },
-    { id: 'status', label: 'Status', render: (row) => (
-      <Chip label={row.status} size="small" color={getStatusColor(row.status)} />
-    )},
-    { id: 'current_holder_name', label: 'Current Holder' },
-    { id: 'classification', label: 'Classification', render: (row) => (
-      <Chip label={row.classification} size="small" color={getClassificationColor(row.classification)} />
-    )},
-    { id: 'priority', label: 'Priority', render: (row) => (
-      <Chip label={row.priority || 'NORMAL'} size="small" color={getPriorityColor(row.priority)} />
-    )},
-  ]
-
-  if (loading) {
-    return <Loading message="Loading files..." />
-  }
+  if (loading) return <Loading message="Loading files..." />
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4" fontWeight="bold">E-Registry File Management</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleAdd}
-          sx={{ bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1642' } }}
-        >
-          New File
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <TextField
+            size="small" placeholder="Search files..." value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            InputProps={{ endAdornment: <IconButton size="small" onClick={handleSearch}><SearchIcon /></IconButton> }}
+            sx={{ width: 250 }}
+          />
+          <Button variant="contained" startIcon={<AddIcon />} onClick={handleAdd}
+            sx={{ bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1642' } }}>
+            New File
+          </Button>
+        </Box>
       </Box>
 
-      {alert && (
-        <Alert severity={alert.type} onClose={() => setAlert(null)} sx={{ mb: 2 }}>
-          {alert.msg}
-        </Alert>
-      )}
+      {alert && <Alert severity={alert.type} onClose={() => setAlert(null)} sx={{ mb: 2 }}>{alert.msg}</Alert>}
 
       {/* Stats */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -369,17 +334,17 @@ function Files() {
           <StatCard title="Active Files" value={activeFiles.length} icon={<FileIcon />} color="#388e3c" />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Pending Review" value={files.filter(f => f.status === 'PENDING' || f.status === 'UNDER_REVIEW').length} icon={<FileIcon />} color="#f57c00" />
+          <StatCard title="In Workflow" value={files.filter(f => f.current_workflow_step > 0 && f.current_workflow_step < 11).length} icon={<WorkflowIcon />} color="#f57c00" />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <StatCard title="Archived" value={archivedFiles.length} icon={<ArchiveIcon />} color="#d32f2f" />
+          <StatCard title="Overdue" value={overdueFiles.length} icon={<WarningIcon />} color="#d32f2f" />
         </Grid>
       </Grid>
 
       {/* Tabs */}
       <Paper sx={{ mb: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)}>
+          <Tabs value={tabValue} onChange={(_, v) => { setTabValue(v); setSearchResults(null) }}>
             <Tab label={`Active (${activeFiles.length})`} />
             <Tab label={`Archived (${archivedFiles.length})`} />
           </Tabs>
@@ -393,12 +358,12 @@ function Files() {
                 <TableRow>
                   <TableCell>File Number</TableCell>
                   <TableCell>Title</TableCell>
-                  <TableCell>Category</TableCell>
-                  <TableCell>Type</TableCell>
+                  <TableCell>Direction</TableCell>
                   <TableCell>Status</TableCell>
+                  <TableCell>Step</TableCell>
                   <TableCell>Holder</TableCell>
-                  <TableCell>Classification</TableCell>
                   <TableCell>Priority</TableCell>
+                  <TableCell>Escalation</TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
               </TableHead>
@@ -406,22 +371,37 @@ function Files() {
                 {displayedFiles.length === 0 ? (
                   <TableRow><TableCell colSpan={9} align="center">No files found</TableCell></TableRow>
                 ) : displayedFiles.map((file) => (
-                  <TableRow key={file.id} hover sx={{ cursor: 'pointer' }}
-                    onClick={() => handleViewDetail(file)}>
+                  <TableRow key={file.id} hover sx={{ cursor: 'pointer' }} onClick={() => handleViewDetail(file)}>
                     <TableCell><strong>{file.file_number}</strong></TableCell>
                     <TableCell>{file.title}</TableCell>
-                    <TableCell><Chip label={FILE_CATEGORIES.find(c => c.value === file.file_category)?.label || file.file_category} size="small" /></TableCell>
-                    <TableCell>{file.file_type}</TableCell>
+                    <TableCell><Chip label={file.direction || 'INCOMING'} size="small" variant="outlined" /></TableCell>
                     <TableCell><Chip label={file.status} size="small" color={getStatusColor(file.status)} /></TableCell>
+                    <TableCell>
+                      {file.current_workflow_step > 0 ? (
+                        <Chip label={`Step ${file.current_workflow_step}`} size="small" color="info" />
+                      ) : '—'}
+                    </TableCell>
                     <TableCell>{file.current_holder_name || '—'}</TableCell>
-                    <TableCell><Chip label={file.classification} size="small" color={getClassificationColor(file.classification)} /></TableCell>
                     <TableCell><Chip label={file.priority || 'NORMAL'} size="small" color={getPriorityColor(file.priority)} /></TableCell>
+                    <TableCell>
+                      {file.escalation_status === 'ESCALATED' && (
+                        <Chip label="Escalated" size="small" color="error" icon={<WarningIcon />} />
+                      )}
+                      {file.is_overdue && (
+                        <Chip label="Overdue" size="small" color="error" sx={{ ml: 0.5 }} />
+                      )}
+                    </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Tooltip title="Advance Workflow">
+                        <IconButton size="small" color="primary" onClick={() => handleAdvanceWorkflow(file)}>
+                          <AdvanceIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                       <Tooltip title="Move">
                         <IconButton size="small" onClick={() => handleMove(file)}><MoveIcon fontSize="small" /></IconButton>
                       </Tooltip>
                       {file.status === 'DRAFT' && (
-                        <Tooltip title="Submit for Review">
+                        <Tooltip title="Submit">
                           <IconButton size="small" color="primary" onClick={() => handleSubmitFile(file)}><SubmitIcon fontSize="small" /></IconButton>
                         </Tooltip>
                       )}
@@ -435,6 +415,9 @@ function Files() {
                           </Tooltip>
                         </>
                       )}
+                      <Tooltip title="Escalate">
+                        <IconButton size="small" color="warning" onClick={() => handleEscalateFile(file)}><EscalateIcon fontSize="small" /></IconButton>
+                      </Tooltip>
                       <Tooltip title="Archive">
                         <IconButton size="small" onClick={() => handleClose(file)}><ArchiveIcon fontSize="small" /></IconButton>
                       </Tooltip>
@@ -448,21 +431,31 @@ function Files() {
       </Paper>
 
       {/* File Detail Dialog */}
-      <Dialog open={detailOpen} onClose={() => setDetailOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>{selectedFile?.file_number} — {selectedFile?.title}</DialogTitle>
+      <Dialog open={detailOpen} onClose={() => setDetailOpen(false)} maxWidth="lg" fullWidth>
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>{selectedFile?.file_number} — {selectedFile?.title}</span>
+          {selectedFile?.is_overdue && <Chip label="OVERDUE" color="error" icon={<WarningIcon />} />}
+        </DialogTitle>
         <DialogContent>
           {selectedFile && (
             <Box>
               <Grid container spacing={2} sx={{ mb: 2 }}>
-                <Grid item xs={6}>
+                <Grid item xs={4}>
                   <Typography variant="body2"><strong>Category:</strong> {FILE_CATEGORIES.find(c => c.value === selectedFile.file_category)?.label}</Typography>
                   <Typography variant="body2"><strong>Type:</strong> {selectedFile.file_type}</Typography>
-                  <Typography variant="body2"><strong>Classification:</strong> {selectedFile.classification}</Typography>
+                  <Typography variant="body2"><strong>Direction:</strong> {selectedFile.direction || 'INCOMING'}</Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid item xs={4}>
                   <Typography variant="body2"><strong>Status:</strong> <Chip label={selectedFile.status} size="small" color={getStatusColor(selectedFile.status)} /></Typography>
                   <Typography variant="body2"><strong>Priority:</strong> <Chip label={selectedFile.priority} size="small" color={getPriorityColor(selectedFile.priority)} /></Typography>
                   <Typography variant="body2"><strong>Holder:</strong> {selectedFile.current_holder_name || '—'}</Typography>
+                </Grid>
+                <Grid item xs={4}>
+                  <Typography variant="body2"><strong>Workflow Step:</strong> {selectedFile.current_workflow_step || 0}</Typography>
+                  <Typography variant="body2"><strong>Escalation:</strong> <Chip label={selectedFile.escalation_status || 'NORMAL'} size="small" color={selectedFile.escalation_status === 'ESCALATED' ? 'error' : 'default'} /></Typography>
+                  {selectedFile.escalation_reason && (
+                    <Typography variant="body2"><strong>Reason:</strong> {selectedFile.escalation_reason}</Typography>
+                  )}
                 </Grid>
               </Grid>
 
@@ -470,20 +463,33 @@ function Files() {
                 <Typography variant="body2" sx={{ mb: 2 }}><strong>Description:</strong> {selectedFile.description}</Typography>
               )}
 
-              <Stepper activeStep={activeStep >= 0 ? activeStep : 0} sx={{ mt: 3, mb: 2 }}>
-                {FILE_STEPS.map((label) => <Step key={label}><StepLabel>{label}</StepLabel></Step>)}
-              </Stepper>
+              {/* Workflow Visualization */}
+              {workflowData && (
+                <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                  <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>
+                    Workflow Progress ({workflowData.progress_percent}%)
+                  </Typography>
+                  <LinearProgress variant="determinate" value={workflowData.progress_percent} sx={{ mb: 2 }} />
+                  <Stepper activeStep={(workflowData.file?.current_step || 0)} sx={{ mb: 2 }}>
+                    {workflowData.workflow_steps?.map((step) => (
+                      <Step key={step.step} completed={step.is_completed}>
+                        <StepLabel
+                          error={step.is_current && selectedFile.escalation_status === 'ESCALATED'}
+                        >
+                          <Tooltip title={`${step.label} (${step.location})`}>
+                            <span>{step.label}</span>
+                          </Tooltip>
+                        </StepLabel>
+                      </Step>
+                    ))}
+                  </Stepper>
+                </Box>
+              )}
 
               <Box sx={{ display: 'flex', gap: 1, mt: 2, flexWrap: 'wrap' }}>
-                {selectedFile.status === 'DRAFT' && (
-                  <Button variant="outlined" startIcon={<SubmitIcon />} onClick={() => { handleSubmitFile(selectedFile); setDetailOpen(false) }}>Submit for Review</Button>
-                )}
-                {selectedFile.status === 'PENDING' && (
-                  <>
-                    <Button variant="outlined" color="success" startIcon={<ApproveIcon />} onClick={() => { handleApproveFile(selectedFile); setDetailOpen(false) }}>Approve</Button>
-                    <Button variant="outlined" color="error" startIcon={<RejectIcon />} onClick={() => { handleRejectFile(selectedFile); setDetailOpen(false) }}>Reject</Button>
-                  </>
-                )}
+                <Button variant="outlined" startIcon={<AdvanceIcon />} onClick={() => { handleAdvanceWorkflow(selectedFile); setDetailOpen(false) }}>
+                  Advance Workflow
+                </Button>
                 <Button variant="outlined" startIcon={<MoveIcon />} onClick={() => { setDetailOpen(false); handleMove(selectedFile) }}>Move</Button>
                 <Button variant="outlined" startIcon={<EscalateIcon />} onClick={() => { setDetailOpen(false); handleEscalateFile(selectedFile) }}>Escalate</Button>
                 <Button variant="outlined" color="error" startIcon={<ArchiveIcon />} onClick={() => { handleClose(selectedFile); setDetailOpen(false) }}>Archive</Button>
@@ -493,13 +499,25 @@ function Files() {
                 <Box sx={{ mt: 3 }}>
                   <Typography variant="subtitle1" fontWeight="bold">Movement History</Typography>
                   <Table size="small">
-                    <TableHead><TableRow><TableCell>From</TableCell><TableCell>To</TableCell><TableCell>Action</TableCell><TableCell>Remarks</TableCell><TableCell>Date</TableCell></TableRow></TableHead>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>From</TableCell>
+                        <TableCell>To</TableCell>
+                        <TableCell>Action</TableCell>
+                        <TableCell>Step</TableCell>
+                        <TableCell>Location</TableCell>
+                        <TableCell>Remarks</TableCell>
+                        <TableCell>Date</TableCell>
+                      </TableRow>
+                    </TableHead>
                     <TableBody>
                       {selectedFile.movements.map((m) => (
                         <TableRow key={m.id}>
                           <TableCell>{m.from_holder_name}</TableCell>
                           <TableCell>{m.to_holder_name || '—'}</TableCell>
                           <TableCell><Chip label={m.action} size="small" /></TableCell>
+                          <TableCell>{m.workflow_step || '—'}</TableCell>
+                          <TableCell>{m.from_location && m.to_location ? `${m.from_location} → ${m.to_location}` : '—'}</TableCell>
                           <TableCell>{m.remarks}</TableCell>
                           <TableCell>{new Date(m.movement_date).toLocaleDateString()}</TableCell>
                         </TableRow>
@@ -513,11 +531,12 @@ function Files() {
                 <Box sx={{ mt: 3 }}>
                   <Typography variant="subtitle1" fontWeight="bold">Status Timeline</Typography>
                   <Table size="small">
-                    <TableHead><TableRow><TableCell>Status</TableCell><TableCell>Changed By</TableCell><TableCell>Notes</TableCell><TableCell>Timestamp</TableCell></TableRow></TableHead>
+                    <TableHead><TableRow><TableCell>Status</TableCell><TableCell>Action</TableCell><TableCell>Changed By</TableCell><TableCell>Notes</TableCell><TableCell>Timestamp</TableCell></TableRow></TableHead>
                     <TableBody>
-                      {selectedFile.status_timeline.map((entry, idx) => (
+                      {selectedFile.status_timeline.slice(-10).map((entry, idx) => (
                         <TableRow key={idx}>
                           <TableCell><Chip label={entry.status} size="small" color={getStatusColor(entry.status)} /></TableCell>
+                          <TableCell>{entry.action || '—'}</TableCell>
                           <TableCell>{entry.changed_by_name}</TableCell>
                           <TableCell>{entry.notes}</TableCell>
                           <TableCell>{new Date(entry.timestamp).toLocaleString()}</TableCell>
@@ -547,6 +566,14 @@ function Files() {
             <Grid item xs={12}>
               <TextField fullWidth label="Description" multiline rows={2} value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <FormControl fullWidth>
+                <InputLabel>Direction</InputLabel>
+                <Select value={formData.direction} onChange={(e) => setFormData({ ...formData, direction: e.target.value })} label="Direction">
+                  {DIRECTIONS.map((d) => <MenuItem key={d.value} value={d.value}>{d.label}</MenuItem>)}
+                </Select>
+              </FormControl>
             </Grid>
             <Grid item xs={12} sm={4}>
               <FormControl fullWidth>
@@ -610,14 +637,27 @@ function Files() {
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>{moveData.action === 'ESCALATED' ? 'Escalate To' : 'Move To'}</InputLabel>
-                <Select value={moveData.to_holder_id} onChange={(e) => setMoveData({ ...moveData, to_holder_id: e.target.value })} label={moveData.action === 'ESCALATED' ? 'Escalate To' : 'Move To'}>
-                  {staffList.map((s) => <MenuItem key={s.id} value={s.id}>{s.first_name} {s.last_name}</MenuItem>)}
-                </Select>
-              </FormControl>
-            </Grid>
+            {moveData.action !== 'ESCALATED' && (
+              <Grid item xs={12}>
+                <FormControl fullWidth>
+                  <InputLabel>Move To (auto-assign if empty)</InputLabel>
+                  <Select value={moveData.to_holder_id} onChange={(e) => setMoveData({ ...moveData, to_holder_id: e.target.value })} label="Move To (auto-assign if empty)">
+                    <MenuItem value="">Auto-assign (Workflow)</MenuItem>
+                    {staffList.map((s) => <MenuItem key={s.id} value={s.id}>{s.first_name} {s.last_name}</MenuItem>)}
+                  </Select>
+                </FormControl>
+              </Grid>
+            )}
+            {moveData.action === 'ESCALATED' && (
+              <Grid item xs={12}>
+                <FormControl fullWidth>
+                  <InputLabel>Escalate To</InputLabel>
+                  <Select value={moveData.to_holder_id} onChange={(e) => setMoveData({ ...moveData, to_holder_id: e.target.value })} label="Escalate To">
+                    {staffList.map((s) => <MenuItem key={s.id} value={s.id}>{s.first_name} {s.last_name}</MenuItem>)}
+                  </Select>
+                </FormControl>
+              </Grid>
+            )}
             {moveData.action !== 'ESCALATED' && (
               <Grid item xs={12}>
                 <FormControl fullWidth>
@@ -643,7 +683,8 @@ function Files() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenMovementDialog(false)}>Cancel</Button>
-          <Button onClick={handleSubmitMove} variant="contained" disabled={!moveData.to_holder_id}
+          <Button onClick={handleSubmitMove} variant="contained"
+            disabled={moveData.action === 'ESCALATED' && !moveData.to_holder_id}
             sx={{ bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1642' } }}>
             {moveData.action === 'ESCALATED' ? 'Escalate' : 'Move File'}
           </Button>
