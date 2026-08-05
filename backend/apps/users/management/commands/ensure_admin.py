@@ -23,9 +23,9 @@ class Command(BaseCommand):
     help = 'Ensure essential admin/head-office users exist with correct passwords'
 
     def handle(self, *args, **options):
-        admin_pw = os.environ.get('ADMIN_PASSWORD', 'Admin@12345678')
-        tg_pw = os.environ.get('TG_PASSWORD', 'TutorGen@12345')
-        head_pw = os.environ.get('HEAD_OFFICE_PASSWORD', 'HeadOffice@123')
+        admin_pw = os.environ.get('ADMIN_PASSWORD') or 'Admin@12345678'
+        tg_pw = os.environ.get('TG_PASSWORD') or 'TutorGen@12345'
+        head_pw = os.environ.get('HEAD_OFFICE_PASSWORD') or 'HeadOffice@123'
 
         essential_users = [
             ('admin@ediv.gov.ng', admin_pw, 'System', 'Administrator', 'SYSADMIN', '+2348010000001', True, True),
