@@ -31,11 +31,11 @@ CORS_ALLOW_CREDENTIALS = True
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Database - Parse DATABASE_URL provided by Render managed database
+# conn_ssl_require removed: Render's DATABASE_URL already includes sslmode=require
 DATABASES = {
     'default': dj_database_url.config(
         default=os.environ.get('DATABASE_URL'),
         conn_max_age=600,
-        conn_ssl_require=True,
     )
 }
 
