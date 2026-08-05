@@ -6,18 +6,26 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-def _require_env(key):
-    val = os.environ.get(key)
-    if not val:
-        raise SystemExit(f'Missing required environment variable: {key}. Set it in .env or Render dashboard.')
-    return val
+DEFAULT_PASSWORDS = {
+    'ADMIN_PASSWORD': 'Admin@12345678',
+    'TG_PASSWORD': 'TutorGen@12345',
+    'HEAD_OFFICE_PASSWORD': 'HeadOffice@123',
+    'SCHOOL_STAFF_PASSWORD': 'SchoolStaff@123',
+    'TEACHER_PASSWORD': 'Teacher@12345',
+    'STUDENT_PASSWORD': 'Student@12345',
+}
 
-ADMIN_PASSWORD = _require_env('ADMIN_PASSWORD')
-TG_PASSWORD = _require_env('TG_PASSWORD')
-HEAD_OFFICE_PASSWORD = _require_env('HEAD_OFFICE_PASSWORD')
-SCHOOL_STAFF_PASSWORD = _require_env('SCHOOL_STAFF_PASSWORD')
-TEACHER_PASSWORD = _require_env('TEACHER_PASSWORD')
-STUDENT_PASSWORD = _require_env('STUDENT_PASSWORD')
+
+def _get_password(key):
+    return os.environ.get(key) or DEFAULT_PASSWORDS.get(key, 'ChangeMe@123')
+
+
+ADMIN_PASSWORD = _get_password('ADMIN_PASSWORD')
+TG_PASSWORD = _get_password('TG_PASSWORD')
+HEAD_OFFICE_PASSWORD = _get_password('HEAD_OFFICE_PASSWORD')
+SCHOOL_STAFF_PASSWORD = _get_password('SCHOOL_STAFF_PASSWORD')
+TEACHER_PASSWORD = _get_password('TEACHER_PASSWORD')
+STUDENT_PASSWORD = _get_password('STUDENT_PASSWORD')
 
 
 # ---------------------------------------------------------------------------

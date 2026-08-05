@@ -35,6 +35,16 @@ services:
         sync: false
       - key: ADMIN_PASSWORD
         sync: false
+      - key: TG_PASSWORD
+        sync: false
+      - key: HEAD_OFFICE_PASSWORD
+        sync: false
+      - key: SCHOOL_STAFF_PASSWORD
+        sync: false
+      - key: TEACHER_PASSWORD
+        sync: false
+      - key: STUDENT_PASSWORD
+        sync: false
       - key: FRONTEND_URL
         value: https://ediv-frontend-static.onrender.com
     healthCheckPath: /health/
