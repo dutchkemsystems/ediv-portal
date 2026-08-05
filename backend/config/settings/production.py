@@ -1,4 +1,5 @@
 import os
+import dj_database_url
 from .base import *
 
 # Debug - MUST be False in production
@@ -29,19 +30,13 @@ CORS_ALLOW_CREDENTIALS = True
 # Static files
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Database - Use SSL for production
+# Database - Parse DATABASE_URL provided by Render managed database
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('POSTGRES_DB'),
-        'USER': os.environ.get('POSTGRES_USER'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
-        'HOST': os.environ.get('POSTGRES_HOST'),
-        'PORT': os.environ.get('POSTGRES_PORT', '5432'),
-        'OPTIONS': {
-            'sslmode': 'require',  # Require SSL for production
-        },
-    }
+    'default': dj_database_url.config(
+        default=os.environ.get('DATABASE_URL'),
+        conn_max_age=600,
+        conn_ssl_require=True,
+    )
 }
 
 # Redis & Optional Services
@@ -60,12 +55,21 @@ if REDIS_URL:
 
     CHANNEL_LAYERS = {
         'default': {
-            'BACKEND': 'channels_redis.core.RedisChannelLayer',
-            'CONFIG': {
-                'hosts': [REDIS_URL],
-            },
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
         },
     }
+    try:
+        import channels_redis  # noqa: F401
+        CHANNEL_LAYERS = {
+            'default': {
+                'BACKEND': 'channels_redis.core.RedisChannelLayer',
+                'CONFIG': {
+                    'hosts': [REDIS_URL],
+                },
+            },
+        }
+    except ImportError:
+        pass
 
 # Celery (optional)
 CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL')
