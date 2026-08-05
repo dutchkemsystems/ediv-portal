@@ -237,119 +237,128 @@ class Command(BaseCommand):
             help='Also create sample student accounts (requires schools to be seeded first)',
         )
 
+    def _upsert_user(self, data, is_staff=False, is_superuser=False):
+        """Create or update a user. Always resets password and key fields."""
+        user, created = User.objects.get_or_create(
+            email=data['email'],
+            defaults={
+                'first_name': data['first_name'],
+                'last_name': data['last_name'],
+                'role': data['role'],
+                'phone_number': data.get('phone_number', ''),
+                'is_staff': is_staff,
+                'is_superuser': is_superuser,
+            },
+        )
+        changed = False
+        if not created:
+            for field in ('first_name', 'last_name', 'role', 'phone_number'):
+                expected = data.get(field, '')
+                if expected and getattr(user, field, '') != expected:
+                    setattr(user, field, expected)
+                    changed = True
+            if user.is_staff != is_staff:
+                user.is_staff = is_staff
+                changed = True
+            if user.is_superuser != is_superuser:
+                user.is_superuser = is_superuser
+                changed = True
+        user.set_password(data['password'])
+        user.is_active = True
+        user.save()
+        return user, created
+
     def handle(self, *args, **options):
         random.seed(42)
 
         # --- Admin / Head Office Users ---
         self.stdout.write(self.style.NOTICE('\n--- Seeding admin users ---'))
         admin_created = 0
-        admin_skipped = 0
+        admin_updated = 0
         for data in ADMIN_USERS:
-            user, created = User.objects.get_or_create(
-                email=data['email'],
-                defaults={
-                    'first_name': data['first_name'],
-                    'last_name': data['last_name'],
-                    'role': data['role'],
-                    'phone_number': data['phone_number'],
-                    'is_staff': data.get('is_staff', False),
-                    'is_superuser': data.get('is_superuser', False),
-                },
-            )
-            if created:
-                user.set_password(data['password'])
-                user.save()
-                admin_created += 1
-                self.stdout.write(f'  + Admin: {user.email} ({user.role})')
-            else:
-                admin_skipped += 1
+            try:
+                user, created = self._upsert_user(
+                    data,
+                    is_staff=data.get('is_staff', False),
+                    is_superuser=data.get('is_superuser', False),
+                )
+                if created:
+                    admin_created += 1
+                    self.stdout.write(f'  + Admin: {user.email} ({user.role})')
+                else:
+                    admin_updated += 1
+                    self.stdout.write(f'  ~ Updated: {user.email} ({user.role})')
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f'  ! Failed: {data["email"]} - {e}'))
 
         self.stdout.write(self.style.SUCCESS(
-            f'  Admin users: {admin_created} created, {admin_skipped} skipped'
+            f'  Admin users: {admin_created} created, {admin_updated} updated'
         ))
 
         # --- Department Heads ---
         self.stdout.write(self.style.NOTICE('\n--- Seeding department heads ---'))
         from apps.departments.models import Department
         dept_head_created = 0
-        dept_head_skipped = 0
+        dept_head_updated = 0
         for data in DEPARTMENT_HEADS:
-            user, created = User.objects.get_or_create(
-                email=data['email'],
-                defaults={
-                    'first_name': data['first_name'],
-                    'last_name': data['last_name'],
-                    'role': data['role'],
-                    'phone_number': data['phone_number'],
-                    'is_staff': True,
-                    'is_superuser': False,
-                },
-            )
-            if created:
-                user.set_password(data['password'])
-                user.save()
-                dept_head_created += 1
-            else:
-                dept_head_skipped += 1
+            try:
+                user, created = self._upsert_user(data, is_staff=True)
+                if created:
+                    dept_head_created += 1
+                else:
+                    dept_head_updated += 1
 
-            # Link head to department
-            dept_code = data.get('department_code')
-            if dept_code:
-                try:
-                    dept = Department.objects.get(code=dept_code)
-                    if dept.head_id != user.id:
-                        dept.head = user
-                        dept.save(update_fields=['head'])
-                except Department.DoesNotExist:
-                    pass
+                # Link head to department
+                dept_code = data.get('department_code')
+                if dept_code:
+                    try:
+                        dept = Department.objects.get(code=dept_code)
+                        if dept.head_id != user.id:
+                            dept.head = user
+                            dept.save(update_fields=['head'])
+                    except Department.DoesNotExist:
+                        pass
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f'  ! Failed: {data["email"]} - {e}'))
 
         self.stdout.write(self.style.SUCCESS(
-            f'  Department heads: {dept_head_created} created, {dept_head_skipped} skipped'
+            f'  Department heads: {dept_head_created} created, {dept_head_updated} updated'
         ))
 
         # --- Major Unit Heads ---
         self.stdout.write(self.style.NOTICE('\n--- Seeding major unit heads ---'))
         from apps.departments.models import Unit
         unit_head_created = 0
-        unit_head_skipped = 0
+        unit_head_updated = 0
         for data in UNIT_HEADS:
-            user, created = User.objects.get_or_create(
-                email=data['email'],
-                defaults={
-                    'first_name': data['first_name'],
-                    'last_name': data['last_name'],
-                    'role': data['role'],
-                    'phone_number': data['phone_number'],
-                    'is_staff': True,
-                    'is_superuser': False,
-                },
-            )
-            if created:
-                user.set_password(data['password'])
-                user.save()
-                unit_head_created += 1
-            else:
-                unit_head_skipped += 1
+            try:
+                user, created = self._upsert_user(data, is_staff=True)
+                if created:
+                    unit_head_created += 1
+                else:
+                    unit_head_updated += 1
 
-            # Link head to unit
-            unit_code = data.get('unit_code')
-            if unit_code:
-                try:
-                    unit = Unit.objects.get(code=unit_code)
-                    if unit.head_id != user.id:
-                        unit.head = user
-                        unit.save(update_fields=['head'])
-                except Unit.DoesNotExist:
-                    pass
+                # Link head to unit
+                unit_code = data.get('unit_code')
+                if unit_code:
+                    try:
+                        unit = Unit.objects.get(code=unit_code)
+                        if unit.head_id != user.id:
+                            unit.head = user
+                            unit.save(update_fields=['head'])
+                    except Unit.DoesNotExist:
+                        pass
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f'  ! Failed: {data["email"]} - {e}'))
 
         self.stdout.write(self.style.SUCCESS(
-            f'  Unit heads: {unit_head_created} created, {unit_head_skipped} skipped'
+            f'  Unit heads: {unit_head_created} created, {unit_head_updated} updated'
         ))
 
         # --- Sample School Staff (Principals, VPs, Teachers) ---
         self.stdout.write(self.style.NOTICE('\n--- Seeding school staff ---'))
         staff_created = 0
-        staff_skipped = 0
+        staff_updated = 0
 
         from apps.schools.models import School
         schools = list(School.objects.all())
@@ -363,53 +372,47 @@ class Command(BaseCommand):
         for school in schools:
             # Create Principal
             is_male = random.choice([True, False])
-            gender = 'M' if is_male else 'F'
             first_name = random.choice(MALE_NAMES if is_male else FEMALE_NAMES)
             last_name = random.choice(LAST_NAMES)
             email = f'principal_{school.code.lower()}@ediv.gov.ng'
 
-            user, created = User.objects.get_or_create(
-                email=email,
-                defaults={
-                    'first_name': first_name,
-                    'last_name': last_name,
-                    'role': 'PRI',
-                    'phone_number': f'+234802{random.randint(1000000, 9999999):07d}',
-                },
-            )
-            if created:
-                user.set_password(SCHOOL_STAFF_PASSWORD)
-                user.save()
-                school.principal = user
-                school.save()
-                staff_created += 1
-            else:
-                staff_skipped += 1
+            try:
+                user, created = self._upsert_user({
+                    'email': email, 'first_name': first_name, 'last_name': last_name,
+                    'role': 'PRI', 'phone_number': f'+234802{random.randint(1000000, 9999999):07d}',
+                    'password': SCHOOL_STAFF_PASSWORD,
+                })
+                if created:
+                    staff_created += 1
+                else:
+                    staff_updated += 1
+                if school.principal_id != user.id:
+                    school.principal = user
+                    school.save(update_fields=['principal'])
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f'  ! Principal failed for {school.code}: {e}'))
 
             # Create Vice Principal
             is_male2 = not is_male
-            gender2 = 'M' if is_male2 else 'F'
             first_name2 = random.choice(MALE_NAMES if is_male2 else FEMALE_NAMES)
             last_name2 = random.choice(LAST_NAMES)
             email2 = f'vp_{school.code.lower()}@ediv.gov.ng'
 
-            user2, created2 = User.objects.get_or_create(
-                email=email2,
-                defaults={
-                    'first_name': first_name2,
-                    'last_name': last_name2,
-                    'role': 'VP',
-                    'phone_number': f'+234803{random.randint(1000000, 9999999):07d}',
-                },
-            )
-            if created2:
-                user2.set_password(SCHOOL_STAFF_PASSWORD)
-                user2.save()
-                school.vice_principal = user2
-                school.save()
-                staff_created += 1
-            else:
-                staff_skipped += 1
+            try:
+                user2, created2 = self._upsert_user({
+                    'email': email2, 'first_name': first_name2, 'last_name': last_name2,
+                    'role': 'VP', 'phone_number': f'+234803{random.randint(1000000, 9999999):07d}',
+                    'password': SCHOOL_STAFF_PASSWORD,
+                })
+                if created2:
+                    staff_created += 1
+                else:
+                    staff_updated += 1
+                if school.vice_principal_id != user2.id:
+                    school.vice_principal = user2
+                    school.save(update_fields=['vice_principal'])
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f'  ! VP failed for {school.code}: {e}'))
 
             # Create 3-5 teachers per school
             num_teachers = random.randint(3, 5)
@@ -420,24 +423,21 @@ class Command(BaseCommand):
                 last_t = random.choice(LAST_NAMES)
                 email_t = f'teacher_{teacher_idx:04d}@ediv.gov.ng'
 
-                user_t, created_t = User.objects.get_or_create(
-                    email=email_t,
-                    defaults={
-                        'first_name': first_t,
-                        'last_name': last_t,
-                        'role': 'TCH',
-                        'phone_number': f'+234804{random.randint(1000000, 9999999):07d}',
-                    },
-                )
-                if created_t:
-                    user_t.set_password(TEACHER_PASSWORD)
-                    user_t.save()
-                    staff_created += 1
-                else:
-                    staff_skipped += 1
+                try:
+                    _, created_t = self._upsert_user({
+                        'email': email_t, 'first_name': first_t, 'last_name': last_t,
+                        'role': 'TCH', 'phone_number': f'+234804{random.randint(1000000, 9999999):07d}',
+                        'password': TEACHER_PASSWORD,
+                    })
+                    if created_t:
+                        staff_created += 1
+                    else:
+                        staff_updated += 1
+                except Exception as e:
+                    self.stdout.write(self.style.ERROR(f'  ! Teacher {email_t} failed: {e}'))
 
         self.stdout.write(self.style.SUCCESS(
-            f'  School staff: {staff_created} created, {staff_skipped} skipped'
+            f'  School staff: {staff_created} created, {staff_updated} updated'
         ))
 
         # --- Sample Students ---
