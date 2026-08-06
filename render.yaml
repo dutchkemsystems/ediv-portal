@@ -7,7 +7,7 @@ services:
       pip install -r requirements.txt
       cd frontend && npm install && npm run build && cd ..
       python manage.py collectstatic --noinput
-    startCommand: python manage.py migrate --noinput && python manage.py ensure_admin && (python manage.py seed_departments; python manage.py seed_schools; python manage.py seed_users; true) && gunicorn ediv_portal.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 120
+    startCommand: python manage.py migrate --noinput && python manage.py ensure_admin && (python manage.py seed_departments; python manage.py seed_schools; python manage.py seed_users; true) && gunicorn ediv_portal.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 180
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: ediv_portal.settings
