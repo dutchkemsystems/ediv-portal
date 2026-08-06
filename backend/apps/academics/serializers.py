@@ -1,4 +1,4 @@
-﻿from rest_framework import serializers
+from rest_framework import serializers
 from .models import (
     Class, Subject, ClassSubject, Exam, ExamResult, ReportCard,
     AcademicCalendar, StudentEnrollment

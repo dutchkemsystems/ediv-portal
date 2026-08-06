@@ -55,6 +55,15 @@ INSTALLED_APPS = [
     'apps.analytics',
     'apps.data_import_export',
     'apps.mail_workflow',
+    'apps.predictive_analytics',
+    'apps.chatbot',
+    'apps.blockchain_cert',
+    'apps.multilingual',
+    'apps.gamification',
+    'apps.push_notifications',
+    'apps.iot_dashboard',
+    'apps.benchmarking',
+    'apps.report_card_gen',
 ]
 
 MIDDLEWARE = [

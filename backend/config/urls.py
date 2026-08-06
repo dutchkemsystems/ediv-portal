@@ -116,6 +116,15 @@ urlpatterns = [
     path('api/mail-workflow/', include('apps.mail_workflow.urls')),
     path('api/audit/', include('apps.audit.urls')),
     path('api/parent-teacher/', include('apps.parent_teacher.urls')),
+    path('api/predictive/', include('apps.predictive_analytics.urls')),
+    path('api/chatbot/', include('apps.chatbot.urls')),
+    path('api/blockchain-certs/', include('apps.blockchain_cert.urls')),
+    path('api/multilingual/', include('apps.multilingual.urls')),
+    path('api/gamification/', include('apps.gamification.urls')),
+    path('api/push-notifications/', include('apps.push_notifications.urls')),
+    path('api/iot/', include('apps.iot_dashboard.urls')),
+    path('api/benchmarking/', include('apps.benchmarking.urls')),
+    path('api/report-card-gen/', include('apps.report_card_gen.urls')),
     # Catch-all for SPA routing - must be last
     re_path(r'^(?P<path>.*)$', serve_frontend, {'path': ''}),
 ]

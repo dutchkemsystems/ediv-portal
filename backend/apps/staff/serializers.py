@@ -1,4 +1,4 @@
-﻿from rest_framework import serializers
+from rest_framework import serializers
 from .models import Staff, StaffLeave, StaffPerformance
 from apps.users.models import User
 from apps.users.serializers import UserSerializer

@@ -156,6 +156,16 @@ class FileViewSet(viewsets.ModelViewSet):
             },
         )
 
+        from config.realtime import RealtimeBroadcaster
+        RealtimeBroadcaster.broadcast_file_movement({
+            'file_number': file_obj.file_number,
+            'title': file_obj.title,
+            'from_name': file_obj.created_by.get_full_name(),
+            'to_name': to_holder.get_full_name(),
+            'action': action_type,
+            'remarks': remarks,
+        })
+
         return Response({
             'message': f"File {file_obj.file_number} moved to {to_holder.get_full_name()}.",
             'movement': FileMovementSerializer(movement).data,

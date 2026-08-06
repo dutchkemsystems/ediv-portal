@@ -283,6 +283,11 @@ class AuthViewSet(viewsets.ViewSet):
         AccountLockout.reset_attempts(user)
         AuditLogger.log_login(user, ip_address, True, user_agent=user_agent)
 
+        from config.realtime import RealtimeBroadcaster
+        RealtimeBroadcaster.broadcast_dashboard_update(
+            data={'event': 'user_login', 'user': user.get_full_name(), 'role': user.role}
+        )
+
         if user.mfa_enabled:
             # Use AccessToken (not RefreshToken) so mfa_verify can decode it as one.
             # AccessToken has type='access'; RefreshToken has type='refresh'.
