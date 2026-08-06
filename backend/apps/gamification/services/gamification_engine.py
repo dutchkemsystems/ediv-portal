@@ -1,7 +1,7 @@
 from django.utils import timezone
 from django.db.models import Sum
 from datetime import timedelta
-from .models import (
+from ..models import (
     PointCategory, Badge, UserPoints, PointTransaction,
     UserBadge, Leaderboard
 )

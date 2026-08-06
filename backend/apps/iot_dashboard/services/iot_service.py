@@ -1,7 +1,7 @@
 from django.utils import timezone
 from django.db.models import Avg, Max, Min, Count
 from datetime import timedelta
-from .models import IoTDevice, SensorReading, AlertRule, IoTAlert
+from ..models import IoTDevice, SensorReading, AlertRule, IoTAlert
 
 
 class IoTService:

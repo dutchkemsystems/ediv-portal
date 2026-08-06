@@ -1,7 +1,7 @@
 import json
 import logging
 from django.utils import timezone
-from .models import DeviceToken, PushNotification, NotificationLog
+from ..models import DeviceToken, PushNotification, NotificationLog
 
 logger = logging.getLogger(__name__)
 

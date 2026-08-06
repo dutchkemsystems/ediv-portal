@@ -10,7 +10,7 @@ from reportlab.platypus import (
     SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 )
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
-from .models import GeneratedReportCard, ReportCardTemplate
+from ..models import GeneratedReportCard, ReportCardTemplate
 
 
 class ReportCardGenerator:

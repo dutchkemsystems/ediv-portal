@@ -1,7 +1,7 @@
 from django.db.models import Avg, Count, F
 from django.utils import timezone
 from datetime import timedelta
-from .models import BenchmarkMetric, SchoolBenchmark, BenchmarkComparison
+from ..models import BenchmarkMetric, SchoolBenchmark, BenchmarkComparison
 
 
 class BenchmarkingService:
