@@ -51,6 +51,14 @@ class AuditLog(models.Model):
     def __str__(self):
         return f"{self.user} - {self.action} - {self.module} at {self.created_at}"
 
+    @property
+    def resource_type(self):
+        return self.object_type
+
+    @property
+    def resource_id(self):
+        return self.object_id
+
 
 class ComplianceStatus(models.TextChoices):
     COMPLIANT = 'COMPLIANT', 'Compliant'

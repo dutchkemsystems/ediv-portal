@@ -169,12 +169,21 @@ class NotificationService:
     def notify_file_moved(*, file, movement, recipient, sender) -> dict:
         """Send notification when file is moved to a new holder."""
         subject = f"File {file.file_number} assigned to you"
+
+        if isinstance(movement, dict):
+            action_fn = movement.get('get_action_display')
+            action_display = action_fn() if callable(action_fn) else movement.get('action', '')
+            remarks = movement.get('remarks', '')
+        else:
+            action_display = movement.get_action_display()
+            remarks = movement.remarks or ''
+
         message = (
             f"File '{file.title}' ({file.file_number}) has been forwarded to you by "
             f"{sender.get_full_name() or sender.username}.\n"
-            f"Action: {movement.get_action_display()}\n"
+            f"Action: {action_display}\n"
             f"Priority: {file.get_priority_display()}\n"
-            f"Remarks: {movement.remarks or 'None'}"
+            f"Remarks: {remarks or 'None'}"
         )
         return NotificationService.send_notification(
             recipient=recipient, subject=subject, message=message,

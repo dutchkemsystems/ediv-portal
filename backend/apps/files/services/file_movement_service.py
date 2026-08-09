@@ -160,6 +160,16 @@ class FileMovementService:
         )
         file_obj.save(update_fields=['status_timeline'])
 
+        from apps.files.services.audit_service import AuditService
+        AuditService.log_action(
+            user=created_by,
+            action='CREATE',
+            resource_type='File',
+            resource_id=file_obj.id,
+            description=f"Created file {file_obj.file_number}: {file_obj.title}",
+            new_value={'file_number': file_obj.file_number, 'title': file_obj.title, 'status': file_obj.status},
+        )
+
         return file_obj
 
     @staticmethod
@@ -190,6 +200,27 @@ class FileMovementService:
 
         for step in workflow:
             if step['step'] == step_num:
+                return step.get('deadline', 24)
+        return 24
+
+    @staticmethod
+    def get_deadline_for_step(step_name, direction='INCOMING'):
+        """Get deadline (in hours) for a workflow step by its location name.
+
+        WorkflowConfig overrides take precedence; otherwise the default
+        deadline defined in the workflow definition is returned.
+        """
+        config = WorkflowConfig.objects.filter(
+            step_name=step_name,
+            direction=direction,
+            is_active=True,
+        ).first()
+        if config:
+            return config.default_deadline_hours
+
+        workflow = FileMovementService._get_workflow(direction)
+        for step in workflow:
+            if step['location'] == step_name:
                 return step.get('deadline', 24)
         return 24
 
@@ -316,6 +347,7 @@ class FileMovementService:
         # Update file
         file.current_holder = to_holder
         file.current_workflow_step = target_step
+        file.status = 'IN_TRANSIT'
         file.last_moved_at = timezone.now()
         file.expected_completion_date = (timezone.now() + datetime.timedelta(hours=deadline_hours)).date()
 
@@ -324,8 +356,8 @@ class FileMovementService:
             file.escalation_reason = remarks
             file.escalated_at = timezone.now()
 
-        update_fields = ['current_holder', 'current_workflow_step', 'status_timeline',
-                         'last_moved_at', 'expected_completion_date', 'updated_at']
+        update_fields = ['current_holder', 'current_workflow_step', 'status',
+                         'status_timeline', 'last_moved_at', 'expected_completion_date', 'updated_at']
         if action == 'ESCALATED':
             update_fields.extend(['priority', 'escalation_status', 'escalation_reason', 'escalated_at'])
 
@@ -335,6 +367,17 @@ class FileMovementService:
 
         FileMovementService._add_timeline_entry(file, file.status, from_holder, action, notes)
         file.save(update_fields=update_fields)
+
+        from apps.files.services.audit_service import AuditService
+        AuditService.log_action(
+            user=from_holder,
+            action='MOVE',
+            resource_type='File',
+            resource_id=file.id,
+            description=f"Moved file {file.file_number} from {from_holder.get_full_name()} to {to_holder.get_full_name()}: {action}",
+            old_value={'current_holder': from_holder.id, 'status': file.status},
+            new_value={'current_holder': to_holder.id if to_holder else None, 'action': action},
+        )
 
         FileMovementService._invalidate_cache(file.id)
 
@@ -607,27 +650,16 @@ class FileMovementService:
         return timeline
 
     @staticmethod
-    def get_user_pending_files(user, page=1, per_page=20):
-        """Return paginated files where user is current_holder."""
-        qs = File.objects.filter(
+    def get_user_pending_files(user):
+        """Return files where user is current_holder with an active status."""
+        return File.objects.filter(
             current_holder=user,
             status__in=['ACTIVE', 'PENDING', 'IN_TRANSIT', 'UNDER_REVIEW']
         ).select_related('created_by', 'current_holder', 'department', 'school')
 
-        paginator = Paginator(qs, per_page)
-        page_obj = paginator.get_page(page)
-
-        return {
-            'count': paginator.count,
-            'page': page,
-            'per_page': per_page,
-            'total_pages': paginator.num_pages,
-            'files': list(page_obj.object_list),
-        }
-
     @staticmethod
-    def get_department_files(department, status=None, page=1, per_page=20):
-        """Return paginated files for a department."""
+    def get_department_files(department, status=None):
+        """Return files belonging to a department, optionally filtered by status."""
         qs = File.objects.filter(
             Q(department=department) | Q(assigned_department=department)
         ).select_related('created_by', 'current_holder', 'school')
@@ -635,16 +667,7 @@ class FileMovementService:
         if status:
             qs = qs.filter(status=status)
 
-        paginator = Paginator(qs, per_page)
-        page_obj = paginator.get_page(page)
-
-        return {
-            'count': paginator.count,
-            'page': page,
-            'per_page': per_page,
-            'total_pages': paginator.num_pages,
-            'files': list(page_obj.object_list),
-        }
+        return qs
 
     @staticmethod
     def search_files(query=None, file_type=None, status=None, classification=None,
@@ -782,6 +805,18 @@ class FileMovementService:
                 'is_current': step_num == (file_obj.current_workflow_step or 0),
             })
 
+        journey = []
+        for m in movements:
+            journey.append({
+                'id': m.id,
+                'action': m.action,
+                'from_holder': m.from_holder.get_full_name() if m.from_holder else None,
+                'to_holder': m.to_holder.get_full_name() if m.to_holder else None,
+                'remarks': m.remarks,
+                'workflow_step': m.workflow_step,
+                'movement_date': m.movement_date.isoformat() if m.movement_date else None,
+            })
+
         return {
             'file': {
                 'id': file_obj.id,
@@ -792,6 +827,7 @@ class FileMovementService:
                 'priority': file_obj.priority,
                 'current_step': file_obj.current_workflow_step,
             },
+            'journey': journey,
             'workflow_steps': steps,
             'total_steps': len(workflow),
             'completed_count': len(completed_steps),

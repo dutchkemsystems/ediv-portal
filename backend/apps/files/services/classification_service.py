@@ -58,6 +58,43 @@ class ClassificationService:
             'facility', 'infrastructure', 'maintenance', 'building',
             'classroom', 'laboratory', 'library',
         ],
+        'INSPECTION': [
+            'inspection', 'monitoring', 'compliance', 'verification',
+            'assessment', 'supervision', 'evaluation', 'quality',
+            'inspection report', 'inspect',
+        ],
+        'TRANSPORT': [
+            'transport', 'bus', 'vehicle', 'driver', 'route',
+            'maintenance', 'fuel', 'logistics', 'fleet', 'garage',
+        ],
+        'DISCIPLINE': [
+            'discipline', 'disciplinary', 'misconduct', 'complaint',
+            'suspension', 'expulsion', 'sanction', 'student conduct',
+            'punishment', 'indiscipline',
+        ],
+        'ACADEMIC': [
+            'academic', 'curriculum', 'teaching', 'learning',
+            'examination', 'syllabus', 'classroom', 'lesson',
+            'education', 'assessment',
+        ],
+    }
+
+    # Human-readable department names for classification results
+    DEPARTMENT_DISPLAY_NAMES = {
+        'ADMIN_HR': 'HR',
+        'FINANCE': 'Finance',
+        'AUDIT': 'Internal Audit',
+        'QA': 'Quality Assurance',
+        'CC': 'Co-Curricular Activities',
+        'EMIS': 'Data & Statistics',
+        'PLANNING': 'Planning & Budget',
+        'PROCUREMENT': 'Procurement',
+        'PUBLIC_AFFAIRS': 'Public Affairs',
+        'SCHOOLS_ADMIN': 'Schools Administration',
+        'INSPECTION': 'Inspection',
+        'TRANSPORT': 'Transport',
+        'DISCIPLINE': 'Discipline',
+        'ACADEMIC': 'Academic',
     }
 
     # Urgency keywords
@@ -108,6 +145,17 @@ class ClassificationService:
         }
 
     @staticmethod
+    def _pick_best_department(scores):
+        """Pick the best department and return its display name plus confidence."""
+        dept_scores = scores['dept_scores']
+        if dept_scores:
+            best_code = max(dept_scores, key=dept_scores.get)
+            confidence = min(dept_scores[best_code] * 2, 1.0)
+            display_names = ClassificationService.DEPARTMENT_DISPLAY_NAMES
+            return display_names.get(best_code, best_code), confidence
+        return '', 0.0
+
+    @staticmethod
     def _compute_overall_confidence(dept_scores):
         """Compute overall confidence from department scores."""
         if dept_scores:
@@ -122,12 +170,7 @@ class ClassificationService:
 
         scores = ClassificationService._get_classification_scores(text)
 
-        if scores['dept_scores']:
-            best_dept = max(scores['dept_scores'], key=scores['dept_scores'].get)
-            confidence = min(scores['dept_scores'][best_dept] * 2, 1.0)
-        else:
-            best_dept = ''
-            confidence = 0.0
+        best_dept, confidence = ClassificationService._pick_best_department(scores)
 
         overall_confidence = ClassificationService._compute_overall_confidence(scores['dept_scores'])
 
@@ -153,12 +196,7 @@ class ClassificationService:
 
         scores = ClassificationService._get_classification_scores(text)
 
-        if scores['dept_scores']:
-            best_dept = max(scores['dept_scores'], key=scores['dept_scores'].get)
-            confidence = min(scores['dept_scores'][best_dept] * 2, 1.0)
-        else:
-            best_dept = ''
-            confidence = 0.0
+        best_dept, confidence = ClassificationService._pick_best_department(scores)
 
         overall_confidence = ClassificationService._compute_overall_confidence(scores['dept_scores'])
 
