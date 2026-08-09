@@ -1,5 +1,8 @@
 from django.contrib import admin
-from .models import Document, Correspondence, Filing, DocumentVersion
+from .models import (
+    Document, Correspondence, Filing, DocumentVersion,
+    MemoWorkflow, MemoApproval, MemoCirculation
+)
 
 
 @admin.register(Document)
@@ -28,3 +31,24 @@ class FilingAdmin(admin.ModelAdmin):
 class DocumentVersionAdmin(admin.ModelAdmin):
     list_display = ['document', 'version_number', 'created_by', 'created_at']
     raw_id_fields = ['document', 'created_by']
+
+
+@admin.register(MemoWorkflow)
+class MemoWorkflowAdmin(admin.ModelAdmin):
+    list_display = ['workflow_type', 'document', 'status', 'created_at']
+    list_filter = ['workflow_type', 'status']
+    raw_id_fields = ['document']
+
+
+@admin.register(MemoApproval)
+class MemoApprovalAdmin(admin.ModelAdmin):
+    list_display = ['memo_workflow', 'approver', 'approval_order', 'status', 'approved_date']
+    list_filter = ['status']
+    raw_id_fields = ['memo_workflow', 'approver']
+
+
+@admin.register(MemoCirculation)
+class MemoCirculationAdmin(admin.ModelAdmin):
+    list_display = ['memo_workflow', 'recipient', 'date_sent', 'date_acknowledged', 'status']
+    list_filter = ['status']
+    raw_id_fields = ['memo_workflow', 'recipient']

@@ -333,3 +333,21 @@ class MemoWorkflowViewSet(viewsets.ModelViewSet):
             resource_id=memo.id, description=f"Archived {memo.document.reference_number}",
         )
         return Response({'message': 'Memo archived.'})
+
+
+class MemoApprovalViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = MemoApproval.objects.select_related('memo_workflow', 'approver').all()
+    serializer_class = MemoApprovalSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['memo_workflow', 'approver', 'status']
+    ordering_fields = ['approval_order', 'approved_date']
+
+
+class MemoCirculationViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = MemoCirculation.objects.select_related('memo_workflow', 'recipient').all()
+    serializer_class = MemoCirculationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['memo_workflow', 'recipient', 'status']
+    ordering_fields = ['date_sent', 'date_acknowledged']
