@@ -224,6 +224,74 @@ class MailAssignmentViewSet(viewsets.ModelViewSet):
         )
 
 
+class MailMovementViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = MailMovementSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filterset_fields = ['mail', 'from_person', 'to_person', 'action']
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role in ('SYSADMIN', 'TG_PS'):
+            return MailMovement.objects.select_related('mail', 'from_person', 'to_person').all()
+        return MailMovement.objects.select_related('mail', 'from_person', 'to_person').filter(
+            db_models.Q(from_person=user) | db_models.Q(to_person=user) |
+            db_models.Q(mail__received_by=user)
+        ).distinct()
+
+
+class OutgoingMailMovementViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = OutgoingMailMovementSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filterset_fields = ['outgoing_mail', 'from_person', 'to_person', 'action']
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role in ('SYSADMIN', 'TG_PS'):
+            return OutgoingMailMovement.objects.select_related('outgoing_mail', 'from_person', 'to_person').all()
+        return OutgoingMailMovement.objects.select_related('outgoing_mail', 'from_person', 'to_person').filter(
+            db_models.Q(from_person=user) | db_models.Q(to_person=user) |
+            db_models.Q(outgoing_mail__created_by=user)
+        ).distinct()
+
+
+class SchoolHQCorrespondenceMovementViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = SchoolHQCorrespondenceMovementSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filterset_fields = ['correspondence', 'from_person', 'to_person', 'action']
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role in ('SYSADMIN', 'TG_PS'):
+            return SchoolHQCorrespondenceMovement.objects.select_related(
+                'correspondence', 'from_person', 'to_person'
+            ).all()
+        return SchoolHQCorrespondenceMovement.objects.select_related(
+            'correspondence', 'from_person', 'to_person'
+        ).filter(
+            db_models.Q(from_person=user) | db_models.Q(to_person=user) |
+            db_models.Q(correspondence__sender=user) | db_models.Q(correspondence__recipient=user)
+        ).distinct()
+
+
+class MailCorrespondenceMovementViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = MailCorrespondenceMovementSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filterset_fields = ['correspondence', 'from_person', 'to_person', 'action']
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role in ('SYSADMIN', 'TG_PS'):
+            return MailCorrespondenceMovement.objects.select_related(
+                'correspondence', 'from_person', 'to_person'
+            ).all()
+        return MailCorrespondenceMovement.objects.select_related(
+            'correspondence', 'from_person', 'to_person'
+        ).filter(
+            db_models.Q(from_person=user) | db_models.Q(to_person=user) |
+            db_models.Q(correspondence__sender=user) | db_models.Q(correspondence__recipient=user)
+        ).distinct()
+
+
 class OutgoingMailViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
