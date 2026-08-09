@@ -1,10 +1,14 @@
 from rest_framework import viewsets, permissions, filters
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework import status as http_status
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Workflow, WorkflowStep, WorkflowInstance, Task
 from .serializers import (
     WorkflowSerializer, WorkflowStepSerializer,
     WorkflowInstanceSerializer, TaskSerializer
 )
+from .services.workflow_service import WorkflowService
 
 
 class WorkflowViewSet(viewsets.ModelViewSet):
@@ -34,6 +38,45 @@ class WorkflowInstanceViewSet(viewsets.ModelViewSet):
     filterset_fields = ['workflow', 'status', 'initiated_by']
     search_fields = ['reference_number']
     ordering_fields = ['started_at', 'created_at']
+
+    @action(detail=False, methods=['post'])
+    def start(self, request):
+        """Start a workflow instance from a configured workflow type."""
+        workflow_type = request.data.get('workflow_type')
+        reference_number = request.data.get('reference_number')
+        if not workflow_type or not reference_number:
+            return Response(
+                {'error': 'workflow_type and reference_number are required.'},
+                status=http_status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            instance = WorkflowService.start_instance(
+                workflow_type=workflow_type,
+                initiated_by=request.user,
+                reference_number=reference_number,
+                data=request.data.get('data'),
+            )
+        except ValueError as exc:
+            return Response({'error': str(exc)}, status=http_status.HTTP_400_BAD_REQUEST)
+        return Response(
+            WorkflowInstanceSerializer(instance).data,
+            status=http_status.HTTP_201_CREATED,
+        )
+
+    @action(detail=True, methods=['post'])
+    def advance(self, request, pk=None):
+        """Complete the current task and move to the next step or complete the workflow."""
+        instance = self.get_object()
+        try:
+            result = WorkflowService.advance(
+                instance,
+                user=request.user,
+                decision=request.data.get('decision', 'APPROVE'),
+                comments=request.data.get('comments', ''),
+            )
+        except ValueError as exc:
+            return Response({'error': str(exc)}, status=http_status.HTTP_400_BAD_REQUEST)
+        return Response(result)
 
 
 class TaskViewSet(viewsets.ModelViewSet):
