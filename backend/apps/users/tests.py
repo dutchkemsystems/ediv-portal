@@ -387,7 +387,7 @@ class DeleteSchoolStaffTest(APITestCase):
             password='AdminPass123!@#',
             first_name='Other',
             last_name='Admin',
-            role='TG'
+            role='TG_PS'
         )
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.admin_token.access_token}')
         response = self.client.post('/api/users/users/delete-school-staff/', {

@@ -92,7 +92,7 @@ class ApproveDocumentTest(APITestCase):
             password='TgPass123!@#',
             first_name='Tutor',
             last_name='General',
-            role='TG'
+            role='TG_PS'
         )
         self.teacher = User.objects.create_user(
             email='teacher@ediv.gov.ng',

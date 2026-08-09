@@ -1,4 +1,5 @@
 import secrets
+import os
 from datetime import timedelta
 from rest_framework import viewsets, permissions, status, generics
 from rest_framework.decorators import action
@@ -326,8 +327,15 @@ class AuthViewSet(viewsets.ViewSet):
     def logout(self, request):
         try:
             refresh = RefreshToken(request.data.get('refresh'))
-            jti = str(refresh.get('jti', ''))
-            SessionManager.revoke_session(jti)
+            # UserSession rows are keyed by the access-token jti, so revoke the
+            # token owner's tracked sessions here (blacklist covers the refresh).
+            user_id = refresh.get('user_id')
+            if user_id:
+                try:
+                    user = User.objects.get(id=user_id)
+                    SessionManager.revoke_all_sessions(user)
+                except User.DoesNotExist:
+                    pass
             refresh.blacklist()
             return Response({'message': 'Logged out successfully.'})
         except Exception:
@@ -624,20 +632,44 @@ class AuthViewSet(viewsets.ViewSet):
 
 
 class UnlockView(generics.GenericAPIView):
-    """Admin unlock endpoint — requires staff/superuser authentication.
+    """One-shot admin unlock endpoint protected by a shared secret token.
 
     Routed at POST /api/users/auth/unlock/
 
-    Auth: Requires IsAdminUser (staff or superuser).
+    Auth: The shared secret in the `X-Unlock-Token` header must match the
+    `UNLOCK_TOKEN` environment variable. No user authentication required.
 
-    Action: clears failed_login_attempts, locked_until, MFA, and resets password.
-    Creates the admin user if it does not exist.
+    Action: clears failed_login_attempts, locked_until, MFA, and resets the
+    password to the one supplied in the request body. Creates the admin user
+    if it does not exist.
     """
-    permission_classes = [permissions.IsAdminUser]
+    authentication_classes = []
+    permission_classes = []
+    throttle_classes = []
 
     def post(self, request):
-        email = request.data.get('email', 'admin@ediv.gov.ng').strip().lower()
-        password = User.objects.make_random_password()
+        provided = request.META.get('HTTP_X_UNLOCK_TOKEN', '')
+        if not provided:
+            return Response(
+                {'error': 'Missing unlock token.'},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        expected = os.environ.get('UNLOCK_TOKEN', '')
+        if not expected:
+            return Response(
+                {'error': 'Unlock token not configured on the server.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        if provided != expected:
+            return Response(
+                {'error': 'Invalid unlock token.'},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        email = (request.data.get('email') or 'admin@ediv.gov.ng').strip().lower()
+        password = request.data.get('password') or User.objects.make_random_password()
 
         results = {}
 
@@ -681,7 +713,8 @@ class UnlockView(generics.GenericAPIView):
         # Clear cache lockout (best-effort)
         try:
             cache.delete(f'ediv:lockout:{user.id}')
-            cache.delete_pattern('ediv:lockout:*') if hasattr(cache, 'delete_pattern') else None
+            if hasattr(cache, 'delete_pattern'):
+                cache.delete_pattern('ediv:lockout:*')
         except Exception as e:
             results['cache_warning'] = str(e)
 

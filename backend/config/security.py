@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 from django.conf import settings
 from django.core.cache import cache
+from django.db.models import Q
 from django.http import HttpResponseForbidden
 from django.utils import timezone
 from rest_framework import status
@@ -303,9 +304,11 @@ class SessionManager:
         return UserSession.objects.filter(
             user=user,
             status=UserSession.Status.ACTIVE,
-        ).filter(
-            # Either no explicit expiry, or not yet expired
-            models_Q_or_no_expiry(now)
+            expires_at__isnull=True,
+        ) | UserSession.objects.filter(
+            user=user,
+            status=UserSession.Status.ACTIVE,
+            expires_at__gt=now,
         )
 
     @classmethod
@@ -506,9 +509,3 @@ class DeviceFingerprint:
         """Deterministic fingerprint hash from UA + IP + user ID."""
         raw = f"{user_agent}:{ip_address}:{user_id}"
         return hashlib.sha256(raw.encode()).hexdigest()[:64]
-
-
-# Helper for SessionManager.get_active_sessions (avoids importing django.db.models.Q at module top)
-def models_Q_or_no_expiry(now):
-    from django.db.models import Q
-    return Q(expires_at__isnull=True) | Q(expires_at__gt=now)

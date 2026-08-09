@@ -240,7 +240,7 @@ class CloseFileTest(APITestCase):
             password='AdminPass123!@#',
             first_name='Admin',
             last_name='User',
-            role='TG'
+            role='TG_PS'
         )
         self.file = File.objects.create(
             file_number='EDIV-2024-REG-003',
