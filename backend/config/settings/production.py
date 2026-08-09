@@ -4,7 +4,12 @@ from .base import *
 
 DEBUG = False
 
-ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(',')
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(',') if h.strip()] or ['localhost', '127.0.0.1']
+
+# Production must never run with a default/dev secret key.
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+if not SECRET_KEY:
+    raise SystemExit('Missing DJANGO_SECRET_KEY environment variable.')
 
 # Get DATABASE_URL from environment
 DATABASE_URL = os.environ.get('DATABASE_URL')
@@ -56,5 +61,3 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')

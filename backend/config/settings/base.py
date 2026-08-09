@@ -1,12 +1,69 @@
+import importlib.util
 import os
 from pathlib import Path
 from datetime import timedelta
+from copy import copy as _copy
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
-if not SECRET_KEY:
-    raise SystemExit('Missing DJANGO_SECRET_KEY environment variable.')
+
+def _patch_django_context_copy():
+    """Fix Django < 4.2.27 BaseContext.__copy__ crash on Python 3.14+.
+
+    Upstream fix: https://github.com/django/django/pull/18824 (ticket #35844).
+    ``copy(super())`` is no longer copyable on Python 3.14+, so template
+    contexts crash during tests (store_rendered_templates) and admin rendering.
+    """
+    try:
+        from django.template import context as _django_context
+    except ImportError:
+        return
+
+    cls = _django_context.BaseContext
+    try:
+        import inspect
+        src_text = inspect.getsource(cls.__copy__)
+    except (OSError, TypeError):
+        src_text = ''
+    # Only patch the known-buggy implementation.
+    if 'copy(super())' not in src_text:
+        return
+
+    def _base_context_copy(self):
+        duplicate = cls()
+        duplicate.__class__ = self.__class__
+        duplicate.__dict__ = _copy(self.__dict__)
+        duplicate.dicts = self.dicts[:]
+        return duplicate
+
+    cls.__copy__ = _base_context_copy
+
+
+_patch_django_context_copy()
+
+
+def _load_env_file(path):
+    """Load a .env file into os.environ without overriding existing variables."""
+    if not path.is_file():
+        return
+    with open(path, encoding='utf-8') as fh:
+        for line in fh:
+            line = line.strip()
+            if not line or line.startswith('#') or '=' not in line:
+                continue
+            key, _, value = line.partition('=')
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
+
+
+# Load .env files so settings can be configured without exporting variables.
+_load_env_file(BASE_DIR / '.env')
+_load_env_file(BASE_DIR.parent / '.env')
+
+# Dev/CI-safe default. production.py re-validates and refuses to start without a key.
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY') or 'django-insecure-dev-only-do-not-use-in-production'
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -173,6 +230,15 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', '')
+
+# Wire django_celery_beat only when installed (absent on Render-free tier)
+if importlib.util.find_spec('django_celery_beat'):
+    INSTALLED_APPS += ['django_celery_beat', 'django_celery_results']
+    CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# Elasticsearch (optional - falls back to database search when unavailable)
+ELASTICSEARCH_HOSTS = [os.environ.get('ELASTICSEARCH_URL', 'http://localhost:9200')]
 
 # Session & Cache - default to database session, overridden in production if Redis available
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'

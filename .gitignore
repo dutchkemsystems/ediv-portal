@@ -11,6 +11,12 @@ media/
 *.log
 .mimocode/
 .git-rewrite/
+.memsearch/
+default_*.sqlite3
+coverage/
+.pytest_cache/
+.venv/
+venv/
 # frontend/dist/ - kept in git for Render deployment
 scripts/cleanup_github.py
 scripts/recreate_repo.py

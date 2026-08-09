@@ -1,25 +1,9 @@
 """
 Test settings for Django project.
-Uses SQLite in-memory database for fast test execution.
+Uses SQLite in-memory database for fast, deterministic test execution.
 """
-import os
-import sys
-from pathlib import Path
+from .base import *  # noqa: F401, F403
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-# Add backend/ to Python path
-BACKEND_DIR = str(BASE_DIR / 'backend')
-if BACKEND_DIR not in sys.path:
-    sys.path.insert(0, BACKEND_DIR)
-
-# Set environment
-os.environ.setdefault('DJANGO_SECRET_KEY', 'test-secret-key-for-testing-only')
-
-# Import base settings
-from config.settings.base import *  # noqa
-
-# Override database to SQLite for testing
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -27,7 +11,6 @@ DATABASES = {
     }
 }
 
-# Debug for tests
 DEBUG = True
 
 # Disable security middleware for tests
@@ -39,10 +22,6 @@ CSRF_COOKIE_SECURE = False
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.MD5PasswordHasher',
 ]
-
-# Override ROOT_URLCONF
-ROOT_URLCONF = 'ediv_portal.urls'
-WSGI_APPLICATION = 'ediv_portal.wsgi.application'
 
 # Disable CORS for tests
 CORS_ALLOW_ALL_ORIGINS = True

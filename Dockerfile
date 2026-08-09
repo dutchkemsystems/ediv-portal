@@ -1,9 +1,13 @@
 FROM python:3.11-slim
 
-ENV PYTHONDICTWRITEBYTECODE=1
+ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV DJANGO_SETTINGS_MODULE=ediv_portal.settings
 ENV PYTHONPATH=/app/backend
+
+# Build-time secret so collectstatic can run; runtime env must override with a real key.
+ARG DJANGO_SECRET_KEY=django-insecure-build-time-only
+ENV DJANGO_SECRET_KEY=$DJANGO_SECRET_KEY
 
 WORKDIR /app
 
