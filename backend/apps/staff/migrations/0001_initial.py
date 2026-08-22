@@ -90,9 +90,7 @@ class Migration(migrations.Migration):
                 ("date_of_birth", models.DateField()),
                 (
                     "gender",
-                    models.CharField(
-                        choices=[("M", "Male"), ("F", "Female")], max_length=10
-                    ),
+                    models.CharField(choices=[("M", "Male"), ("F", "Female")], max_length=10),
                 ),
                 (
                     "marital_status",

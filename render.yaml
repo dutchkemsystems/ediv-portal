@@ -27,10 +27,18 @@ services:
         sync: false
       - key: KORA_PAY_SECRET_KEY
         sync: false
+      - key: EMAIL_HOST
+        value: "smtp.gmail.com"
+      - key: EMAIL_PORT
+        value: "587"
+      - key: EMAIL_USE_TLS
+        value: "True"
       - key: EMAIL_HOST_USER
         sync: false
       - key: EMAIL_HOST_PASSWORD
         sync: false
+      - key: DEFAULT_FROM_EMAIL
+        value: "EDIV Portal <noreply@ediv.gov.ng>"
       - key: ADMIN_PASSWORD
         sync: false
       - key: TG_PASSWORD
@@ -44,9 +52,17 @@ services:
       - key: STUDENT_PASSWORD
         sync: false
       - key: FRONTEND_URL
-        value: https://ediv-frontend-static.onrender.com
+        value: "https://ediv-portal.onrender.com"
     healthCheckPath: /health/
     autoDeploy: true
+
+cron:
+  - name: wake-up
+    schedule: "*/10 * * * *"
+    command: "curl -s https://ediv-portal.onrender.com/wake/ || true"
+    envVars:
+      - key: URL
+        value: "https://ediv-portal.onrender.com/wake/"
 
 databases:
   - name: ediv-db

@@ -1,13 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
   Button,
   Grid,
-  Card,
-  CardContent,
   Chip,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -20,10 +17,6 @@ import {
 } from '@mui/material'
 import {
   Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Visibility as ViewIcon,
-  School as SchoolIcon,
   MenuBook as CourseIcon,
   Quiz as QuizIcon,
   People as PeopleIcon,
@@ -36,8 +29,8 @@ import api from '../api/client'
 
 function ELearning() {
   const [courses, setCourses] = useState([])
-  const [enrollments, setEnrollments] = useState([])
-  const [quizzes, setQuizzes] = useState([])
+  const [, setEnrollments] = useState([])
+  const [, setQuizzes] = useState([])
   const [loading, setLoading] = useState(true)
   const [openDialog, setOpenDialog] = useState(false)
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false)

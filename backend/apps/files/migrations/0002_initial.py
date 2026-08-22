@@ -119,33 +119,23 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="filemovement",
-            index=models.Index(
-                fields=["from_holder"], name="files_filem_from_ho_6905d5_idx"
-            ),
+            index=models.Index(fields=["from_holder"], name="files_filem_from_ho_6905d5_idx"),
         ),
         migrations.AddIndex(
             model_name="filemovement",
-            index=models.Index(
-                fields=["to_holder"], name="files_filem_to_hold_7e9909_idx"
-            ),
+            index=models.Index(fields=["to_holder"], name="files_filem_to_hold_7e9909_idx"),
         ),
         migrations.AddIndex(
             model_name="filemovement",
-            index=models.Index(
-                fields=["movement_date"], name="files_filem_movemen_bf1609_idx"
-            ),
+            index=models.Index(fields=["movement_date"], name="files_filem_movemen_bf1609_idx"),
         ),
         migrations.AddIndex(
             model_name="file",
-            index=models.Index(
-                fields=["file_number"], name="files_file_file_nu_09f322_idx"
-            ),
+            index=models.Index(fields=["file_number"], name="files_file_file_nu_09f322_idx"),
         ),
         migrations.AddIndex(
             model_name="file",
-            index=models.Index(
-                fields=["file_type"], name="files_file_file_ty_2d7e73_idx"
-            ),
+            index=models.Index(fields=["file_type"], name="files_file_file_ty_2d7e73_idx"),
         ),
         migrations.AddIndex(
             model_name="file",
@@ -153,14 +143,10 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="file",
-            index=models.Index(
-                fields=["created_by"], name="files_file_created_85541d_idx"
-            ),
+            index=models.Index(fields=["created_by"], name="files_file_created_85541d_idx"),
         ),
         migrations.AddIndex(
             model_name="file",
-            index=models.Index(
-                fields=["current_holder"], name="files_file_current_85af97_idx"
-            ),
+            index=models.Index(fields=["current_holder"], name="files_file_current_85af97_idx"),
         ),
     ]

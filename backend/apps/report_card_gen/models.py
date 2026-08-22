@@ -1,5 +1,5 @@
-from django.db import models
 from django.conf import settings
+from django.db import models
 
 
 class ReportCardTemplate(models.Model):
@@ -17,7 +17,7 @@ class ReportCardTemplate(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'report_card_templates'
+        db_table = "report_card_templates"
 
     def __str__(self):
         return self.name
@@ -25,15 +25,14 @@ class ReportCardTemplate(models.Model):
 
 class GeneratedReportCard(models.Model):
     STATUS_CHOICES = [
-        ('PENDING', 'Pending'),
-        ('GENERATING', 'Generating'),
-        ('COMPLETED', 'Completed'),
-        ('FAILED', 'Failed'),
+        ("PENDING", "Pending"),
+        ("GENERATING", "Generating"),
+        ("COMPLETED", "Completed"),
+        ("FAILED", "Failed"),
     ]
 
-    student = models.ForeignKey('students.Student', on_delete=models.CASCADE,
-                               related_name='generated_report_cards')
-    school = models.ForeignKey('schools.School', on_delete=models.CASCADE)
+    student = models.ForeignKey("students.Student", on_delete=models.CASCADE, related_name="generated_report_cards")
+    school = models.ForeignKey("schools.School", on_delete=models.CASCADE)
     template = models.ForeignKey(ReportCardTemplate, on_delete=models.SET_NULL, null=True)
     academic_session = models.CharField(max_length=20)
     term = models.CharField(max_length=20)
@@ -49,19 +48,20 @@ class GeneratedReportCard(models.Model):
     principal_remark = models.TextField(blank=True)
 
     # Status
-    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='PENDING')
-    pdf_file = models.FileField(upload_to='report_cards/', blank=True, null=True)
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default="PENDING")
+    pdf_file = models.FileField(upload_to="report_cards/", blank=True, null=True)
     error_message = models.TextField(blank=True)
 
-    generated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
-                                     null=True, related_name='generated_report_cards')
+    generated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="generated_report_cards"
+    )
     generated_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'generated_report_cards'
-        unique_together = ['student', 'academic_session', 'term']
-        ordering = ['-created_at']
+        db_table = "generated_report_cards"
+        unique_together = ["student", "academic_session", "term"]
+        ordering = ["-created_at"]
 
     def __str__(self):
         return f"Report Card: {self.student} - {self.term} {self.academic_session}"
@@ -69,25 +69,23 @@ class GeneratedReportCard(models.Model):
 
 class ReportCardShareLog(models.Model):
     CHANNEL_CHOICES = [
-        ('EMAIL', 'Email'),
-        ('WHATSAPP', 'WhatsApp'),
-        ('SMS', 'SMS'),
-        ('DOWNLOAD', 'Download'),
-        ('PRINT', 'Print'),
+        ("EMAIL", "Email"),
+        ("WHATSAPP", "WhatsApp"),
+        ("SMS", "SMS"),
+        ("DOWNLOAD", "Download"),
+        ("PRINT", "Print"),
     ]
 
-    report_card = models.ForeignKey(GeneratedReportCard, on_delete=models.CASCADE,
-                                   related_name='share_logs')
+    report_card = models.ForeignKey(GeneratedReportCard, on_delete=models.CASCADE, related_name="share_logs")
     channel = models.CharField(max_length=15, choices=CHANNEL_CHOICES)
     recipient = models.CharField(max_length=200)
-    shared_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
-                                  null=True)
+    shared_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     shared_at = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=20, default='SENT')
+    status = models.CharField(max_length=20, default="SENT")
 
     class Meta:
-        db_table = 'report_card_share_logs'
-        ordering = ['-shared_at']
+        db_table = "report_card_share_logs"
+        ordering = ["-shared_at"]
 
     def __str__(self):
         return f"{self.report_card} shared via {self.channel}"

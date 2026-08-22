@@ -1,21 +1,23 @@
-import json
 import logging
+
 from django.utils import timezone
-from ..models import DeviceToken, PushNotification, NotificationLog
+
+from ..models import DeviceToken, NotificationLog, PushNotification
 
 logger = logging.getLogger(__name__)
 
 
 class PushNotificationService:
     @staticmethod
-    def register_device(user, token, platform, device_name=''):
+    def register_device(user, token, platform, device_name=""):
         device, created = DeviceToken.objects.update_or_create(
-            user=user, token=token,
+            user=user,
+            token=token,
             defaults={
-                'platform': platform,
-                'device_name': device_name,
-                'is_active': True,
-            }
+                "platform": platform,
+                "device_name": device_name,
+                "is_active": True,
+            },
         )
         return device
 
@@ -45,49 +47,39 @@ class PushNotificationService:
                 success = PushNotificationService._send_to_device(device, notification)
                 if success:
                     sent_count += 1
-                    NotificationLog.objects.create(
-                        notification=notification,
-                        device_token=device,
-                        status='SENT'
-                    )
+                    NotificationLog.objects.create(notification=notification, device_token=device, status="SENT")
                 else:
                     NotificationLog.objects.create(
-                        notification=notification,
-                        device_token=device,
-                        status='FAILED',
-                        error_message='Send failed'
+                        notification=notification, device_token=device, status="FAILED", error_message="Send failed"
                     )
             except Exception as e:
                 logger.error(f"Failed to send to {device.token}: {e}")
                 NotificationLog.objects.create(
-                    notification=notification,
-                    device_token=device,
-                    status='FAILED',
-                    error_message=str(e)
+                    notification=notification, device_token=device, status="FAILED", error_message=str(e)
                 )
 
         notification.sent_at = timezone.now()
         notification.sent_count = sent_count
         notification.save()
 
-        return {'sent_count': sent_count, 'total_devices': devices.count()}
+        return {"sent_count": sent_count, "total_devices": devices.count()}
 
     @staticmethod
     def _send_to_device(device, notification):
         payload = {
-            'title': notification.title,
-            'body': notification.message,
-            'category': notification.category,
-            'data': notification.data,
-            'image': notification.image_url,
-            'action_url': notification.action_url,
+            "title": notification.title,
+            "body": notification.message,
+            "category": notification.category,
+            "data": notification.data,
+            "image": notification.image_url,
+            "action_url": notification.action_url,
         }
 
-        if device.platform == 'WEB':
+        if device.platform == "WEB":
             return PushNotificationService._send_web_push(device, payload)
-        elif device.platform == 'ANDROID':
+        elif device.platform == "ANDROID":
             return PushNotificationService._send_fcm(device, payload)
-        elif device.platform == 'IOS':
+        elif device.platform == "IOS":
             return PushNotificationService._send_apns(device, payload)
         return False
 
@@ -107,7 +99,7 @@ class PushNotificationService:
         return True
 
     @staticmethod
-    def send_to_user(user, title, message, category='GENERAL', data=None):
+    def send_to_user(user, title, message, category="GENERAL", data=None):
         notification = PushNotification.objects.create(
             title=title,
             message=message,
@@ -118,7 +110,7 @@ class PushNotificationService:
         return PushNotificationService.send_notification(notification.id)
 
     @staticmethod
-    def send_broadcast(title, message, category='ANNOUNCEMENT', roles=None, schools=None):
+    def send_broadcast(title, message, category="ANNOUNCEMENT", roles=None, schools=None):
         notification = PushNotification.objects.create(
             title=title,
             message=message,
@@ -132,19 +124,18 @@ class PushNotificationService:
     @staticmethod
     def mark_opened(notification_id, device_token):
         from django.db.models import F
-        PushNotification.objects.filter(id=notification_id).update(
-            opened_count=F('opened_count') + 1
+
+        PushNotification.objects.filter(id=notification_id).update(opened_count=F("opened_count") + 1)
+        NotificationLog.objects.filter(notification_id=notification_id, device_token__token=device_token).update(
+            status="OPENED"
         )
-        NotificationLog.objects.filter(
-            notification_id=notification_id,
-            device_token__token=device_token
-        ).update(status='OPENED')
 
     @staticmethod
     def get_user_notifications(user, limit=20):
         from django.db import models as db_models
+
         return PushNotification.objects.filter(
-            db_models.Q(target_users=user) |
-            db_models.Q(target_roles__contains=user.role) |
-            db_models.Q(target_schools=user.school)
+            db_models.Q(target_users=user)
+            | db_models.Q(target_roles__contains=user.role)
+            | db_models.Q(target_schools=user.school)
         ).distinct()[:limit]

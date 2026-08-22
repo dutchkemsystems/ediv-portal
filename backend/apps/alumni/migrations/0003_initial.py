@@ -44,14 +44,10 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="alumnimember",
-            index=models.Index(
-                fields=["school"], name="alumni_alum_school__3e0275_idx"
-            ),
+            index=models.Index(fields=["school"], name="alumni_alum_school__3e0275_idx"),
         ),
         migrations.AddIndex(
             model_name="alumnimember",
-            index=models.Index(
-                fields=["graduation_year"], name="alumni_alum_graduat_efd067_idx"
-            ),
+            index=models.Index(fields=["graduation_year"], name="alumni_alum_graduat_efd067_idx"),
         ),
     ]

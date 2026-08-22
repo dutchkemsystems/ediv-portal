@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Box,
   Typography,
@@ -37,6 +37,13 @@ const MODEL_OPTIONS = [
   { value: 'students', label: 'Students' },
   { value: 'staff', label: 'Staff' },
   { value: 'schools', label: 'Schools' },
+  { value: 'fees', label: 'Student Fees' },
+  { value: 'payments', label: 'Payments' },
+  { value: 'attendance', label: 'Attendance' },
+  { value: 'classes', label: 'Classes' },
+  { value: 'subjects', label: 'Subjects' },
+  { value: 'exam_results', label: 'Exam Results' },
+  { value: 'departments', label: 'Departments' },
 ]
 
 const FORMAT_OPTIONS = [
@@ -141,7 +148,6 @@ function DataImportExport() {
 
   const completedJobs = jobs.filter((j) => j.status === 'COMPLETED')
   const failedJobs = jobs.filter((j) => j.status === 'FAILED')
-  const totalImported = completedJobs.reduce((sum, j) => sum + (j.success_rows || 0), 0)
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -215,7 +221,7 @@ function DataImportExport() {
                   <input
                     id="file-input"
                     type="file"
-                    accept=".csv,.xlsx,.xls,.pdf,.docx,.json"
+                    accept=".csv,.xlsx,.xls,.pdf,.docx,.json,.accdb,.mdb"
                     style={{ display: 'none' }}
                     onChange={(e) => setSelectedFile(e.target.files[0])}
                   />

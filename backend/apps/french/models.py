@@ -1,14 +1,15 @@
-from django.db import models
 from django.conf import settings
+from django.db import models
+
 from apps.schools.models import School
 
 
 class FrenchLevel(models.TextChoices):
-    BEGINNER = 'BEGINNER', 'Beginner'
-    ELEMENTARY = 'ELEMENTARY', 'Elementary'
-    INTERMEDIATE = 'INTERMEDIATE', 'Intermediate'
-    ADVANCED = 'ADVANCED', 'Advanced'
-    FLUENT = 'FLUENT', 'Fluent'
+    BEGINNER = "BEGINNER", "Beginner"
+    ELEMENTARY = "ELEMENTARY", "Elementary"
+    INTERMEDIATE = "INTERMEDIATE", "Intermediate"
+    ADVANCED = "ADVANCED", "Advanced"
+    FLUENT = "FLUENT", "Fluent"
 
 
 class FrenchProgram(models.Model):
@@ -19,49 +20,49 @@ class FrenchProgram(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
-        ordering = ['level', 'name']
-    
+        ordering = ["level", "name"]
+
     def __str__(self):
         return f"{self.name} ({self.level})"
 
 
 class FrenchClub(models.Model):
-    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='french_clubs')
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="french_clubs")
     name = models.CharField(max_length=200)
     coordinator = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='coordinated_french_clubs'
+        related_name="coordinated_french_clubs",
     )
     meeting_schedule = models.CharField(max_length=200, blank=True)
     meeting_venue = models.CharField(max_length=200, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
-        ordering = ['school', 'name']
-    
+        ordering = ["school", "name"]
+
     def __str__(self):
         return f"{self.school.name} - {self.name}"
 
 
 class FrenchClubMember(models.Model):
-    club = models.ForeignKey(FrenchClub, on_delete=models.CASCADE, related_name='members')
-    student = models.ForeignKey('students.Student', on_delete=models.CASCADE, related_name='french_club_memberships')
+    club = models.ForeignKey(FrenchClub, on_delete=models.CASCADE, related_name="members")
+    student = models.ForeignKey("students.Student", on_delete=models.CASCADE, related_name="french_club_memberships")
     role = models.CharField(max_length=100, blank=True)
     joined_date = models.DateField()
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
-        unique_together = ['club', 'student']
-        ordering = ['club', 'student']
-    
+        unique_together = ["club", "student"]
+        ordering = ["club", "student"]
+
     def __str__(self):
         return f"{self.student.user.get_full_name()} - {self.club.name}"
 
@@ -77,9 +78,9 @@ class FrenchCompetition(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
-        ordering = ['-date']
-    
+        ordering = ["-date"]
+
     def __str__(self):
         return self.name

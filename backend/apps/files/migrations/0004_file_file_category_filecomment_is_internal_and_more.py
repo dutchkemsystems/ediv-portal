@@ -9,38 +9,98 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('files', '0003_add_status_timeline_and_completion_notes'),
+        ("files", "0003_add_status_timeline_and_completion_notes"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='file',
-            name='file_category',
-            field=models.CharField(choices=[('ADMIN', 'Administrative'), ('ACAD', 'Academic'), ('FIN', 'Finance'), ('INSP', 'Inspection'), ('DISC', 'Discipline'), ('COCC', 'Co-curricular'), ('POL', 'Policy'), ('CORR', 'Correspondence'), ('PROC', 'Procurement')], default='ADMIN', max_length=20),
+            model_name="file",
+            name="file_category",
+            field=models.CharField(
+                choices=[
+                    ("ADMIN", "Administrative"),
+                    ("ACAD", "Academic"),
+                    ("FIN", "Finance"),
+                    ("INSP", "Inspection"),
+                    ("DISC", "Discipline"),
+                    ("COCC", "Co-curricular"),
+                    ("POL", "Policy"),
+                    ("CORR", "Correspondence"),
+                    ("PROC", "Procurement"),
+                ],
+                default="ADMIN",
+                max_length=20,
+            ),
         ),
         migrations.AddField(
-            model_name='filecomment',
-            name='is_internal',
-            field=models.BooleanField(default=False, help_text='Internal comments not visible to external stakeholders'),
+            model_name="filecomment",
+            name="is_internal",
+            field=models.BooleanField(
+                default=False, help_text="Internal comments not visible to external stakeholders"
+            ),
         ),
         migrations.AlterField(
-            model_name='file',
-            name='classification',
-            field=models.CharField(choices=[('PUBLIC', 'Public'), ('CONFIDENTIAL', 'Confidential'), ('RESTRICTED', 'Restricted'), ('TOP_SECRET', 'Top Secret')], default='CONFIDENTIAL', max_length=20),
+            model_name="file",
+            name="classification",
+            field=models.CharField(
+                choices=[
+                    ("PUBLIC", "Public"),
+                    ("CONFIDENTIAL", "Confidential"),
+                    ("RESTRICTED", "Restricted"),
+                    ("TOP_SECRET", "Top Secret"),
+                ],
+                default="CONFIDENTIAL",
+                max_length=20,
+            ),
         ),
         migrations.AlterField(
-            model_name='file',
-            name='status',
-            field=models.CharField(choices=[('DRAFT', 'Draft'), ('ACTIVE', 'Active'), ('PENDING', 'Pending'), ('IN_TRANSIT', 'In Transit'), ('UNDER_REVIEW', 'Under Review'), ('APPROVED', 'Approved'), ('REJECTED', 'Rejected'), ('CLOSED', 'Closed'), ('ARCHIVED', 'Archived')], default='DRAFT', max_length=20),
+            model_name="file",
+            name="status",
+            field=models.CharField(
+                choices=[
+                    ("DRAFT", "Draft"),
+                    ("ACTIVE", "Active"),
+                    ("PENDING", "Pending"),
+                    ("IN_TRANSIT", "In Transit"),
+                    ("UNDER_REVIEW", "Under Review"),
+                    ("APPROVED", "Approved"),
+                    ("REJECTED", "Rejected"),
+                    ("CLOSED", "Closed"),
+                    ("ARCHIVED", "Archived"),
+                ],
+                default="DRAFT",
+                max_length=20,
+            ),
         ),
         migrations.AlterField(
-            model_name='filemovement',
-            name='action',
-            field=models.CharField(choices=[('CREATED', 'Created'), ('SUBMITTED', 'Submitted'), ('REVIEWED', 'Reviewed'), ('APPROVED', 'Approved'), ('REJECTED', 'Rejected'), ('FORWARDED', 'Forwarded'), ('RETURNED', 'Returned'), ('ESCALATED', 'Escalated'), ('COMMENTED', 'Commented'), ('ARCHIVED', 'Archived'), ('DELETED', 'Deleted')], max_length=20),
+            model_name="filemovement",
+            name="action",
+            field=models.CharField(
+                choices=[
+                    ("CREATED", "Created"),
+                    ("SUBMITTED", "Submitted"),
+                    ("REVIEWED", "Reviewed"),
+                    ("APPROVED", "Approved"),
+                    ("REJECTED", "Rejected"),
+                    ("FORWARDED", "Forwarded"),
+                    ("RETURNED", "Returned"),
+                    ("ESCALATED", "Escalated"),
+                    ("COMMENTED", "Commented"),
+                    ("ARCHIVED", "Archived"),
+                    ("DELETED", "Deleted"),
+                ],
+                max_length=20,
+            ),
         ),
         migrations.AlterField(
-            model_name='filemovement',
-            name='to_holder',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='file_movements_to', to=settings.AUTH_USER_MODEL),
+            model_name="filemovement",
+            name="to_holder",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="file_movements_to",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
     ]

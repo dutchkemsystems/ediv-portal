@@ -25,15 +25,11 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="competition",
-            index=models.Index(
-                fields=["competition_type"], name="co_curricul_competi_3ad4ac_idx"
-            ),
+            index=models.Index(fields=["competition_type"], name="co_curricul_competi_3ad4ac_idx"),
         ),
         migrations.AddIndex(
             model_name="competition",
-            index=models.Index(
-                fields=["start_date"], name="co_curricul_start_d_71c7bd_idx"
-            ),
+            index=models.Index(fields=["start_date"], name="co_curricul_start_d_71c7bd_idx"),
         ),
         migrations.AddField(
             model_name="activityparticipant",

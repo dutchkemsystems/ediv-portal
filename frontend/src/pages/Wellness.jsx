@@ -1,13 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
   Button,
   Grid,
-  Card,
-  CardContent,
   Chip,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -20,9 +17,6 @@ import {
 } from '@mui/material'
 import {
   Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Visibility as ViewIcon,
   SelfImprovement as WellnessIcon,
   EventNote as SessionIcon,
   CheckCircle as CompletedIcon,
@@ -36,7 +30,7 @@ import api from '../api/client'
 
 function Wellness() {
   const [sessions, setSessions] = useState([])
-  const [checkIns, setCheckIns] = useState([])
+  const [, setCheckIns] = useState([])
   const [resources, setResources] = useState([])
   const [loading, setLoading] = useState(true)
   const [openDialog, setOpenDialog] = useState(false)

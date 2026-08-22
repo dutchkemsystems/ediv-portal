@@ -1,17 +1,18 @@
 from rest_framework import serializers
-from .models import PointCategory, Badge, UserPoints, PointTransaction, UserBadge, Leaderboard
+
+from .models import Badge, Leaderboard, PointCategory, PointTransaction, UserBadge, UserPoints
 
 
 class PointCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = PointCategory
-        fields = ['id', 'name', 'action_type', 'points', 'description', 'is_active', 'daily_limit']
+        fields = ["id", "name", "action_type", "points", "description", "is_active", "daily_limit"]
 
 
 class BadgeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Badge
-        fields = ['id', 'name', 'description', 'icon', 'tier', 'points_required', 'category', 'criteria']
+        fields = ["id", "name", "description", "icon", "tier", "points_required", "category", "criteria"]
 
 
 class UserPointsSerializer(serializers.ModelSerializer):
@@ -19,8 +20,8 @@ class UserPointsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserPoints
-        fields = ['id', 'user', 'user_name', 'total_points', 'level', 'streak_days', 'last_activity_date']
-        read_only_fields = ['id', 'total_points', 'level']
+        fields = ["id", "user", "user_name", "total_points", "level", "streak_days", "last_activity_date"]
+        read_only_fields = ["id", "total_points", "level"]
 
     def get_user_name(self, obj):
         return obj.user.get_full_name()
@@ -32,9 +33,19 @@ class PointTransactionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PointTransaction
-        fields = ['id', 'user', 'user_name', 'category', 'category_name', 'points',
-                  'description', 'reference_id', 'awarded_by', 'created_at']
-        read_only_fields = ['id', 'created_at']
+        fields = [
+            "id",
+            "user",
+            "user_name",
+            "category",
+            "category_name",
+            "points",
+            "description",
+            "reference_id",
+            "awarded_by",
+            "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]
 
     def get_user_name(self, obj):
         return obj.user.get_full_name()
@@ -50,8 +61,7 @@ class UserBadgeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserBadge
-        fields = ['id', 'user', 'badge', 'badge_name', 'badge_icon', 'badge_tier',
-                  'awarded_at', 'awarded_by', 'reason']
+        fields = ["id", "user", "badge", "badge_name", "badge_icon", "badge_tier", "awarded_at", "awarded_by", "reason"]
 
     def get_badge_name(self, obj):
         return obj.badge.name
@@ -68,8 +78,7 @@ class LeaderboardSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Leaderboard
-        fields = ['id', 'user', 'user_name', 'period', 'period_start', 'period_end',
-                  'points_earned', 'rank', 'school']
+        fields = ["id", "user", "user_name", "period", "period_start", "period_end", "points_earned", "rank", "school"]
 
     def get_user_name(self, obj):
         return obj.user.get_full_name()

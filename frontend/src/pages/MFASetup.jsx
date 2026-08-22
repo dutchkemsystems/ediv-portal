@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Container,
@@ -24,7 +24,7 @@ function MFASetup() {
   const [activeStep, setActiveStep] = useState(0)
   const [secret, setSecret] = useState('')
   const [qrCodeUrl, setQrCodeUrl] = useState('')
-  const [provisioningUri, setProvisioningUri] = useState('')
+  const [, setProvisioningUri] = useState('')
   const [verifyCode, setVerifyCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')

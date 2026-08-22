@@ -78,15 +78,11 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="document",
-            index=models.Index(
-                fields=["reference_number"], name="registry_do_referen_5e9bb5_idx"
-            ),
+            index=models.Index(fields=["reference_number"], name="registry_do_referen_5e9bb5_idx"),
         ),
         migrations.AddIndex(
             model_name="document",
-            index=models.Index(
-                fields=["document_type"], name="registry_do_documen_a95341_idx"
-            ),
+            index=models.Index(fields=["document_type"], name="registry_do_documen_a95341_idx"),
         ),
         migrations.AddIndex(
             model_name="document",

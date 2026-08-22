@@ -1,4 +1,3 @@
-import React from 'react'
 import { Card, CardContent, Typography, Box, Avatar } from '@mui/material'
 
 function StatCard({ title, value, icon, color = '#1a237e', subtitle, trend, trendValue }) {

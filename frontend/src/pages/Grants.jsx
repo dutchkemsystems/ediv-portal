@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
@@ -11,9 +11,8 @@ import {
   MenuItem,
   Grid,
   Chip,
-  IconButton,
 } from '@mui/material'
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material'
+import { Add as AddIcon } from '@mui/icons-material'
 import api from '../api/client'
 import StatCard from '../components/common/StatCard'
 import DataTable from '../components/common/DataTable'
@@ -35,8 +34,8 @@ const emptyGrant = {
 
 function Grants() {
   const [grants, setGrants] = useState([])
-  const [schools, setSchools] = useState([])
-  const [departments, setDepartments] = useState([])
+  const [, setSchools] = useState([])
+  const [, setDepartments] = useState([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)

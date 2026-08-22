@@ -58,8 +58,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="department",
-            index=models.Index(
-                fields=["category"], name="departments_categor_ace7a2_idx"
-            ),
+            index=models.Index(fields=["category"], name="departments_categor_ace7a2_idx"),
         ),
     ]

@@ -94,6 +94,9 @@ const getMenuItems = (role) => {
     { text: 'Co-Curricular', icon: <CoCurIcon />, path: '/co-curricular' },
     { text: 'CPD', icon: <AnalyticsIcon />, path: '/cpd' },
     { text: 'Reports', icon: <ReportsIcon />, path: '/reports' },
+    { text: 'Data Import/Export', icon: <AssignmentIcon />, path: '/data-import-export' },
+    { text: 'Access Databases', icon: <AssignmentIcon />, path: '/access-databases' },
+    { text: 'Mail Workflow', icon: <MailIcon />, path: '/mail-workflow' },
   ]
 
   const roleAccess = {
@@ -110,7 +113,7 @@ const getMenuItems = (role) => {
     PA: ['/dashboard', '/communication', '/reports', '/notifications'],
     SA: ['/dashboard', '/schools', '/students', '/reports', '/notifications'],
     FRENCH: ['/dashboard', '/french', '/co-curricular', '/reports', '/notifications'],
-    REG: ['/dashboard', '/registry', '/files', '/workflows', '/notifications'],
+    REG: ['/dashboard', '/registry', '/files', '/workflows', '/data-import-export', '/access-databases', '/notifications'],
     REG_OFF: ['/dashboard', '/registry', '/files', '/workflows', '/notifications'],
     SA_OFF: ['/dashboard', '/schools', '/students', '/reports', '/notifications'],
     PRI: ['/dashboard', '/schools', '/students', '/staff', '/academics', '/attendance', '/timetable', '/reports', '/discipline', '/library', '/notifications'],

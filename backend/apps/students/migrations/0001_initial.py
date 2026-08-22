@@ -27,9 +27,7 @@ class Migration(migrations.Migration):
                 ("date_of_birth", models.DateField()),
                 (
                     "gender",
-                    models.CharField(
-                        choices=[("M", "Male"), ("F", "Female")], max_length=10
-                    ),
+                    models.CharField(choices=[("M", "Male"), ("F", "Female")], max_length=10),
                 ),
                 ("blood_group", models.CharField(blank=True, max_length=5)),
                 ("nationality", models.CharField(default="Nigerian", max_length=50)),

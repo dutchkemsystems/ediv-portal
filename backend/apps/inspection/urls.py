@@ -1,12 +1,13 @@
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from .views import InspectionViewSet, InspectionChecklistViewSet, InspectionActionViewSet
+
+from .views import InspectionActionViewSet, InspectionChecklistViewSet, InspectionViewSet
 
 router = DefaultRouter()
-router.register('inspections', InspectionViewSet)
-router.register('checklists', InspectionChecklistViewSet)
-router.register('actions', InspectionActionViewSet)
+router.register("inspections", InspectionViewSet)
+router.register("checklists", InspectionChecklistViewSet)
+router.register("actions", InspectionActionViewSet)
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path("", include(router.urls)),
 ]

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
@@ -7,7 +7,6 @@ import {
   Card,
   CardContent,
   Chip,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -20,9 +19,6 @@ import {
 } from '@mui/material'
 import {
   Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Visibility as ViewIcon,
   Notifications as NotificationsIcon,
   Email as EmailIcon,
   Sms as SmsIcon,
@@ -38,7 +34,7 @@ function Notifications() {
   const [templates, setTemplates] = useState([])
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState(null)
+  const [, setStats] = useState(null)
   const [openDialog, setOpenDialog] = useState(false)
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState(null)

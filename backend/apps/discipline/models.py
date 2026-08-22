@@ -1,41 +1,39 @@
-from django.db import models
 from django.conf import settings
+from django.db import models
 
 
 class IncidentType(models.TextChoices):
-    LATE_COMING = 'LATE_COMING', 'Late Coming'
-    ABSENCE = 'ABSENCE', 'Absence'
-    UNIFORM_VIOLATION = 'UNIFORM_VIOLATION', 'Uniform Violation'
-    DISRESPECT = 'DISRESPECT', 'Disrespect'
-    FIGHTING = 'FIGHTING', 'Fighting'
-    BULLYING = 'BULLYING', 'Bullying'
-    CHEATING = 'CHEATING', 'Cheating'
-    VANDALISM = 'VANDALISM', 'Vandalism'
-    THEFT = 'THEFT', 'Theft'
-    SUBSTANCE_ABUSE = 'SUBSTANCE_ABUSE', 'Substance Abuse'
-    OTHER = 'OTHER', 'Other'
+    LATE_COMING = "LATE_COMING", "Late Coming"
+    ABSENCE = "ABSENCE", "Absence"
+    UNIFORM_VIOLATION = "UNIFORM_VIOLATION", "Uniform Violation"
+    DISRESPECT = "DISRESPECT", "Disrespect"
+    FIGHTING = "FIGHTING", "Fighting"
+    BULLYING = "BULLYING", "Bullying"
+    CHEATING = "CHEATING", "Cheating"
+    VANDALISM = "VANDALISM", "Vandalism"
+    THEFT = "THEFT", "Theft"
+    SUBSTANCE_ABUSE = "SUBSTANCE_ABUSE", "Substance Abuse"
+    OTHER = "OTHER", "Other"
 
 
 class IncidentSeverity(models.TextChoices):
-    MINOR = 'MINOR', 'Minor'
-    MODERATE = 'MODERATE', 'Moderate'
-    SERIOUS = 'SERIOUS', 'Serious'
-    SEVERE = 'SEVERE', 'Severe'
+    MINOR = "MINOR", "Minor"
+    MODERATE = "MODERATE", "Moderate"
+    SERIOUS = "SERIOUS", "Serious"
+    SEVERE = "SEVERE", "Severe"
 
 
 class IncidentStatus(models.TextChoices):
-    REPORTED = 'REPORTED', 'Reported'
-    INVESTIGATING = 'INVESTIGATING', 'Investigating'
-    RESOLVED = 'RESOLVED', 'Resolved'
-    ESCALATED = 'ESCALATED', 'Escalated'
+    REPORTED = "REPORTED", "Reported"
+    INVESTIGATING = "INVESTIGATING", "Investigating"
+    RESOLVED = "RESOLVED", "Resolved"
+    ESCALATED = "ESCALATED", "Escalated"
 
 
 class DisciplinaryIncident(models.Model):
-    student = models.ForeignKey('students.Student', on_delete=models.CASCADE, related_name='incidents')
+    student = models.ForeignKey("students.Student", on_delete=models.CASCADE, related_name="incidents")
     reported_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='reported_incidents'
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="reported_incidents"
     )
     incident_type = models.CharField(max_length=20, choices=IncidentType.choices)
     severity = models.CharField(max_length=20, choices=IncidentSeverity.choices)
@@ -45,34 +43,32 @@ class DisciplinaryIncident(models.Model):
     incident_time = models.TimeField(null=True, blank=True)
     location = models.CharField(max_length=200, blank=True)
     witnesses = models.TextField(blank=True)
-    status = models.CharField(max_length=20, choices=IncidentStatus.choices, default='REPORTED')
+    status = models.CharField(max_length=20, choices=IncidentStatus.choices, default="REPORTED")
     action_taken = models.TextField(blank=True)
     follow_up_required = models.BooleanField(default=False)
     follow_up_date = models.DateField(null=True, blank=True)
     follow_up_notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
-        ordering = ['-incident_date']
+        ordering = ["-incident_date"]
         indexes = [
-            models.Index(fields=['student']),
-            models.Index(fields=['incident_type']),
-            models.Index(fields=['severity']),
-            models.Index(fields=['status']),
-            models.Index(fields=['incident_date']),
+            models.Index(fields=["student"]),
+            models.Index(fields=["incident_type"]),
+            models.Index(fields=["severity"]),
+            models.Index(fields=["status"]),
+            models.Index(fields=["incident_date"]),
         ]
-    
+
     def __str__(self):
         return f"{self.student.user.get_full_name()} - {self.title}"
 
 
 class BehaviorPlan(models.Model):
-    student = models.ForeignKey('students.Student', on_delete=models.CASCADE, related_name='behavior_plans')
+    student = models.ForeignKey("students.Student", on_delete=models.CASCADE, related_name="behavior_plans")
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='created_behavior_plans'
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="created_behavior_plans"
     )
     title = models.CharField(max_length=200)
     description = models.TextField()
@@ -85,9 +81,9 @@ class BehaviorPlan(models.Model):
     progress_notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
-        ordering = ['-start_date']
-    
+        ordering = ["-start_date"]
+
     def __str__(self):
         return f"{self.student.user.get_full_name()} - {self.title}"

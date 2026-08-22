@@ -67,9 +67,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="studentattendance",
-            index=models.Index(
-                fields=["student"], name="attendance__student_80c9b3_idx"
-            ),
+            index=models.Index(fields=["student"], name="attendance__student_80c9b3_idx"),
         ),
         migrations.AddIndex(
             model_name="studentattendance",

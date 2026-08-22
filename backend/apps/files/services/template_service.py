@@ -1,9 +1,9 @@
 """Template service for reusable file templates."""
+
 import datetime
 import logging
-from django.core.files.base import ContentFile
-from django.utils import timezone
-from apps.files.models import File, FileMovement, FileAttachment, FileTemplate
+
+from apps.files.models import File, FileMovement, FileTemplate
 
 logger = logging.getLogger(__name__)
 
@@ -12,13 +12,23 @@ class TemplateService:
     """Service for managing file templates and generating files from templates."""
 
     # Supported template file formats
-    SUPPORTED_TEMPLATE_FORMATS = ['doc', 'docx', 'xls', 'xlsx', 'pdf', 'csv', 'txt']
+    SUPPORTED_TEMPLATE_FORMATS = ["doc", "docx", "xls", "xlsx", "pdf", "csv", "txt"]
 
     @staticmethod
-    def create_template(*, name, description, category, file_type, file_category,
-                        default_department=None, default_classification='INTERNAL',
-                        default_priority='NORMAL', template_content='',
-                        template_fields=None, created_by) -> FileTemplate:
+    def create_template(
+        *,
+        name,
+        description,
+        category,
+        file_type,
+        file_category,
+        default_department=None,
+        default_classification="INTERNAL",
+        default_priority="NORMAL",
+        template_content="",
+        template_fields=None,
+        created_by,
+    ) -> FileTemplate:
         """Create a new file template."""
         if template_fields is None:
             template_fields = {}
@@ -66,15 +76,14 @@ class TemplateService:
     def _generate_file_number(department=None):
         """Generate a unique file number: EDIV-{year}-{dept_code}-{seq}."""
         year = datetime.date.today().year
-        dept_code = 'GEN'
+        dept_code = "GEN"
         if department:
             dept_code = department.code[:3]
-        seq = File.objects.filter(file_number__startswith=f'EDIV-{year}-{dept_code}').count() + 1
-        return f'EDIV-{year}-{dept_code}-{seq:04d}'
+        seq = File.objects.filter(file_number__startswith=f"EDIV-{year}-{dept_code}").count() + 1
+        return f"EDIV-{year}-{dept_code}-{seq:04d}"
 
     @staticmethod
-    def generate_file_from_template(*, template, title, created_by,
-                                     field_values=None, **overrides) -> File:
+    def generate_file_from_template(*, template, title, created_by, field_values=None, **overrides) -> File:
         """
         Generate a new File from a template.
         1. Create File with template defaults
@@ -91,26 +100,26 @@ class TemplateService:
         description = template.template_content
         if description and field_values:
             for field_key, field_val in field_values.items():
-                description = description.replace('{{' + field_key + '}}', str(field_val))
+                description = description.replace("{{" + field_key + "}}", str(field_val))
 
-        department = overrides.pop('department', template.default_department)
+        department = overrides.pop("department", template.default_department)
 
         file_number = TemplateService._generate_file_number(department=department)
 
         # Prepare file creation data from template defaults
         file_data = {
-            'file_number': file_number,
-            'title': title,
-            'file_type': template.file_type,
-            'file_category': template.file_category,
-            'description': description,
-            'created_by': created_by,
-            'current_holder': created_by,
-            'department': department,
-            'classification': template.default_classification,
-            'priority': template.default_priority,
-            'status': 'DRAFT',
-            'tags': [],
+            "file_number": file_number,
+            "title": title,
+            "file_type": template.file_type,
+            "file_category": template.file_category,
+            "description": description,
+            "created_by": created_by,
+            "current_holder": created_by,
+            "department": department,
+            "classification": template.default_classification,
+            "priority": template.default_priority,
+            "status": "DRAFT",
+            "tags": [],
         }
 
         # Apply overrides
@@ -120,14 +129,14 @@ class TemplateService:
 
         # Increment template usage count
         template.usage_count += 1
-        template.save(update_fields=['usage_count'])
+        template.save(update_fields=["usage_count"])
 
         # Record CREATED movement
         FileMovement.objects.create(
             file=file_obj,
             from_holder=created_by,
             action=FileMovement.Action.CREATED,
-            remarks=f'File created from template: {template.name}',
+            remarks=f"File created from template: {template.name}",
         )
 
         return file_obj
@@ -138,11 +147,13 @@ class TemplateService:
         templates = FileTemplate.objects.filter(is_active=True)
         stats = []
         for t in templates:
-            stats.append({
-                'id': t.id,
-                'name': t.name,
-                'category': t.category,
-                'usage_count': t.usage_count,
-                'is_active': t.is_active,
-            })
+            stats.append(
+                {
+                    "id": t.id,
+                    "name": t.name,
+                    "category": t.category,
+                    "usage_count": t.usage_count,
+                    "is_active": t.is_active,
+                }
+            )
         return stats

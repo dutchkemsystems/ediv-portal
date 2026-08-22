@@ -56,21 +56,15 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="inspection",
             name="team_members",
-            field=models.ManyToManyField(
-                related_name="inspection_teams", to=settings.AUTH_USER_MODEL
-            ),
+            field=models.ManyToManyField(related_name="inspection_teams", to=settings.AUTH_USER_MODEL),
         ),
         migrations.AddIndex(
             model_name="inspection",
-            index=models.Index(
-                fields=["school"], name="inspection__school__00f1d5_idx"
-            ),
+            index=models.Index(fields=["school"], name="inspection__school__00f1d5_idx"),
         ),
         migrations.AddIndex(
             model_name="inspection",
-            index=models.Index(
-                fields=["inspection_type"], name="inspection__inspect_300b5f_idx"
-            ),
+            index=models.Index(fields=["inspection_type"], name="inspection__inspect_300b5f_idx"),
         ),
         migrations.AddIndex(
             model_name="inspection",
@@ -78,8 +72,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="inspection",
-            index=models.Index(
-                fields=["scheduled_date"], name="inspection__schedul_13aeb7_idx"
-            ),
+            index=models.Index(fields=["scheduled_date"], name="inspection__schedul_13aeb7_idx"),
         ),
     ]

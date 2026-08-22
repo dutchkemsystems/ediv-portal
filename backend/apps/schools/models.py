@@ -1,16 +1,16 @@
-from django.db import models
 from django.conf import settings
+from django.db import models
 
 
 class SchoolType(models.TextChoices):
-    JUNIOR = 'JUNIOR', 'Junior Secondary School'
-    SENIOR = 'SENIOR', 'Senior Secondary School'
+    JUNIOR = "JUNIOR", "Junior Secondary School"
+    SENIOR = "SENIOR", "Senior Secondary School"
 
 
 class LocalGovernmentArea(models.TextChoices):
-    APAPA = 'APAPA', 'Apapa'
-    MAINLAND = 'MAINLAND', 'Mainland'
-    SURULERE = 'SURULERE', 'Surulere'
+    APAPA = "APAPA", "Apapa"
+    MAINLAND = "MAINLAND", "Mainland"
+    SURULERE = "SURULERE", "Surulere"
 
 
 class School(models.Model):
@@ -23,18 +23,14 @@ class School(models.Model):
     email = models.EmailField(blank=True)
     website = models.URLField(blank=True)
     principal = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='schools_as_principal'
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="schools_as_principal"
     )
     vice_principal = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='schools_as_vice_principal'
+        related_name="schools_as_vice_principal",
     )
     established_date = models.DateField(null=True, blank=True)
     student_capacity = models.IntegerField(default=0)
@@ -50,19 +46,19 @@ class School(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
-        ordering = ['lga', 'school_type', 'name']
+        ordering = ["lga", "school_type", "name"]
         indexes = [
-            models.Index(fields=['code']),
-            models.Index(fields=['school_type']),
-            models.Index(fields=['lga']),
-            models.Index(fields=['is_active']),
+            models.Index(fields=["code"]),
+            models.Index(fields=["school_type"]),
+            models.Index(fields=["lga"]),
+            models.Index(fields=["is_active"]),
         ]
-    
+
     def __str__(self):
         return f"{self.name} ({self.code})"
-    
+
     @property
     def occupancy_rate(self):
         if self.student_capacity > 0:
@@ -71,16 +67,16 @@ class School(models.Model):
 
 
 class SchoolAcademicYear(models.Model):
-    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name='academic_years')
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="academic_years")
     year = models.CharField(max_length=9)  # e.g., "2024/2025"
     start_date = models.DateField()
     end_date = models.DateField()
     is_current = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
-        unique_together = ['school', 'year']
-        ordering = ['-year']
-    
+        unique_together = ["school", "year"]
+        ordering = ["-year"]
+
     def __str__(self):
         return f"{self.school.name} - {self.year}"

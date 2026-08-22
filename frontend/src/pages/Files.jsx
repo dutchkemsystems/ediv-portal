@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
-  Box, Typography, Button, Grid, Card, CardContent, Chip, Dialog, DialogTitle,
+  Box, Typography, Button, Grid, Chip, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, FormControl, InputLabel, Select,
   MenuItem, Tabs, Tab, Paper, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Container, LinearProgress, Stepper, Step, StepLabel,
-  IconButton, Alert, Tooltip, Divider,
+  IconButton, Alert, Tooltip,
 } from '@mui/material'
 import {
   Add as AddIcon, FolderOpen as FileIcon, MoveUp as MoveIcon, Send as SubmitIcon,
@@ -12,7 +12,6 @@ import {
   Archive as ArchiveIcon, Refresh as RefreshIcon, PlayArrow as AdvanceIcon,
   Warning as WarningIcon, Timeline as WorkflowIcon, Search as SearchIcon,
 } from '@mui/icons-material'
-import DataTable from '../components/common/DataTable'
 import StatCard from '../components/common/StatCard'
 import Loading from '../components/common/Loading'
 import api from '../api/client'
@@ -173,16 +172,6 @@ function Files() {
     }
   }
 
-  const handleReceive = async (file) => {
-    try {
-      await api.post(`/files/files/${file.id}/receive/`)
-      notify.success('File received successfully')
-      fetchFiles()
-    } catch (error) {
-      notify.error(error.response?.data?.error || 'Failed to receive file')
-    }
-  }
-
   const handleClose = async (file) => {
     try {
       await api.post(`/files/files/${file.id}/close/`)
@@ -290,11 +279,6 @@ function Files() {
   const getPriorityColor = (priority) => {
     const colors = { HIGH: 'error', URGENT: 'error', NORMAL: 'info', LOW: 'default' }
     return colors[priority] || 'default'
-  }
-
-  const getClassificationColor = (c) => {
-    const colors = { PUBLIC: 'success', CONFIDENTIAL: 'warning', RESTRICTED: 'error', TOP_SECRET: 'error' }
-    return colors[c] || 'default'
   }
 
   const activeFiles = files.filter(f => !['ARCHIVED', 'CLOSED'].includes(f.status))

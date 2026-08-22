@@ -1,0 +1,23 @@
+[tool.black]
+line-length = 120
+target-version = ["py311"]
+extend-exclude = """
+/(
+    m*/migrations/
+)/
+"""
+
+[tool.isort]
+profile = "black"
+line_length = 120
+skip = [
+    "migrations",
+]
+
+[tool.flake8]
+max-line-length = 120
+extend-ignore = "E203,W503"
+exclude = "migrations,.git,__pycache__"
+
+[tool.ruff.lint.per-file-ignores]
+"config/settings/*.py" = ["F403", "F405"]

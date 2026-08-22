@@ -43,9 +43,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="cpdactivity",
-            index=models.Index(
-                fields=["training_type"], name="cpd_cpdacti_trainin_6c4d9d_idx"
-            ),
+            index=models.Index(fields=["training_type"], name="cpd_cpdacti_trainin_6c4d9d_idx"),
         ),
         migrations.AddIndex(
             model_name="cpdactivity",
@@ -53,9 +51,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="cpdactivity",
-            index=models.Index(
-                fields=["start_date"], name="cpd_cpdacti_start_d_fe5447_idx"
-            ),
+            index=models.Index(fields=["start_date"], name="cpd_cpdacti_start_d_fe5447_idx"),
         ),
         migrations.AlterUniqueTogether(
             name="cpdrecord",

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Box,
   Typography,
@@ -81,17 +81,7 @@ function Attendance() {
   })
   const [showFilters, setShowFilters] = useState(false)
 
-  useEffect(() => {
-    fetchRecords()
-    fetchStudents()
-    fetchStaff()
-  }, [])
-
-  useEffect(() => {
-    fetchRecords()
-  }, [tab, filters])
-
-  const fetchRecords = async () => {
+  const fetchRecords = useCallback(async () => {
     try {
       setLoading(true)
       const params = new URLSearchParams()
@@ -108,25 +98,35 @@ function Attendance() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters, tab])
 
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     try {
       const response = await api.get('/students/students/')
       setStudents(response.data.results || response.data)
     } catch (error) {
       // silent
     }
-  }
+  }, [])
 
-  const fetchStaff = async () => {
+  const fetchStaff = useCallback(async () => {
     try {
       const response = await api.get('/staff/staff/')
       setStaffList(response.data.results || response.data)
     } catch (error) {
       // silent
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    fetchRecords()
+    fetchStudents()
+    fetchStaff()
+  }, [fetchRecords, fetchStudents, fetchStaff])
+
+  useEffect(() => {
+    fetchRecords()
+  }, [fetchRecords])
 
   const handleFilterChange = (field, value) => {
     setFilters(prev => ({ ...prev, [field]: value }))
@@ -252,7 +252,6 @@ function Attendance() {
   const presentToday = records.filter(r => r.date === todayStr && r.status === 'PRESENT').length
   const absentToday = records.filter(r => r.date === todayStr && r.status === 'ABSENT').length
   const lateToday = records.filter(r => r.date === todayStr && r.status === 'LATE').length
-  const excusedToday = records.filter(r => r.date === todayStr && r.status === 'EXCUSED').length
 
   const studentColumns = [
     {

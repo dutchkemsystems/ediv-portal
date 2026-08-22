@@ -47,9 +47,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="school",
-            index=models.Index(
-                fields=["school_type"], name="schools_sch_school__8aca5c_idx"
-            ),
+            index=models.Index(fields=["school_type"], name="schools_sch_school__8aca5c_idx"),
         ),
         migrations.AddIndex(
             model_name="school",
@@ -57,8 +55,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="school",
-            index=models.Index(
-                fields=["is_active"], name="schools_sch_is_acti_522730_idx"
-            ),
+            index=models.Index(fields=["is_active"], name="schools_sch_is_acti_522730_idx"),
         ),
     ]

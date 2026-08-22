@@ -1,12 +1,13 @@
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from .views import StudentAttendanceViewSet, StaffAttendanceViewSet, AttendanceSummaryViewSet
+
+from .views import AttendanceSummaryViewSet, StaffAttendanceViewSet, StudentAttendanceViewSet
 
 router = DefaultRouter()
-router.register('student-attendance', StudentAttendanceViewSet)
-router.register('staff-attendance', StaffAttendanceViewSet)
-router.register('summaries', AttendanceSummaryViewSet)
+router.register("student-attendance", StudentAttendanceViewSet)
+router.register("staff-attendance", StaffAttendanceViewSet)
+router.register("summaries", AttendanceSummaryViewSet)
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path("", include(router.urls)),
 ]

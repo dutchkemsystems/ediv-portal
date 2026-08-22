@@ -81,9 +81,7 @@ class Migration(migrations.Migration):
                 ("stress_level", models.IntegerField(default=5)),
                 (
                     "sleep_hours",
-                    models.DecimalField(
-                        blank=True, decimal_places=1, max_digits=4, null=True
-                    ),
+                    models.DecimalField(blank=True, decimal_places=1, max_digits=4, null=True),
                 ),
                 ("exercise_minutes", models.IntegerField(default=0)),
                 ("notes", models.TextField(blank=True)),
@@ -113,14 +111,10 @@ class Migration(migrations.Migration):
             options={
                 "ordering": ["-date"],
                 "indexes": [
-                    models.Index(
-                        fields=["student"], name="wellness_we_student_f57500_idx"
-                    ),
+                    models.Index(fields=["student"], name="wellness_we_student_f57500_idx"),
                     models.Index(fields=["date"], name="wellness_we_date_706a60_idx"),
                     models.Index(fields=["mood"], name="wellness_we_mood_3b2e90_idx"),
-                    models.Index(
-                        fields=["is_flagged"], name="wellness_we_is_flag_a54a4f_idx"
-                    ),
+                    models.Index(fields=["is_flagged"], name="wellness_we_is_flag_a54a4f_idx"),
                 ],
                 "unique_together": {("student", "date")},
             },
@@ -180,15 +174,9 @@ class Migration(migrations.Migration):
             options={
                 "ordering": ["-session_date"],
                 "indexes": [
-                    models.Index(
-                        fields=["student"], name="wellness_co_student_574627_idx"
-                    ),
-                    models.Index(
-                        fields=["counselor"], name="wellness_co_counsel_5eea15_idx"
-                    ),
-                    models.Index(
-                        fields=["session_date"], name="wellness_co_session_52d7cc_idx"
-                    ),
+                    models.Index(fields=["student"], name="wellness_co_student_574627_idx"),
+                    models.Index(fields=["counselor"], name="wellness_co_counsel_5eea15_idx"),
+                    models.Index(fields=["session_date"], name="wellness_co_session_52d7cc_idx"),
                 ],
             },
         ),

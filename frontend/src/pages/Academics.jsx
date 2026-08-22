@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Box,
   Typography,
@@ -16,7 +16,6 @@ import {
   MenuItem,
   Tabs,
   Tab,
-  Divider,
   Paper,
   Stack,
   Switch,
@@ -111,28 +110,7 @@ function Academics() {
   })
   const [showFilters, setShowFilters] = useState(false)
 
-  useEffect(() => {
-    fetchAll()
-    fetchSchools()
-    fetchStaff()
-  }, [])
-
-  useEffect(() => {
-    if (tab === 0) fetchClasses()
-    if (tab === 1) fetchSubjects()
-    if (tab === 2) fetchExams()
-  }, [classFilters, subjectFilters, examFilters])
-
-  const fetchAll = async () => {
-    try {
-      setLoading(true)
-      await Promise.all([fetchClasses(), fetchSubjects(), fetchExams()])
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchClasses = async () => {
+  const fetchClasses = useCallback(async () => {
     try {
       const params = new URLSearchParams()
       if (classFilters.school) params.append('school', classFilters.school)
@@ -146,9 +124,9 @@ function Academics() {
     } catch (error) {
       notify.error('Failed to load classes')
     }
-  }
+  }, [classFilters])
 
-  const fetchSubjects = async () => {
+  const fetchSubjects = useCallback(async () => {
     try {
       const params = new URLSearchParams()
       if (subjectFilters.category) params.append('category', subjectFilters.category)
@@ -159,9 +137,9 @@ function Academics() {
     } catch (error) {
       notify.error('Failed to load subjects')
     }
-  }
+  }, [subjectFilters])
 
-  const fetchExams = async () => {
+  const fetchExams = useCallback(async () => {
     try {
       const params = new URLSearchParams()
       if (examFilters.school) params.append('school', examFilters.school)
@@ -174,25 +152,46 @@ function Academics() {
     } catch (error) {
       notify.error('Failed to load exams')
     }
-  }
+  }, [examFilters])
 
-  const fetchSchools = async () => {
+  const fetchSchools = useCallback(async () => {
     try {
       const response = await api.get('/schools/schools/')
       setSchools(response.data.results || response.data)
     } catch (error) {
       // silent
     }
-  }
+  }, [])
 
-  const fetchStaff = async () => {
+  const fetchStaff = useCallback(async () => {
     try {
       const response = await api.get('/staff/staff/')
       setStaff(response.data.results || response.data)
     } catch (error) {
       // silent
     }
-  }
+  }, [])
+
+  const fetchAll = useCallback(async () => {
+    try {
+      setLoading(true)
+      await Promise.all([fetchClasses(), fetchSubjects(), fetchExams()])
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchClasses, fetchSubjects, fetchExams])
+
+  useEffect(() => {
+    fetchAll()
+    fetchSchools()
+    fetchStaff()
+  }, [fetchAll, fetchSchools, fetchStaff])
+
+  useEffect(() => {
+    if (tab === 0) fetchClasses()
+    if (tab === 1) fetchSubjects()
+    if (tab === 2) fetchExams()
+  }, [tab, fetchClasses, fetchSubjects, fetchExams])
 
   const handleFilterChange = (field, value) => {
     if (tab === 0) setClassFilters(prev => ({ ...prev, [field]: value }))

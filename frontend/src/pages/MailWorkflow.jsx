@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Box, Typography, Button, Paper, Grid, Tabs, Tab, Table, TableBody,
   TableCell, TableContainer, TableHead, TableRow, Chip, Alert, TextField,
@@ -9,7 +9,7 @@ import {
 import {
   Mail as MailIcon, Forward as ForwardIcon, Archive as ArchiveIcon,
   Refresh as RefreshIcon, Add as AddIcon, Send as SendIcon,
-  School as SchoolIcon, Hub as HubIcon,
+  Hub as HubIcon,
 } from '@mui/icons-material'
 import api from '../api/client'
 import StatCard from '../components/common/StatCard'
@@ -221,7 +221,6 @@ function MailWorkflow() {
   }
 
   const activeIncoming = incomingMails.filter(m => m.status !== 'ARCHIVED')
-  const archivedIncoming = incomingMails.filter(m => m.status === 'ARCHIVED')
   const activeOutgoing = outgoingMails.filter(m => !['DELIVERED', 'ARCHIVED'].includes(m.status))
   const activeHq = hqCorrespondences.filter(c => !['COMPLETED', 'ARCHIVED'].includes(c.status))
 

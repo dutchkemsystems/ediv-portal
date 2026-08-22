@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
@@ -7,7 +7,6 @@ import {
   Card,
   CardContent,
   Chip,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -20,9 +19,6 @@ import {
 } from '@mui/material'
 import {
   Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Visibility as ViewIcon,
   Schedule as ScheduleIcon,
   AccessTime as AccessTimeIcon,
   Today as TodayIcon,
@@ -39,7 +35,7 @@ function Timetable() {
   const [timetables, setTimetables] = useState([])
   const [entries, setEntries] = useState([])
   const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState(null)
+  const [, setStats] = useState(null)
   const [openDialog, setOpenDialog] = useState(false)
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
   const [selectedPeriod, setSelectedPeriod] = useState(null)

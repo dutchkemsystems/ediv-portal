@@ -1,26 +1,26 @@
-from django.db import models
 from django.conf import settings
+from django.db import models
 
 
 class UserLanguagePreference(models.Model):
     LANGUAGE_CHOICES = [
-        ('en', 'English'),
-        ('yo', 'Yoruba'),
-        ('pcm', 'Nigerian Pidgin'),
-        ('fr', 'French'),
+        ("en", "English"),
+        ("yo", "Yoruba"),
+        ("pcm", "Nigerian Pidgin"),
+        ("fr", "French"),
     ]
 
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
-                                related_name='language_preference')
-    preferred_language = models.CharField(max_length=5, choices=LANGUAGE_CHOICES, default='en')
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="language_preference")
+    preferred_language = models.CharField(max_length=5, choices=LANGUAGE_CHOICES, default="en")
     auto_detect = models.BooleanField(default=True)
-    font_size = models.CharField(max_length=10, default='medium',
-                                 choices=[('small', 'Small'), ('medium', 'Medium'), ('large', 'Large')])
+    font_size = models.CharField(
+        max_length=10, default="medium", choices=[("small", "Small"), ("medium", "Medium"), ("large", "Large")]
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'user_language_preferences'
+        db_table = "user_language_preferences"
 
     def __str__(self):
         return f"{self.user.email} - {self.preferred_language}"
@@ -36,8 +36,8 @@ class TranslationEntry(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'translation_entries'
-        unique_together = ['key', 'language', 'context']
+        db_table = "translation_entries"
+        unique_together = ["key", "language", "context"]
 
     def __str__(self):
         return f"{self.key} ({self.language}): {self.value[:50]}"

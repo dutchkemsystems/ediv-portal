@@ -1,9 +1,9 @@
-import json
 import logging
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
 
-logger = logging.getLogger('apps')
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+
+logger = logging.getLogger("apps")
 
 
 class RealtimeBroadcaster:
@@ -14,7 +14,7 @@ class RealtimeBroadcaster:
         try:
             return get_channel_layer()
         except Exception:
-            logger.warning('Channel layer not available; skipping broadcast')
+            logger.warning("Channel layer not available; skipping broadcast")
             return None
 
     @staticmethod
@@ -23,11 +23,11 @@ class RealtimeBroadcaster:
         if not layer:
             return
         async_to_sync(layer.group_send)(
-            f'notifications_{user_id}',
+            f"notifications_{user_id}",
             {
-                'type': 'send_notification',
-                'data': {'event': event_type, **data},
-            }
+                "type": "send_notification",
+                "data": {"event": event_type, **data},
+            },
         )
 
     @staticmethod
@@ -36,11 +36,11 @@ class RealtimeBroadcaster:
         if not layer:
             return
         async_to_sync(layer.group_send)(
-            f'role_{role}',
+            f"role_{role}",
             {
-                'type': 'send_notification',
-                'data': {'event': event_type, **data},
-            }
+                "type": "send_notification",
+                "data": {"event": event_type, **data},
+            },
         )
 
     @staticmethod
@@ -49,11 +49,11 @@ class RealtimeBroadcaster:
         if not layer:
             return
         async_to_sync(layer.group_send)(
-            'dashboard_broadcast',
+            "dashboard_broadcast",
             {
-                'type': 'file_movement',
-                'data': file_data,
-            }
+                "type": "file_movement",
+                "data": file_data,
+            },
         )
 
     @staticmethod
@@ -61,14 +61,14 @@ class RealtimeBroadcaster:
         layer = RealtimeBroadcaster._get_channel_layer()
         if not layer:
             return
-        roles = roles or ['SYSADMIN', 'TG_PS']
+        roles = roles or ["SYSADMIN", "TG_PS"]
         for role in roles:
             async_to_sync(layer.group_send)(
-                f'dashboard_{role}',
+                f"dashboard_{role}",
                 {
-                    'type': 'stats_update',
-                    'data': data or {},
-                }
+                    "type": "stats_update",
+                    "data": data or {},
+                },
             )
 
     @staticmethod
@@ -76,12 +76,12 @@ class RealtimeBroadcaster:
         layer = RealtimeBroadcaster._get_channel_layer()
         if not layer:
             return
-        target_roles = target_roles or ['SYSADMIN', 'TG_PS']
+        target_roles = target_roles or ["SYSADMIN", "TG_PS"]
         for role in target_roles:
             async_to_sync(layer.group_send)(
-                f'role_{role}',
+                f"role_{role}",
                 {
-                    'type': 'announcement',
-                    'data': {'title': title, 'message': message},
-                }
+                    "type": "announcement",
+                    "data": {"title": title, "message": message},
+                },
             )

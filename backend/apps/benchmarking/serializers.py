@@ -1,12 +1,12 @@
 from rest_framework import serializers
-from .models import BenchmarkMetric, SchoolBenchmark, BenchmarkComparison
+
+from .models import BenchmarkComparison, BenchmarkMetric, SchoolBenchmark
 
 
 class BenchmarkMetricSerializer(serializers.ModelSerializer):
     class Meta:
         model = BenchmarkMetric
-        fields = ['id', 'name', 'code', 'category', 'description', 'unit',
-                  'higher_is_better', 'is_active']
+        fields = ["id", "name", "code", "category", "description", "unit", "higher_is_better", "is_active"]
 
 
 class SchoolBenchmarkSerializer(serializers.ModelSerializer):
@@ -15,9 +15,18 @@ class SchoolBenchmarkSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SchoolBenchmark
-        fields = ['id', 'school', 'school_name', 'metric', 'metric_name',
-                  'value', 'period', 'academic_session', 'calculated_at']
-        read_only_fields = ['id', 'calculated_at']
+        fields = [
+            "id",
+            "school",
+            "school_name",
+            "metric",
+            "metric_name",
+            "value",
+            "period",
+            "academic_session",
+            "calculated_at",
+        ]
+        read_only_fields = ["id", "calculated_at"]
 
     def get_school_name(self, obj):
         return obj.school.name
@@ -33,10 +42,22 @@ class BenchmarkComparisonSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = BenchmarkComparison
-        fields = ['id', 'school_a', 'school_a_name', 'school_b', 'school_b_name',
-                  'metric', 'metric_name', 'value_a', 'value_b', 'difference',
-                  'percentage_difference', 'period', 'created_at']
-        read_only_fields = ['id', 'created_at']
+        fields = [
+            "id",
+            "school_a",
+            "school_a_name",
+            "school_b",
+            "school_b_name",
+            "metric",
+            "metric_name",
+            "value_a",
+            "value_b",
+            "difference",
+            "percentage_difference",
+            "period",
+            "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]
 
     def get_school_a_name(self, obj):
         return obj.school_a.name

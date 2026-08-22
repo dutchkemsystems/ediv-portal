@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import StudentRiskProfile, EarlyWarningAlert, Intervention, RiskTrend
+
+from .models import EarlyWarningAlert, Intervention, RiskTrend, StudentRiskProfile
 
 
 class StudentRiskProfileSerializer(serializers.ModelSerializer):
@@ -8,11 +9,25 @@ class StudentRiskProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = StudentRiskProfile
-        fields = ['id', 'student', 'student_name', 'school_name', 'risk_score', 'risk_level',
-                  'attendance_risk', 'academic_risk', 'discipline_risk', 'financial_risk',
-                  'engagement_risk', 'risk_factors', 'recommendations', 'last_analyzed',
-                  'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        fields = [
+            "id",
+            "student",
+            "student_name",
+            "school_name",
+            "risk_score",
+            "risk_level",
+            "attendance_risk",
+            "academic_risk",
+            "discipline_risk",
+            "financial_risk",
+            "engagement_risk",
+            "risk_factors",
+            "recommendations",
+            "last_analyzed",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
 
     def get_student_name(self, obj):
         return obj.student.user.get_full_name() if obj.student.user else str(obj.student)
@@ -27,10 +42,21 @@ class EarlyWarningAlertSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = EarlyWarningAlert
-        fields = ['id', 'student', 'student_name', 'alert_type', 'risk_level',
-                  'message', 'details', 'acknowledged', 'acknowledged_by',
-                  'acknowledged_by_name', 'acknowledged_at', 'created_at']
-        read_only_fields = ['id', 'created_at']
+        fields = [
+            "id",
+            "student",
+            "student_name",
+            "alert_type",
+            "risk_level",
+            "message",
+            "details",
+            "acknowledged",
+            "acknowledged_by",
+            "acknowledged_by_name",
+            "acknowledged_at",
+            "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]
 
     def get_student_name(self, obj):
         return obj.student.user.get_full_name() if obj.student.user else str(obj.student)
@@ -45,10 +71,23 @@ class InterventionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Intervention
-        fields = ['id', 'student', 'student_name', 'intervention_type', 'title',
-                  'description', 'assigned_to', 'assigned_to_name', 'status',
-                  'outcome', 'due_date', 'completed_at', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        fields = [
+            "id",
+            "student",
+            "student_name",
+            "intervention_type",
+            "title",
+            "description",
+            "assigned_to",
+            "assigned_to_name",
+            "status",
+            "outcome",
+            "due_date",
+            "completed_at",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
 
     def get_student_name(self, obj):
         return obj.student.user.get_full_name() if obj.student.user else str(obj.student)
@@ -62,9 +101,18 @@ class RiskTrendSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RiskTrend
-        fields = ['id', 'student', 'student_name', 'risk_score', 'risk_level',
-                  'attendance_risk', 'academic_risk', 'discipline_risk',
-                  'financial_risk', 'snapshot_date']
+        fields = [
+            "id",
+            "student",
+            "student_name",
+            "risk_score",
+            "risk_level",
+            "attendance_risk",
+            "academic_risk",
+            "discipline_risk",
+            "financial_risk",
+            "snapshot_date",
+        ]
 
     def get_student_name(self, obj):
         return obj.student.user.get_full_name() if obj.student.user else str(obj.student)

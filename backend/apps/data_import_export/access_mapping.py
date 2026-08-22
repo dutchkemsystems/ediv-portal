@@ -1,0 +1,408 @@
+"""
+Microsoft Access -> Django Model Table Mapping
+
+Maps common Access database table names to Django models.
+Access databases from Nigerian schools typically use tables like:
+  - Students, Staff, Fees, Attendance, Classes, Subjects, etc.
+
+Each mapping defines:
+  - model_path: dotted import path to the Django model
+  - model_name: class name of the Django model
+  - table_aliases: possible Access table name variations (case-insensitive)
+  - field_map: Access column name -> Django field name mapping
+  - foreign_keys: fields that reference other tables (require special handling)
+  - transform: optional field-level transformations
+"""
+
+ACCESS_TABLE_MAPPINGS = {
+    "students": {
+        "model_path": "apps.students.models",
+        "model_name": "Student",
+        "table_aliases": [
+            "students", "student", "tblstudents", "tbl_students",
+            "student_info", "studentinfo", " pupils", "pupil",
+        ],
+        "field_map": {
+            "admission_number": "admission_number",
+            "adm_no": "admission_number",
+            "student_id": "admission_number",
+            "first_name": "_skip_first_name",
+            "last_name": "_skip_last_name",
+            "surname": "_skip_last_name",
+            "other_names": "_skip_other_names",
+            "full_name": "_skip_full_name",
+            "gender": "gender",
+            "sex": "gender",
+            "date_of_birth": "date_of_birth",
+            "dob": "date_of_birth",
+            "blood_group": "blood_group",
+            "nationality": "nationality",
+            "state": "state_of_origin",
+            "state_of_origin": "state_of_origin",
+            "lga": "lga_of_origin",
+            "lga_of_origin": "lga_of_origin",
+            "address": "residential_address",
+            "residential_address": "residential_address",
+            "home_address": "residential_address",
+            "parent_name": "parent_name",
+            "father_name": "parent_name",
+            "mother_name": "parent_name",
+            "parent_phone": "parent_phone",
+            "father_phone": "parent_phone",
+            "parent_email": "parent_email",
+            "parent_occupation": "parent_occupation",
+            "parent_address": "parent_address",
+            "guardian_name": "guardian_name",
+            "guardian_phone": "guardian_phone",
+            "emergency_contact": "emergency_contact_name",
+            "emergency_phone": "emergency_contact_phone",
+            "emergency_contact_name": "emergency_contact_name",
+            "emergency_contact_phone": "emergency_contact_phone",
+            "previous_school": "previous_school",
+            "admission_date": "admission_date",
+            "date_admitted": "admission_date",
+            "class": "_skip_class_name",
+            "class_name": "_skip_class_name",
+            "form": "_skip_class_name",
+            "section": "_skip_section",
+            "boarding": "is_boarding",
+            "is_boarding": "is_boarding",
+            "status": "status",
+        },
+        "foreign_keys": {
+            "school": {"lookup_field": "code", "model_path": "apps.schools.models", "model_name": "School"},
+            "class_name": {"lookup_field": "name", "model_path": "apps.academics.models", "model_name": "Class"},
+        },
+        "transforms": {
+            "gender": lambda v: {"M": "M", "F": "F", "Male": "M", "Female": "F", "male": "M", "female": "F"}.get(str(v).strip(), "M"),
+            "status": lambda v: {"Active": "ACTIVE", "active": "ACTIVE", "Inactive": "INACTIVE",
+                                  "Graduated": "GRADUATED", "Transferred": "TRANSFERRED",
+                                  "Expelled": "EXPELLED", "Withdrawn": "WITHDRAWN"}.get(str(v).strip(), "ACTIVE"),
+            "is_boarding": lambda v: str(v).strip().lower() in ("yes", "true", "1", "boarding"),
+            "date_of_birth": lambda v: str(v).strip() if v else None,
+            "admission_date": lambda v: str(v).strip() if v else None,
+        },
+        "name_fields": {
+            "first_name": ["first_name", "first", "fname"],
+            "last_name": ["last_name", "last", "lname", "surname", "family_name"],
+        },
+    },
+    "staff": {
+        "model_path": "apps.staff.models",
+        "model_name": "Staff",
+        "table_aliases": [
+            "staff", "staffs", "employees", "employee", "tblstaff",
+            "tbl_staff", "teachers", "teacher", "non_teaching",
+        ],
+        "field_map": {
+            "staff_id": "staff_id",
+            "employee_number": "employee_number",
+            "employee_id": "employee_number",
+            "emp_no": "employee_number",
+            "first_name": "_skip_first_name",
+            "last_name": "_skip_last_name",
+            "surname": "_skip_last_name",
+            "gender": "gender",
+            "sex": "gender",
+            "date_of_birth": "date_of_birth",
+            "dob": "date_of_birth",
+            "qualification": "qualification",
+            "category": "category",
+            "staff_type": "category",
+            "employment_type": "employment_type",
+            "designation": "designation",
+            "position": "designation",
+            "job_title": "designation",
+            "date_joined": "date_joined",
+            "appointment_date": "date_of_first_appointment",
+            "date_of_first_appointment": "date_of_first_appointment",
+            "grade_level": "grade_level",
+            "step": "step",
+            "salary": "salary",
+            "phone": "_skip_phone",
+            "email": "_skip_email",
+            "state_of_origin": "state_of_origin",
+            "state": "state_of_origin",
+            "lga_of_origin": "lga_of_origin",
+            "lga": "lga_of_origin",
+            "address": "residential_address",
+            "residential_address": "residential_address",
+            "marital_status": "marital_status",
+            "bank_name": "bank_name",
+            "bank_account_number": "bank_account_number",
+            "account_number": "bank_account_number",
+            "bank_account_name": "bank_account_name",
+            "pension_pin": "pension_pin",
+            "tax_id": "tax_id",
+            "emergency_contact_name": "emergency_contact_name",
+            "emergency_contact_phone": "emergency_contact_phone",
+            "is_active": "is_active",
+            "status": "_skip_status",
+        },
+        "foreign_keys": {
+            "school": {"lookup_field": "code", "model_path": "apps.schools.models", "model_name": "School"},
+            "department": {"lookup_field": "name", "model_path": "apps.departments.models", "model_name": "Department"},
+        },
+        "transforms": {
+            "gender": lambda v: {"M": "M", "F": "F", "Male": "M", "Female": "F"}.get(str(v).strip(), "M"),
+            "category": lambda v: {"Teaching": "TEACHING", "Non-Teaching": "NON_TEACHING",
+                                    "Administrative": "ADMINISTRATIVE"}.get(str(v).strip(), "TEACHING"),
+            "employment_type": lambda v: {"Permanent": "PERMANENT", "Contract": "CONTRACT",
+                                           "Temporary": "TEMPORARY", "Volunteer": "VOLUNTEER"
+                                           }.get(str(v).strip(), "PERMANENT"),
+            "qualification": lambda v: {"PhD": "PhD", "Masters": "Masters", "Bachelor": "Bachelors",
+                                         "Bachelors": "Bachelors", "HND": "HND", "OND": "OND",
+                                         "NCE": "NCE", "SSCE": "SSCE"}.get(str(v).strip(), "Bachelors"),
+            "is_active": lambda v: str(v).strip().lower() not in ("no", "false", "0", "inactive", "terminated"),
+            "date_of_birth": lambda v: str(v).strip() if v else None,
+            "date_joined": lambda v: str(v).strip() if v else None,
+            "date_of_first_appointment": lambda v: str(v).strip() if v else None,
+            "step": lambda v: int(float(str(v).strip())) if v and str(v).strip().replace(".", "").isdigit() else 1,
+            "salary": lambda v: float(str(v).strip().replace(",", "")) if v and str(v).strip().replace(",", "").replace(".", "").isdigit() else 0,
+        },
+        "name_fields": {
+            "first_name": ["first_name", "first", "fname"],
+            "last_name": ["last_name", "last", "lname", "surname"],
+        },
+    },
+    "schools": {
+        "model_path": "apps.schools.models",
+        "model_name": "School",
+        "table_aliases": [
+            "schools", "school", "tblschools", "tbl_schools",
+        ],
+        "field_map": {
+            "name": "name",
+            "school_name": "name",
+            "code": "code",
+            "school_code": "code",
+            "school_type": "school_type",
+            "type": "school_type",
+            "lga": "lga",
+            "address": "address",
+            "phone": "phone",
+            "email": "email",
+            "established_date": "established_date",
+            "student_capacity": "student_capacity",
+            "current_enrollment": "current_enrollment",
+            "enrollment": "current_enrollment",
+            "number_of_classrooms": "number_of_classrooms",
+            "classrooms": "number_of_classrooms",
+            "number_of_staff": "number_of_staff",
+            "has_science_lab": "has_science_lab",
+            "has_computer_lab": "has_computer_lab",
+            "has_library": "has_library",
+            "has_sports_field": "has_sports_field",
+            "latitude": "latitude",
+            "longitude": "longitude",
+        },
+        "foreign_keys": {},
+        "transforms": {
+            "school_type": lambda v: {"Junior": "JUNIOR", "Senior": "SENIOR",
+                                       "Junior Secondary": "JUNIOR", "Senior Secondary": "SENIOR"
+                                       }.get(str(v).strip(), "JUNIOR"),
+            "has_science_lab": lambda v: str(v).strip().lower() in ("yes", "true", "1"),
+            "has_computer_lab": lambda v: str(v).strip().lower() in ("yes", "true", "1"),
+            "has_library": lambda v: str(v).strip().lower() in ("yes", "true", "1"),
+            "has_sports_field": lambda v: str(v).strip().lower() in ("yes", "true", "1"),
+        },
+        "name_fields": {},
+    },
+    "fees": {
+        "model_path": "apps.finance.models",
+        "model_name": "StudentFee",
+        "table_aliases": [
+            "fees", "fee", "student_fees", "school_fees",
+            "tblfees", "tbl_fees", "fee_payments",
+        ],
+        "field_map": {
+            "amount_due": "amount_due",
+            "amount_paid": "amount_paid",
+            "balance": "balance",
+            "status": "status",
+        },
+        "foreign_keys": {
+            "student": {"lookup_field": "admission_number", "model_path": "apps.students.models", "model_name": "Student"},
+            "fee_structure": {"lookup_field": "name", "model_path": "apps.finance.models", "model_name": "FeeStructure"},
+        },
+        "transforms": {
+            "amount_due": lambda v: float(str(v).replace(",", "")) if v else 0,
+            "amount_paid": lambda v: float(str(v).replace(",", "")) if v else 0,
+            "balance": lambda v: float(str(v).replace(",", "")) if v else 0,
+        },
+        "name_fields": {},
+    },
+    "payments": {
+        "model_path": "apps.finance.models",
+        "model_name": "Payment",
+        "table_aliases": [
+            "payments", "payment", "fee_payment", "fee_payments",
+            "tblpayments", "tbl_payments",
+        ],
+        "field_map": {
+            "amount": "amount",
+            "payment_method": "payment_method",
+            "method": "payment_method",
+            "reference_number": "reference_number",
+            "ref_no": "reference_number",
+            "transaction_id": "transaction_id",
+            "payment_date": "payment_date",
+            "date": "payment_date",
+            "receipt_number": "receipt_number",
+            "receipt_no": "receipt_number",
+            "notes": "notes",
+            "remark": "notes",
+        },
+        "foreign_keys": {
+            "student_fee": {"lookup_field": "id", "model_path": "apps.finance.models", "model_name": "StudentFee"},
+        },
+        "transforms": {
+            "amount": lambda v: float(str(v).replace(",", "")) if v else 0,
+            "payment_method": lambda v: {"Cash": "CASH", "cash": "CASH",
+                                          "Bank Transfer": "BANK_TRANSFER", "Transfer": "BANK_TRANSFER",
+                                          "Online": "ONLINE", "POS": "POS", "Cheque": "CHEQUE"
+                                          }.get(str(v).strip(), "CASH"),
+        },
+        "name_fields": {},
+    },
+    "attendance": {
+        "model_path": "apps.attendance.models",
+        "model_name": "StudentAttendance",
+        "table_aliases": [
+            "attendance", "student_attendance", "tblattendance",
+            "tbl_attendance", "daily_attendance",
+        ],
+        "field_map": {
+            "date": "date",
+            "attendance_date": "date",
+            "status": "status",
+            "present_absent": "status",
+            "time_in": "time_in",
+            "time_out": "time_out",
+            "remark": "remark",
+            "remarks": "remark",
+        },
+        "foreign_keys": {
+            "student": {"lookup_field": "admission_number", "model_path": "apps.students.models", "model_name": "Student"},
+        },
+        "transforms": {
+            "status": lambda v: {"Present": "PRESENT", "present": "PRESENT", "P": "PRESENT",
+                                  "Absent": "ABSENT", "absent": "ABSENT", "A": "ABSENT",
+                                  "Late": "LATE", "late": "LATE", "L": "LATE",
+                                  "Excused": "EXCUSED", "excused": "EXCUSED",
+                                  "On Leave": "ON_LEAVE", "leave": "ON_LEAVE"
+                                  }.get(str(v).strip(), "PRESENT"),
+            "date": lambda v: str(v).strip() if v else None,
+        },
+        "name_fields": {},
+    },
+    "classes": {
+        "model_path": "apps.academics.models",
+        "model_name": "Class",
+        "table_aliases": [
+            "classes", "class", "class_list", "classess",
+            "tblclasses", "tbl_classes",
+        ],
+        "field_map": {
+            "name": "name",
+            "class_name": "name",
+            "level": "level",
+            "section": "section",
+            "capacity": "capacity",
+            "academic_year": "academic_year",
+            "term": "term",
+        },
+        "foreign_keys": {
+            "school": {"lookup_field": "code", "model_path": "apps.schools.models", "model_name": "School"},
+            "class_teacher": {"lookup_field": "email", "model_path": "apps.users.models", "model_name": "User"},
+        },
+        "transforms": {},
+        "name_fields": {},
+    },
+    "subjects": {
+        "model_path": "apps.academics.models",
+        "model_name": "Subject",
+        "table_aliases": [
+            "subjects", "subject", "tblsubjects", "tbl_subjects",
+        ],
+        "field_map": {
+            "name": "name",
+            "subject_name": "name",
+            "code": "code",
+            "subject_code": "code",
+            "description": "description",
+            "category": "category",
+            "is_compulsory": "is_compulsory",
+        },
+        "foreign_keys": {},
+        "transforms": {
+            "category": lambda v: {"Science": "SCIENCE", "Arts": "ARTS",
+                                    "Commercial": "COMMERCIAL", "General": "GENERAL"
+                                    }.get(str(v).strip(), "GENERAL"),
+            "is_compulsory": lambda v: str(v).strip().lower() in ("yes", "true", "1"),
+        },
+        "name_fields": {},
+    },
+    "exam_results": {
+        "model_path": "apps.academics.models",
+        "model_name": "ExamResult",
+        "table_aliases": [
+            "exam_results", "examresults", "results", "scores",
+            "tblexamresults", "exam_scores", "student_results",
+        ],
+        "field_map": {
+            "marks_obtained": "marks_obtained",
+            "marks": "marks_obtained",
+            "score": "marks_obtained",
+            "grade": "grade",
+            "remark": "remark",
+            "remarks": "remark",
+        },
+        "foreign_keys": {
+            "student": {"lookup_field": "admission_number", "model_path": "apps.students.models", "model_name": "Student"},
+            "exam": {"lookup_field": "name", "model_path": "apps.academics.models", "model_name": "Exam"},
+            "subject": {"lookup_field": "code", "model_path": "apps.academics.models", "model_name": "Subject"},
+        },
+        "transforms": {
+            "marks_obtained": lambda v: float(str(v).replace(",", "")) if v else 0,
+        },
+        "name_fields": {},
+    },
+    "departments": {
+        "model_path": "apps.departments.models",
+        "model_name": "Department",
+        "table_aliases": [
+            "departments", "department", "depts", "dept",
+            "tbldepartments", "tbl_departments",
+        ],
+        "field_map": {
+            "name": "name",
+            "dept_name": "name",
+            "code": "code",
+            "dept_code": "code",
+            "category": "category",
+            "description": "description",
+        },
+        "foreign_keys": {},
+        "transforms": {
+            "category": lambda v: {"Core": "CORE", "Support": "SUPPORT"}.get(str(v).strip(), "CORE"),
+        },
+        "name_fields": {},
+    },
+}
+
+
+def get_access_table_names(mapping_key):
+    """Get all possible Access table names for a mapping key."""
+    mapping = ACCESS_TABLE_MAPPINGS.get(mapping_key, {})
+    return mapping.get("table_aliases", [])
+
+
+def find_mapping_for_table(access_table_name):
+    """Find the Django model mapping for an Access table name."""
+    normalized = access_table_name.lower().strip().replace(" ", "").replace("-", "_")
+    for key, mapping in ACCESS_TABLE_MAPPINGS.items():
+        for alias in mapping.get("table_aliases", []):
+            if alias.lower().replace(" ", "").replace("-", "_") == normalized:
+                return key, mapping
+    return None, None

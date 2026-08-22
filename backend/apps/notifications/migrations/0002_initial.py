@@ -35,20 +35,14 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="notificationlog",
-            index=models.Index(
-                fields=["recipient"], name="notificatio_recipie_38111d_idx"
-            ),
+            index=models.Index(fields=["recipient"], name="notificatio_recipie_38111d_idx"),
         ),
         migrations.AddIndex(
             model_name="notificationlog",
-            index=models.Index(
-                fields=["channel"], name="notificatio_channel_e46ef2_idx"
-            ),
+            index=models.Index(fields=["channel"], name="notificatio_channel_e46ef2_idx"),
         ),
         migrations.AddIndex(
             model_name="notificationlog",
-            index=models.Index(
-                fields=["is_sent"], name="notificatio_is_sent_c07652_idx"
-            ),
+            index=models.Index(fields=["is_sent"], name="notificatio_is_sent_c07652_idx"),
         ),
     ]

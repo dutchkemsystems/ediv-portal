@@ -131,9 +131,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="examresult",
-            index=models.Index(
-                fields=["student"], name="academics_e_student_304068_idx"
-            ),
+            index=models.Index(fields=["student"], name="academics_e_student_304068_idx"),
         ),
         migrations.AddIndex(
             model_name="examresult",
@@ -141,9 +139,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="examresult",
-            index=models.Index(
-                fields=["subject"], name="academics_e_subject_0d8e26_idx"
-            ),
+            index=models.Index(fields=["subject"], name="academics_e_subject_0d8e26_idx"),
         ),
         migrations.AlterUniqueTogether(
             name="examresult",
@@ -151,21 +147,15 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="exam",
-            index=models.Index(
-                fields=["school"], name="academics_e_school__4ea135_idx"
-            ),
+            index=models.Index(fields=["school"], name="academics_e_school__4ea135_idx"),
         ),
         migrations.AddIndex(
             model_name="exam",
-            index=models.Index(
-                fields=["exam_type"], name="academics_e_exam_ty_b1514a_idx"
-            ),
+            index=models.Index(fields=["exam_type"], name="academics_e_exam_ty_b1514a_idx"),
         ),
         migrations.AddIndex(
             model_name="exam",
-            index=models.Index(
-                fields=["academic_year"], name="academics_e_academi_962e99_idx"
-            ),
+            index=models.Index(fields=["academic_year"], name="academics_e_academi_962e99_idx"),
         ),
         migrations.AlterUniqueTogether(
             name="classsubject",
@@ -173,9 +163,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="class",
-            index=models.Index(
-                fields=["school"], name="academics_c_school__bd4381_idx"
-            ),
+            index=models.Index(fields=["school"], name="academics_c_school__bd4381_idx"),
         ),
         migrations.AddIndex(
             model_name="class",
@@ -183,9 +171,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="class",
-            index=models.Index(
-                fields=["academic_year"], name="academics_c_academi_3e0641_idx"
-            ),
+            index=models.Index(fields=["academic_year"], name="academics_c_academi_3e0641_idx"),
         ),
         migrations.AlterUniqueTogether(
             name="class",
@@ -193,26 +179,18 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="academiccalendar",
-            index=models.Index(
-                fields=["school"], name="academics_a_school__4eade6_idx"
-            ),
+            index=models.Index(fields=["school"], name="academics_a_school__4eade6_idx"),
         ),
         migrations.AddIndex(
             model_name="academiccalendar",
-            index=models.Index(
-                fields=["event_type"], name="academics_a_event_t_0279ab_idx"
-            ),
+            index=models.Index(fields=["event_type"], name="academics_a_event_t_0279ab_idx"),
         ),
         migrations.AddIndex(
             model_name="academiccalendar",
-            index=models.Index(
-                fields=["academic_year"], name="academics_a_academi_ed579e_idx"
-            ),
+            index=models.Index(fields=["academic_year"], name="academics_a_academi_ed579e_idx"),
         ),
         migrations.AddIndex(
             model_name="academiccalendar",
-            index=models.Index(
-                fields=["start_date"], name="academics_a_start_d_8bc157_idx"
-            ),
+            index=models.Index(fields=["start_date"], name="academics_a_start_d_8bc157_idx"),
         ),
     ]

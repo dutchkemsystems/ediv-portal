@@ -36,7 +36,6 @@ export function markSynced(index) {
 
 export async function syncOfflineAttendance(apiClient) {
   const records = getOfflineAttendance();
-  const unsynced = records.filter((r) => !r.synced);
   const results = { synced: 0, failed: 0 };
 
   for (let i = 0; i < records.length; i++) {

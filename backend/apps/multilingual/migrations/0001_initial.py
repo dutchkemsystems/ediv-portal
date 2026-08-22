@@ -15,35 +15,56 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='UserLanguagePreference',
+            name="UserLanguagePreference",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('preferred_language', models.CharField(choices=[('en', 'English'), ('yo', 'Yoruba'), ('pcm', 'Nigerian Pidgin'), ('fr', 'French')], default='en', max_length=5)),
-                ('auto_detect', models.BooleanField(default=True)),
-                ('font_size', models.CharField(choices=[('small', 'Small'), ('medium', 'Medium'), ('large', 'Large')], default='medium', max_length=10)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='language_preference', to=settings.AUTH_USER_MODEL)),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "preferred_language",
+                    models.CharField(
+                        choices=[("en", "English"), ("yo", "Yoruba"), ("pcm", "Nigerian Pidgin"), ("fr", "French")],
+                        default="en",
+                        max_length=5,
+                    ),
+                ),
+                ("auto_detect", models.BooleanField(default=True)),
+                (
+                    "font_size",
+                    models.CharField(
+                        choices=[("small", "Small"), ("medium", "Medium"), ("large", "Large")],
+                        default="medium",
+                        max_length=10,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "user",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="language_preference",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'db_table': 'user_language_preferences',
+                "db_table": "user_language_preferences",
             },
         ),
         migrations.CreateModel(
-            name='TranslationEntry',
+            name="TranslationEntry",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('key', models.CharField(db_index=True, max_length=200)),
-                ('language', models.CharField(max_length=5)),
-                ('value', models.TextField()),
-                ('context', models.CharField(blank=True, max_length=200)),
-                ('is_approved', models.BooleanField(default=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("key", models.CharField(db_index=True, max_length=200)),
+                ("language", models.CharField(max_length=5)),
+                ("value", models.TextField()),
+                ("context", models.CharField(blank=True, max_length=200)),
+                ("is_approved", models.BooleanField(default=False)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
             ],
             options={
-                'db_table': 'translation_entries',
-                'unique_together': {('key', 'language', 'context')},
+                "db_table": "translation_entries",
+                "unique_together": {("key", "language", "context")},
             },
         ),
     ]

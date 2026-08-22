@@ -54,21 +54,15 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="disciplinaryincident",
-            index=models.Index(
-                fields=["student"], name="discipline__student_0dd0a4_idx"
-            ),
+            index=models.Index(fields=["student"], name="discipline__student_0dd0a4_idx"),
         ),
         migrations.AddIndex(
             model_name="disciplinaryincident",
-            index=models.Index(
-                fields=["incident_type"], name="discipline__inciden_0887b7_idx"
-            ),
+            index=models.Index(fields=["incident_type"], name="discipline__inciden_0887b7_idx"),
         ),
         migrations.AddIndex(
             model_name="disciplinaryincident",
-            index=models.Index(
-                fields=["severity"], name="discipline__severit_26d297_idx"
-            ),
+            index=models.Index(fields=["severity"], name="discipline__severit_26d297_idx"),
         ),
         migrations.AddIndex(
             model_name="disciplinaryincident",
@@ -76,8 +70,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="disciplinaryincident",
-            index=models.Index(
-                fields=["incident_date"], name="discipline__inciden_b2dccd_idx"
-            ),
+            index=models.Index(fields=["incident_date"], name="discipline__inciden_b2dccd_idx"),
         ),
     ]

@@ -15,37 +15,75 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='ImportJob',
+            name="ImportJob",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('file_name', models.CharField(max_length=300)),
-                ('file_type', models.CharField(choices=[('CSV', 'CSV'), ('EXCEL', 'Excel'), ('PDF', 'PDF'), ('WORD', 'Word'), ('JSON', 'JSON')], max_length=10)),
-                ('target_model', models.CharField(max_length=50)),
-                ('status', models.CharField(choices=[('PENDING', 'Pending'), ('PROCESSING', 'Processing'), ('COMPLETED', 'Completed'), ('FAILED', 'Failed')], default='PENDING', max_length=20)),
-                ('total_rows', models.IntegerField(default=0)),
-                ('success_rows', models.IntegerField(default=0)),
-                ('error_rows', models.IntegerField(default=0)),
-                ('error_log', models.JSONField(blank=True, default=list)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('completed_at', models.DateTimeField(blank=True, null=True)),
-                ('created_by', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='import_jobs', to=settings.AUTH_USER_MODEL)),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("file_name", models.CharField(max_length=300)),
+                (
+                    "file_type",
+                    models.CharField(
+                        choices=[
+                            ("CSV", "CSV"),
+                            ("EXCEL", "Excel"),
+                            ("PDF", "PDF"),
+                            ("WORD", "Word"),
+                            ("JSON", "JSON"),
+                        ],
+                        max_length=10,
+                    ),
+                ),
+                ("target_model", models.CharField(max_length=50)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("PENDING", "Pending"),
+                            ("PROCESSING", "Processing"),
+                            ("COMPLETED", "Completed"),
+                            ("FAILED", "Failed"),
+                        ],
+                        default="PENDING",
+                        max_length=20,
+                    ),
+                ),
+                ("total_rows", models.IntegerField(default=0)),
+                ("success_rows", models.IntegerField(default=0)),
+                ("error_rows", models.IntegerField(default=0)),
+                ("error_log", models.JSONField(blank=True, default=list)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("completed_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="import_jobs",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
+                "ordering": ["-created_at"],
             },
         ),
         migrations.CreateModel(
-            name='ImportError',
+            name="ImportError",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('row_number', models.IntegerField()),
-                ('field_name', models.CharField(blank=True, max_length=100)),
-                ('error_message', models.TextField()),
-                ('raw_value', models.TextField(blank=True)),
-                ('job', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='errors', to='data_import_export.importjob')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("row_number", models.IntegerField()),
+                ("field_name", models.CharField(blank=True, max_length=100)),
+                ("error_message", models.TextField()),
+                ("raw_value", models.TextField(blank=True)),
+                (
+                    "job",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="errors",
+                        to="data_import_export.importjob",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['row_number'],
+                "ordering": ["row_number"],
             },
         ),
     ]

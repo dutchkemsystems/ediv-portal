@@ -46,20 +46,14 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="activity",
-            index=models.Index(
-                fields=["school"], name="co_curricul_school__7d0dea_idx"
-            ),
+            index=models.Index(fields=["school"], name="co_curricul_school__7d0dea_idx"),
         ),
         migrations.AddIndex(
             model_name="activity",
-            index=models.Index(
-                fields=["activity_type"], name="co_curricul_activit_5a3a7a_idx"
-            ),
+            index=models.Index(fields=["activity_type"], name="co_curricul_activit_5a3a7a_idx"),
         ),
         migrations.AddIndex(
             model_name="activity",
-            index=models.Index(
-                fields=["is_active"], name="co_curricul_is_acti_1f9dac_idx"
-            ),
+            index=models.Index(fields=["is_active"], name="co_curricul_is_acti_1f9dac_idx"),
         ),
     ]

@@ -1,13 +1,14 @@
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from .views import WorkflowViewSet, WorkflowStepViewSet, WorkflowInstanceViewSet, TaskViewSet
+
+from .views import TaskViewSet, WorkflowInstanceViewSet, WorkflowStepViewSet, WorkflowViewSet
 
 router = DefaultRouter()
-router.register('workflows', WorkflowViewSet)
-router.register('steps', WorkflowStepViewSet)
-router.register('instances', WorkflowInstanceViewSet)
-router.register('tasks', TaskViewSet)
+router.register("workflows", WorkflowViewSet)
+router.register("steps", WorkflowStepViewSet)
+router.register("instances", WorkflowInstanceViewSet)
+router.register("tasks", TaskViewSet)
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path("", include(router.urls)),
 ]

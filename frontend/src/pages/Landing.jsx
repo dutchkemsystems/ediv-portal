@@ -1,4 +1,3 @@
-import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Box,
@@ -28,7 +27,6 @@ import {
   AccountBalance as EconomyIcon,
   Celebration as EntertainmentIcon,
   Shield as SecurityPolicyIcon,
-  PlusOne as PlusIcon,
 } from '@mui/icons-material'
 
 const lagosRed = '#C8102E'

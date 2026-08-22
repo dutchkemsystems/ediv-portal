@@ -26,14 +26,10 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="analyticsreport",
-            index=models.Index(
-                fields=["report_type"], name="analytics_a_report__07a16b_idx"
-            ),
+            index=models.Index(fields=["report_type"], name="analytics_a_report__07a16b_idx"),
         ),
         migrations.AddIndex(
             model_name="analyticsreport",
-            index=models.Index(
-                fields=["generated_by"], name="analytics_a_generat_06df96_idx"
-            ),
+            index=models.Index(fields=["generated_by"], name="analytics_a_generat_06df96_idx"),
         ),
     ]

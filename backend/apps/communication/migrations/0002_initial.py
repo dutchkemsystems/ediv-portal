@@ -27,16 +27,12 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="message",
             name="cc",
-            field=models.ManyToManyField(
-                blank=True, related_name="cc_messages", to=settings.AUTH_USER_MODEL
-            ),
+            field=models.ManyToManyField(blank=True, related_name="cc_messages", to=settings.AUTH_USER_MODEL),
         ),
         migrations.AddField(
             model_name="message",
             name="recipients",
-            field=models.ManyToManyField(
-                related_name="received_messages", to=settings.AUTH_USER_MODEL
-            ),
+            field=models.ManyToManyField(related_name="received_messages", to=settings.AUTH_USER_MODEL),
         ),
         migrations.AddField(
             model_name="message",
@@ -62,56 +58,38 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="usernotification",
-            index=models.Index(
-                fields=["notification_type"], name="communicati_notific_3629e1_idx"
-            ),
+            index=models.Index(fields=["notification_type"], name="communicati_notific_3629e1_idx"),
         ),
         migrations.AddIndex(
             model_name="usernotification",
-            index=models.Index(
-                fields=["is_read"], name="communicati_is_read_f69d59_idx"
-            ),
+            index=models.Index(fields=["is_read"], name="communicati_is_read_f69d59_idx"),
         ),
         migrations.AddIndex(
             model_name="message",
-            index=models.Index(
-                fields=["sender"], name="communicati_sender__0e7b4b_idx"
-            ),
+            index=models.Index(fields=["sender"], name="communicati_sender__0e7b4b_idx"),
         ),
         migrations.AddIndex(
             model_name="message",
-            index=models.Index(
-                fields=["message_type"], name="communicati_message_88f192_idx"
-            ),
+            index=models.Index(fields=["message_type"], name="communicati_message_88f192_idx"),
         ),
         migrations.AddIndex(
             model_name="message",
-            index=models.Index(
-                fields=["priority"], name="communicati_priorit_d02a08_idx"
-            ),
+            index=models.Index(fields=["priority"], name="communicati_priorit_d02a08_idx"),
         ),
         migrations.AddIndex(
             model_name="message",
-            index=models.Index(
-                fields=["created_at"], name="communicati_created_544711_idx"
-            ),
+            index=models.Index(fields=["created_at"], name="communicati_created_544711_idx"),
         ),
         migrations.AddIndex(
             model_name="circular",
-            index=models.Index(
-                fields=["reference_number"], name="communicati_referen_962202_idx"
-            ),
+            index=models.Index(fields=["reference_number"], name="communicati_referen_962202_idx"),
         ),
         migrations.AddIndex(
             model_name="circular",
-            index=models.Index(
-                fields=["effective_date"], name="communicati_effecti_60624f_idx"
-            ),
+            index=models.Index(fields=["effective_date"], name="communicati_effecti_60624f_idx"),
         ),
         migrations.AddIndex(
             model_name="circular",
-            index=models.Index(
-                fields=["is_active"], name="communicati_is_acti_7554a1_idx"
-            ),
+            index=models.Index(fields=["is_active"], name="communicati_is_acti_7554a1_idx"),
         ),
     ]

@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react'
+import { Suspense, lazy } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { CircularProgress, Box } from '@mui/material'
@@ -40,6 +40,7 @@ const CoCurricular = lazy(() => import('./pages/CoCurricular'))
 const CPD = lazy(() => import('./pages/CPD'))
 const Reports = lazy(() => import('./pages/Reports'))
 const DataImportExport = lazy(() => import('./pages/DataImportExport'))
+const AccessDatabase = lazy(() => import('./pages/AccessDatabase'))
 const MailWorkflow = lazy(() => import('./pages/MailWorkflow'))
 const MemoWorkflow = lazy(() => import('./pages/MemoWorkflow'))
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
@@ -108,6 +109,7 @@ function App() {
             { path: '/cpd', element: CPD },
             { path: '/reports', element: Reports },
             { path: '/data-import-export', element: DataImportExport },
+            { path: '/access-databases', element: AccessDatabase },
             { path: '/mail-workflow', element: MailWorkflow },
             { path: '/memo-workflow', element: MemoWorkflow },
           ].map(({ path, element: Page }) => (

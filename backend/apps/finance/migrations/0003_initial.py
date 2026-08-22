@@ -77,9 +77,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="studentfee",
-            index=models.Index(
-                fields=["student"], name="finance_stu_student_bf9d27_idx"
-            ),
+            index=models.Index(fields=["student"], name="finance_stu_student_bf9d27_idx"),
         ),
         migrations.AddIndex(
             model_name="studentfee",
@@ -91,56 +89,38 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="payment",
-            index=models.Index(
-                fields=["reference_number"], name="finance_pay_referen_153f1d_idx"
-            ),
+            index=models.Index(fields=["reference_number"], name="finance_pay_referen_153f1d_idx"),
         ),
         migrations.AddIndex(
             model_name="payment",
-            index=models.Index(
-                fields=["payment_date"], name="finance_pay_payment_72f761_idx"
-            ),
+            index=models.Index(fields=["payment_date"], name="finance_pay_payment_72f761_idx"),
         ),
         migrations.AddIndex(
             model_name="payment",
-            index=models.Index(
-                fields=["is_confirmed"], name="finance_pay_is_conf_eb4606_idx"
-            ),
+            index=models.Index(fields=["is_confirmed"], name="finance_pay_is_conf_eb4606_idx"),
         ),
         migrations.AddIndex(
             model_name="feestructure",
-            index=models.Index(
-                fields=["school"], name="finance_fee_school__a3f6b8_idx"
-            ),
+            index=models.Index(fields=["school"], name="finance_fee_school__a3f6b8_idx"),
         ),
         migrations.AddIndex(
             model_name="feestructure",
-            index=models.Index(
-                fields=["fee_type"], name="finance_fee_fee_typ_f5cdd1_idx"
-            ),
+            index=models.Index(fields=["fee_type"], name="finance_fee_fee_typ_f5cdd1_idx"),
         ),
         migrations.AddIndex(
             model_name="feestructure",
-            index=models.Index(
-                fields=["academic_year"], name="finance_fee_academi_7e4cd9_idx"
-            ),
+            index=models.Index(fields=["academic_year"], name="finance_fee_academi_7e4cd9_idx"),
         ),
         migrations.AddIndex(
             model_name="budget",
-            index=models.Index(
-                fields=["school"], name="finance_bud_school__139aa6_idx"
-            ),
+            index=models.Index(fields=["school"], name="finance_bud_school__139aa6_idx"),
         ),
         migrations.AddIndex(
             model_name="budget",
-            index=models.Index(
-                fields=["category"], name="finance_bud_categor_5f83b0_idx"
-            ),
+            index=models.Index(fields=["category"], name="finance_bud_categor_5f83b0_idx"),
         ),
         migrations.AddIndex(
             model_name="budget",
-            index=models.Index(
-                fields=["academic_year"], name="finance_bud_academi_5b2f80_idx"
-            ),
+            index=models.Index(fields=["academic_year"], name="finance_bud_academi_5b2f80_idx"),
         ),
     ]

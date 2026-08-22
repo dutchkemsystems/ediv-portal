@@ -1,6 +1,5 @@
 """AI-Powered File Classification Service with expanded department routing."""
-import re
-from collections import Counter
+
 from apps.files.models import File, FileClassification
 
 
@@ -9,107 +8,226 @@ class ClassificationService:
 
     # Expanded department keyword mappings matching enterprise routing
     DEPARTMENT_KEYWORDS = {
-        'ADMIN_HR': [
-            'staff', 'recruitment', 'leave', 'welfare', 'discipline',
-            'transfer', 'promotion', 'appointment', 'salary', 'payroll',
-            'human resource', 'hr', 'personnel', 'workforce', 'onboarding',
+        "ADMIN_HR": [
+            "staff",
+            "recruitment",
+            "leave",
+            "welfare",
+            "discipline",
+            "transfer",
+            "promotion",
+            "appointment",
+            "salary",
+            "payroll",
+            "human resource",
+            "hr",
+            "personnel",
+            "workforce",
+            "onboarding",
         ],
-        'FINANCE': [
-            'finance', 'budget', 'payment', 'revenue', 'account',
-            'invoice', 'expenditure', 'procurement', 'financial',
-            'audit', 'treasury', 'tax', 'funding', 'grant',
+        "FINANCE": [
+            "finance",
+            "budget",
+            "payment",
+            "revenue",
+            "account",
+            "invoice",
+            "expenditure",
+            "procurement",
+            "financial",
+            "audit",
+            "treasury",
+            "tax",
+            "funding",
+            "grant",
         ],
-        'AUDIT': [
-            'audit', 'inspection', 'compliance', 'fraud',
-            'verification', 'investigation', 'review', 'internal control',
-            'risk assessment', 'regulatory',
+        "AUDIT": [
+            "audit",
+            "inspection",
+            "compliance",
+            "fraud",
+            "verification",
+            "investigation",
+            "review",
+            "internal control",
+            "risk assessment",
+            "regulatory",
         ],
-        'QA': [
-            'inspection', 'report', 'evaluation', 'assessment',
-            'performance', 'quality', 'standard', 'benchmark',
-            'accreditation', 'monitoring',
+        "QA": [
+            "inspection",
+            "report",
+            "evaluation",
+            "assessment",
+            "performance",
+            "quality",
+            "standard",
+            "benchmark",
+            "accreditation",
+            "monitoring",
         ],
-        'CC': [
-            'sports', 'french', 'culture', 'competition', 'club',
-            'stem', 'co-curricular', 'extracurricular', 'debate',
-            'quiz', 'athletics', 'music', 'drama',
+        "CC": [
+            "sports",
+            "french",
+            "culture",
+            "competition",
+            "club",
+            "stem",
+            "co-curricular",
+            "extracurricular",
+            "debate",
+            "quiz",
+            "athletics",
+            "music",
+            "drama",
         ],
-        'EMIS': [
-            'data', 'statistics', 'records', 'enrollment', 'reporting',
-            'analysis', 'information', 'database', 'census',
-            'demographic', 'metric', 'indicator',
+        "EMIS": [
+            "data",
+            "statistics",
+            "records",
+            "enrollment",
+            "reporting",
+            "analysis",
+            "information",
+            "database",
+            "census",
+            "demographic",
+            "metric",
+            "indicator",
         ],
-        'PLANNING': [
-            'strategic', 'policy', 'project', 'planning', 'development',
-            'target', 'objective', 'initiative', 'roadmap', 'forecast',
-            'budget planning', 'master plan',
+        "PLANNING": [
+            "strategic",
+            "policy",
+            "project",
+            "planning",
+            "development",
+            "target",
+            "objective",
+            "initiative",
+            "roadmap",
+            "forecast",
+            "budget planning",
+            "master plan",
         ],
-        'PROCUREMENT': [
-            'procurement', 'tender', 'bid', 'contract', 'supplier',
-            'purchase', 'acquisition', 'vendor', 'quotation', 'rfq',
+        "PROCUREMENT": [
+            "procurement",
+            "tender",
+            "bid",
+            "contract",
+            "supplier",
+            "purchase",
+            "acquisition",
+            "vendor",
+            "quotation",
+            "rfq",
         ],
-        'PUBLIC_AFFAIRS': [
-            'media', 'communication', 'press', 'public', 'relations',
-            'announcement', 'newsletter', 'website', 'social media',
-            'branding', 'publicity', 'stakeholder',
+        "PUBLIC_AFFAIRS": [
+            "media",
+            "communication",
+            "press",
+            "public",
+            "relations",
+            "announcement",
+            "newsletter",
+            "website",
+            "social media",
+            "branding",
+            "publicity",
+            "stakeholder",
         ],
-        'SCHOOLS_ADMIN': [
-            'school', 'principal', 'administration', 'supervision',
-            'facility', 'infrastructure', 'maintenance', 'building',
-            'classroom', 'laboratory', 'library',
+        "SCHOOLS_ADMIN": [
+            "school",
+            "principal",
+            "administration",
+            "supervision",
+            "facility",
+            "infrastructure",
+            "maintenance",
+            "building",
+            "classroom",
+            "laboratory",
+            "library",
         ],
-        'INSPECTION': [
-            'inspection', 'monitoring', 'compliance', 'verification',
-            'assessment', 'supervision', 'evaluation', 'quality',
-            'inspection report', 'inspect',
+        "INSPECTION": [
+            "inspection",
+            "monitoring",
+            "compliance",
+            "verification",
+            "assessment",
+            "supervision",
+            "evaluation",
+            "quality",
+            "inspection report",
+            "inspect",
         ],
-        'TRANSPORT': [
-            'transport', 'bus', 'vehicle', 'driver', 'route',
-            'maintenance', 'fuel', 'logistics', 'fleet', 'garage',
+        "TRANSPORT": [
+            "transport",
+            "bus",
+            "vehicle",
+            "driver",
+            "route",
+            "maintenance",
+            "fuel",
+            "logistics",
+            "fleet",
+            "garage",
         ],
-        'DISCIPLINE': [
-            'discipline', 'disciplinary', 'misconduct', 'complaint',
-            'suspension', 'expulsion', 'sanction', 'student conduct',
-            'punishment', 'indiscipline',
+        "DISCIPLINE": [
+            "discipline",
+            "disciplinary",
+            "misconduct",
+            "complaint",
+            "suspension",
+            "expulsion",
+            "sanction",
+            "student conduct",
+            "punishment",
+            "indiscipline",
         ],
-        'ACADEMIC': [
-            'academic', 'curriculum', 'teaching', 'learning',
-            'examination', 'syllabus', 'classroom', 'lesson',
-            'education', 'assessment',
+        "ACADEMIC": [
+            "academic",
+            "curriculum",
+            "teaching",
+            "learning",
+            "examination",
+            "syllabus",
+            "classroom",
+            "lesson",
+            "education",
+            "assessment",
         ],
     }
 
     # Human-readable department names for classification results
     DEPARTMENT_DISPLAY_NAMES = {
-        'ADMIN_HR': 'HR',
-        'FINANCE': 'Finance',
-        'AUDIT': 'Internal Audit',
-        'QA': 'Quality Assurance',
-        'CC': 'Co-Curricular Activities',
-        'EMIS': 'Data & Statistics',
-        'PLANNING': 'Planning & Budget',
-        'PROCUREMENT': 'Procurement',
-        'PUBLIC_AFFAIRS': 'Public Affairs',
-        'SCHOOLS_ADMIN': 'Schools Administration',
-        'INSPECTION': 'Inspection',
-        'TRANSPORT': 'Transport',
-        'DISCIPLINE': 'Discipline',
-        'ACADEMIC': 'Academic',
+        "ADMIN_HR": "HR",
+        "FINANCE": "Finance",
+        "AUDIT": "Internal Audit",
+        "QA": "Quality Assurance",
+        "CC": "Co-Curricular Activities",
+        "EMIS": "Data & Statistics",
+        "PLANNING": "Planning & Budget",
+        "PROCUREMENT": "Procurement",
+        "PUBLIC_AFFAIRS": "Public Affairs",
+        "SCHOOLS_ADMIN": "Schools Administration",
+        "INSPECTION": "Inspection",
+        "TRANSPORT": "Transport",
+        "DISCIPLINE": "Discipline",
+        "ACADEMIC": "Academic",
     }
 
     # Urgency keywords
     URGENCY_KEYWORDS = {
-        'URGENT': ['urgent', 'immediate', 'emergency', 'critical', 'asap', 'deadline'],
-        'HIGH': ['important', 'priority', 'time-sensitive', 'expedite', 'essential'],
-        'MEDIUM': ['review', 'follow-up', 'action required', 'standard', 'routine'],
-        'LOW': ['information', 'for your information', 'fyi', 'update', 'minor'],
+        "URGENT": ["urgent", "immediate", "emergency", "critical", "asap", "deadline"],
+        "HIGH": ["important", "priority", "time-sensitive", "expedite", "essential"],
+        "MEDIUM": ["review", "follow-up", "action required", "standard", "routine"],
+        "LOW": ["information", "for your information", "fyi", "update", "minor"],
     }
 
     # Sensitivity keywords
     SENSITIVITY_KEYWORDS = {
-        'RESTRICTED': ['confidential', 'restricted', 'sensitive', 'classified', 'internal use'],
-        'PRIVATE': ['personal', 'staff only', 'private', 'individual'],
-        'PUBLIC': ['public', 'announcement', 'general', 'circular', 'open'],
+        "RESTRICTED": ["confidential", "restricted", "sensitive", "classified", "internal use"],
+        "PRIVATE": ["personal", "staff only", "private", "individual"],
+        "PUBLIC": ["public", "announcement", "general", "circular", "open"],
     }
 
     @staticmethod
@@ -121,13 +239,13 @@ class ClassificationService:
             if score > 0:
                 dept_scores[dept] = score / len(keywords)
 
-        urgency_score = 'MEDIUM'
+        urgency_score = "MEDIUM"
         for level, keywords in ClassificationService.URGENCY_KEYWORDS.items():
             if any(kw in text for kw in keywords):
                 urgency_score = level
                 break
 
-        sensitivity_score = 'PUBLIC'
+        sensitivity_score = "PUBLIC"
         for level, keywords in ClassificationService.SENSITIVITY_KEYWORDS.items():
             if any(kw in text for kw in keywords):
                 sensitivity_score = level
@@ -138,22 +256,22 @@ class ClassificationService:
             all_keywords.extend([kw for kw in keywords if kw in text])
 
         return {
-            'dept_scores': dept_scores,
-            'urgency': urgency_score,
-            'sensitivity': sensitivity_score,
-            'keywords': list(set(all_keywords)),
+            "dept_scores": dept_scores,
+            "urgency": urgency_score,
+            "sensitivity": sensitivity_score,
+            "keywords": list(set(all_keywords)),
         }
 
     @staticmethod
     def _pick_best_department(scores):
         """Pick the best department and return its display name plus confidence."""
-        dept_scores = scores['dept_scores']
+        dept_scores = scores["dept_scores"]
         if dept_scores:
             best_code = max(dept_scores, key=dept_scores.get)
             confidence = min(dept_scores[best_code] * 2, 1.0)
             display_names = ClassificationService.DEPARTMENT_DISPLAY_NAMES
             return display_names.get(best_code, best_code), confidence
-        return '', 0.0
+        return "", 0.0
 
     @staticmethod
     def _compute_overall_confidence(dept_scores):
@@ -172,19 +290,19 @@ class ClassificationService:
 
         best_dept, confidence = ClassificationService._pick_best_department(scores)
 
-        overall_confidence = ClassificationService._compute_overall_confidence(scores['dept_scores'])
+        overall_confidence = ClassificationService._compute_overall_confidence(scores["dept_scores"])
 
         classification, _ = FileClassification.objects.update_or_create(
             file=file,
             defaults={
-                'suggested_department': best_dept,
-                'department_confidence': confidence,
-                'urgency': scores['urgency'],
-                'sensitivity': scores['sensitivity'],
-                'file_type_suggestion': file.file_type,
-                'keywords': scores['keywords'][:10],
-                'overall_confidence': overall_confidence,
-            }
+                "suggested_department": best_dept,
+                "department_confidence": confidence,
+                "urgency": scores["urgency"],
+                "sensitivity": scores["sensitivity"],
+                "file_type_suggestion": file.file_type,
+                "keywords": scores["keywords"][:10],
+                "overall_confidence": overall_confidence,
+            },
         )
 
         return classification
@@ -198,17 +316,17 @@ class ClassificationService:
 
         best_dept, confidence = ClassificationService._pick_best_department(scores)
 
-        overall_confidence = ClassificationService._compute_overall_confidence(scores['dept_scores'])
+        overall_confidence = ClassificationService._compute_overall_confidence(scores["dept_scores"])
 
         return {
-            'suggested_department': best_dept,
-            'department_confidence': confidence,
-            'urgency': scores['urgency'],
-            'sensitivity': scores['sensitivity'],
-            'file_type_suggestion': file.file_type,
-            'keywords': scores['keywords'][:10],
-            'overall_confidence': overall_confidence,
-            'all_dept_scores': scores['dept_scores'],
+            "suggested_department": best_dept,
+            "department_confidence": confidence,
+            "urgency": scores["urgency"],
+            "sensitivity": scores["sensitivity"],
+            "file_type_suggestion": file.file_type,
+            "keywords": scores["keywords"][:10],
+            "overall_confidence": overall_confidence,
+            "all_dept_scores": scores["dept_scores"],
         }
 
     @staticmethod

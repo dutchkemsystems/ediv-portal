@@ -9,52 +9,125 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('registry', '0002_initial'),
+        ("registry", "0002_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='MemoWorkflow',
+            name="MemoWorkflow",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('workflow_type', models.CharField(choices=[('MEMO', 'Memo'), ('CIRCULAR', 'Circular')], max_length=20)),
-                ('status', models.CharField(choices=[('DRAFT', 'Draft'), ('REGISTERED', 'Registered'), ('UNDER_APPROVAL', 'Under Approval'), ('CIRCULATING', 'Circulating'), ('ACKNOWLEDGED', 'Acknowledged'), ('IN_ACTION', 'In Action'), ('REPORTED', 'Reported'), ('ARCHIVED', 'Archived')], default='DRAFT', max_length=20)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('document', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='memo_workflows', to='registry.document')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                (
+                    "workflow_type",
+                    models.CharField(choices=[("MEMO", "Memo"), ("CIRCULAR", "Circular")], max_length=20),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("DRAFT", "Draft"),
+                            ("REGISTERED", "Registered"),
+                            ("UNDER_APPROVAL", "Under Approval"),
+                            ("CIRCULATING", "Circulating"),
+                            ("ACKNOWLEDGED", "Acknowledged"),
+                            ("IN_ACTION", "In Action"),
+                            ("REPORTED", "Reported"),
+                            ("ARCHIVED", "Archived"),
+                        ],
+                        default="DRAFT",
+                        max_length=20,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "document",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="memo_workflows",
+                        to="registry.document",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
+                "ordering": ["-created_at"],
             },
         ),
         migrations.CreateModel(
-            name='MemoCirculation',
+            name="MemoCirculation",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('date_sent', models.DateTimeField(auto_now_add=True)),
-                ('date_acknowledged', models.DateTimeField(blank=True, null=True)),
-                ('acknowledgement_notes', models.TextField(blank=True)),
-                ('status', models.CharField(choices=[('SENT', 'Sent'), ('ACKNOWLEDGED', 'Acknowledged'), ('ACTION_TAKEN', 'Action Taken'), ('REPORTED', 'Reported')], default='SENT', max_length=20)),
-                ('memo_workflow', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='circulations', to='registry.memoworkflow')),
-                ('recipient', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='memo_circulations', to=settings.AUTH_USER_MODEL)),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("date_sent", models.DateTimeField(auto_now_add=True)),
+                ("date_acknowledged", models.DateTimeField(blank=True, null=True)),
+                ("acknowledgement_notes", models.TextField(blank=True)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("SENT", "Sent"),
+                            ("ACKNOWLEDGED", "Acknowledged"),
+                            ("ACTION_TAKEN", "Action Taken"),
+                            ("REPORTED", "Reported"),
+                        ],
+                        default="SENT",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "memo_workflow",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="circulations",
+                        to="registry.memoworkflow",
+                    ),
+                ),
+                (
+                    "recipient",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="memo_circulations",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-date_sent'],
+                "ordering": ["-date_sent"],
             },
         ),
         migrations.CreateModel(
-            name='MemoApproval',
+            name="MemoApproval",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('approval_order', models.IntegerField(default=1)),
-                ('status', models.CharField(choices=[('PENDING', 'Pending'), ('APPROVED', 'Approved'), ('REJECTED', 'Rejected')], default='PENDING', max_length=20)),
-                ('comments', models.TextField(blank=True)),
-                ('approved_date', models.DateTimeField(blank=True, null=True)),
-                ('approver', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='memo_approvals', to=settings.AUTH_USER_MODEL)),
-                ('memo_workflow', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='approvals', to='registry.memoworkflow')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("approval_order", models.IntegerField(default=1)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[("PENDING", "Pending"), ("APPROVED", "Approved"), ("REJECTED", "Rejected")],
+                        default="PENDING",
+                        max_length=20,
+                    ),
+                ),
+                ("comments", models.TextField(blank=True)),
+                ("approved_date", models.DateTimeField(blank=True, null=True)),
+                (
+                    "approver",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="memo_approvals",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "memo_workflow",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="approvals",
+                        to="registry.memoworkflow",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['approval_order'],
+                "ordering": ["approval_order"],
             },
         ),
     ]

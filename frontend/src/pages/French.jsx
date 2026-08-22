@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
   Button,
   Grid,
   Chip,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -18,8 +17,6 @@ import {
 } from '@mui/material'
 import {
   Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
   Translate as TranslateIcon,
 } from '@mui/icons-material'
 import DataTable from '../components/common/DataTable'

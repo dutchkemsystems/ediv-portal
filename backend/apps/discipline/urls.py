@@ -1,11 +1,12 @@
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from .views import DisciplinaryIncidentViewSet, BehaviorPlanViewSet
+
+from .views import BehaviorPlanViewSet, DisciplinaryIncidentViewSet
 
 router = DefaultRouter()
-router.register('incidents', DisciplinaryIncidentViewSet)
-router.register('behavior-plans', BehaviorPlanViewSet)
+router.register("incidents", DisciplinaryIncidentViewSet)
+router.register("behavior-plans", BehaviorPlanViewSet)
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path("", include(router.urls)),
 ]

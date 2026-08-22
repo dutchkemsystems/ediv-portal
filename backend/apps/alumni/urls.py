@@ -1,12 +1,13 @@
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from .views import AlumniMemberViewSet, AlumniEventViewSet, AlumniDonationViewSet
+
+from .views import AlumniDonationViewSet, AlumniEventViewSet, AlumniMemberViewSet
 
 router = DefaultRouter()
-router.register('members', AlumniMemberViewSet)
-router.register('events', AlumniEventViewSet)
-router.register('donations', AlumniDonationViewSet)
+router.register("members", AlumniMemberViewSet)
+router.register("events", AlumniEventViewSet)
+router.register("donations", AlumniDonationViewSet)
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path("", include(router.urls)),
 ]

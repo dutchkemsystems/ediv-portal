@@ -50,9 +50,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="bookloan",
-            index=models.Index(
-                fields=["borrower"], name="library_boo_borrowe_9be1aa_idx"
-            ),
+            index=models.Index(fields=["borrower"], name="library_boo_borrowe_9be1aa_idx"),
         ),
         migrations.AddIndex(
             model_name="bookloan",
@@ -60,15 +58,11 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="bookloan",
-            index=models.Index(
-                fields=["due_date"], name="library_boo_due_dat_c9fabc_idx"
-            ),
+            index=models.Index(fields=["due_date"], name="library_boo_due_dat_c9fabc_idx"),
         ),
         migrations.AddIndex(
             model_name="book",
-            index=models.Index(
-                fields=["school"], name="library_boo_school__c3277b_idx"
-            ),
+            index=models.Index(fields=["school"], name="library_boo_school__c3277b_idx"),
         ),
         migrations.AddIndex(
             model_name="book",
@@ -76,8 +70,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="book",
-            index=models.Index(
-                fields=["category"], name="library_boo_categor_49bcef_idx"
-            ),
+            index=models.Index(fields=["category"], name="library_boo_categor_49bcef_idx"),
         ),
     ]

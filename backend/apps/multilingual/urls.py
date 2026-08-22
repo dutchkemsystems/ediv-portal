@@ -1,12 +1,13 @@
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from .views import UserLanguagePreferenceViewSet, TranslationEntryViewSet, TranslationViewSet
+
+from .views import TranslationEntryViewSet, TranslationViewSet, UserLanguagePreferenceViewSet
 
 router = DefaultRouter()
-router.register('preferences', UserLanguagePreferenceViewSet, basename='language-preference')
-router.register('entries', TranslationEntryViewSet, basename='translation-entry')
-router.register('i18n', TranslationViewSet, basename='i18n')
+router.register("preferences", UserLanguagePreferenceViewSet, basename="language-preference")
+router.register("entries", TranslationEntryViewSet, basename="translation-entry")
+router.register("i18n", TranslationViewSet, basename="i18n")
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path("", include(router.urls)),
 ]

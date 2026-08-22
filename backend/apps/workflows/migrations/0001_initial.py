@@ -263,9 +263,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="workflowinstance",
-            index=models.Index(
-                fields=["reference_number"], name="workflows_w_referen_7e8330_idx"
-            ),
+            index=models.Index(fields=["reference_number"], name="workflows_w_referen_7e8330_idx"),
         ),
         migrations.AddIndex(
             model_name="workflowinstance",
@@ -273,9 +271,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="workflowinstance",
-            index=models.Index(
-                fields=["initiated_by"], name="workflows_w_initiat_5e33a1_idx"
-            ),
+            index=models.Index(fields=["initiated_by"], name="workflows_w_initiat_5e33a1_idx"),
         ),
         migrations.AddIndex(
             model_name="workflow",
@@ -283,15 +279,11 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="workflow",
-            index=models.Index(
-                fields=["created_by"], name="workflows_w_created_dcbde2_idx"
-            ),
+            index=models.Index(fields=["created_by"], name="workflows_w_created_dcbde2_idx"),
         ),
         migrations.AddIndex(
             model_name="task",
-            index=models.Index(
-                fields=["assigned_to"], name="workflows_t_assigne_c15487_idx"
-            ),
+            index=models.Index(fields=["assigned_to"], name="workflows_t_assigne_c15487_idx"),
         ),
         migrations.AddIndex(
             model_name="task",
@@ -299,8 +291,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="task",
-            index=models.Index(
-                fields=["due_date"], name="workflows_t_due_dat_9edfd7_idx"
-            ),
+            index=models.Index(fields=["due_date"], name="workflows_t_due_dat_9edfd7_idx"),
         ),
     ]

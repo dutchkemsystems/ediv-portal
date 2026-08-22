@@ -50,9 +50,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="course",
-            index=models.Index(
-                fields=["school"], name="e_learning__school__47e102_idx"
-            ),
+            index=models.Index(fields=["school"], name="e_learning__school__47e102_idx"),
         ),
         migrations.AddIndex(
             model_name="course",

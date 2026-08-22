@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -28,7 +28,6 @@ import Chart from 'react-apexcharts'
 import api from '../../api/client'
 import { notify } from '../../utils/notifications'
 
-const lagosRed = '#C8102E'
 const lagosGreen = '#00843D'
 
 function TeacherDashboard() {

@@ -9,60 +9,102 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('schools', '0002_initial'),
+        ("schools", "0002_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='BenchmarkMetric',
+            name="BenchmarkMetric",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=200)),
-                ('code', models.CharField(max_length=50, unique=True)),
-                ('category', models.CharField(choices=[('ACADEMIC', 'Academic Performance'), ('ATTENDANCE', 'Attendance'), ('FINANCIAL', 'Financial'), ('STAFF', 'Staff Performance'), ('INFRASTRUCTURE', 'Infrastructure'), ('EXTRACURRICULAR', 'Extra-Curricular')], max_length=20)),
-                ('description', models.TextField(blank=True)),
-                ('unit', models.CharField(blank=True, max_length=20)),
-                ('higher_is_better', models.BooleanField(default=True)),
-                ('is_active', models.BooleanField(default=True)),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("name", models.CharField(max_length=200)),
+                ("code", models.CharField(max_length=50, unique=True)),
+                (
+                    "category",
+                    models.CharField(
+                        choices=[
+                            ("ACADEMIC", "Academic Performance"),
+                            ("ATTENDANCE", "Attendance"),
+                            ("FINANCIAL", "Financial"),
+                            ("STAFF", "Staff Performance"),
+                            ("INFRASTRUCTURE", "Infrastructure"),
+                            ("EXTRACURRICULAR", "Extra-Curricular"),
+                        ],
+                        max_length=20,
+                    ),
+                ),
+                ("description", models.TextField(blank=True)),
+                ("unit", models.CharField(blank=True, max_length=20)),
+                ("higher_is_better", models.BooleanField(default=True)),
+                ("is_active", models.BooleanField(default=True)),
             ],
             options={
-                'db_table': 'benchmark_metrics',
+                "db_table": "benchmark_metrics",
             },
         ),
         migrations.CreateModel(
-            name='BenchmarkComparison',
+            name="BenchmarkComparison",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('value_a', models.FloatField()),
-                ('value_b', models.FloatField()),
-                ('difference', models.FloatField()),
-                ('percentage_difference', models.FloatField()),
-                ('period', models.CharField(max_length=20)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('metric', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='benchmarking.benchmarkmetric')),
-                ('school_a', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='comparisons_as_a', to='schools.school')),
-                ('school_b', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='comparisons_as_b', to='schools.school')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("value_a", models.FloatField()),
+                ("value_b", models.FloatField()),
+                ("difference", models.FloatField()),
+                ("percentage_difference", models.FloatField()),
+                ("period", models.CharField(max_length=20)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "metric",
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="benchmarking.benchmarkmetric"),
+                ),
+                (
+                    "school_a",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="comparisons_as_a",
+                        to="schools.school",
+                    ),
+                ),
+                (
+                    "school_b",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="comparisons_as_b",
+                        to="schools.school",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'benchmark_comparisons',
-                'ordering': ['-created_at'],
+                "db_table": "benchmark_comparisons",
+                "ordering": ["-created_at"],
             },
         ),
         migrations.CreateModel(
-            name='SchoolBenchmark',
+            name="SchoolBenchmark",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('value', models.FloatField()),
-                ('period', models.CharField(max_length=20)),
-                ('academic_session', models.CharField(blank=True, max_length=20)),
-                ('calculated_at', models.DateTimeField(auto_now_add=True)),
-                ('metric', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='school_benchmarks', to='benchmarking.benchmarkmetric')),
-                ('school', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='benchmarks', to='schools.school')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("value", models.FloatField()),
+                ("period", models.CharField(max_length=20)),
+                ("academic_session", models.CharField(blank=True, max_length=20)),
+                ("calculated_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "metric",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="school_benchmarks",
+                        to="benchmarking.benchmarkmetric",
+                    ),
+                ),
+                (
+                    "school",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, related_name="benchmarks", to="schools.school"
+                    ),
+                ),
             ],
             options={
-                'db_table': 'school_benchmarks',
-                'ordering': ['-calculated_at'],
-                'unique_together': {('school', 'metric', 'period')},
+                "db_table": "school_benchmarks",
+                "ordering": ["-calculated_at"],
+                "unique_together": {("school", "metric", "period")},
             },
         ),
     ]

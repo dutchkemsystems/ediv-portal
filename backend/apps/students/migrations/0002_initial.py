@@ -70,15 +70,11 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="student",
-            index=models.Index(
-                fields=["admission_number"], name="students_st_admissi_321db4_idx"
-            ),
+            index=models.Index(fields=["admission_number"], name="students_st_admissi_321db4_idx"),
         ),
         migrations.AddIndex(
             model_name="student",
-            index=models.Index(
-                fields=["school"], name="students_st_school__196ea5_idx"
-            ),
+            index=models.Index(fields=["school"], name="students_st_school__196ea5_idx"),
         ),
         migrations.AddIndex(
             model_name="student",

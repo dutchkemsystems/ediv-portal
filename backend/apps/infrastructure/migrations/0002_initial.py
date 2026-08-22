@@ -76,9 +76,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="project",
-            index=models.Index(
-                fields=["school"], name="infrastruct_school__ccb80c_idx"
-            ),
+            index=models.Index(fields=["school"], name="infrastruct_school__ccb80c_idx"),
         ),
         migrations.AddIndex(
             model_name="project",
@@ -86,9 +84,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="maintenancerequest",
-            index=models.Index(
-                fields=["facility"], name="infrastruct_facilit_3f6109_idx"
-            ),
+            index=models.Index(fields=["facility"], name="infrastruct_facilit_3f6109_idx"),
         ),
         migrations.AddIndex(
             model_name="maintenancerequest",
@@ -96,26 +92,18 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="maintenancerequest",
-            index=models.Index(
-                fields=["priority"], name="infrastruct_priorit_9f8522_idx"
-            ),
+            index=models.Index(fields=["priority"], name="infrastruct_priorit_9f8522_idx"),
         ),
         migrations.AddIndex(
             model_name="facility",
-            index=models.Index(
-                fields=["school"], name="infrastruct_school__fe61ee_idx"
-            ),
+            index=models.Index(fields=["school"], name="infrastruct_school__fe61ee_idx"),
         ),
         migrations.AddIndex(
             model_name="facility",
-            index=models.Index(
-                fields=["facility_type"], name="infrastruct_facilit_2742e3_idx"
-            ),
+            index=models.Index(fields=["facility_type"], name="infrastruct_facilit_2742e3_idx"),
         ),
         migrations.AddIndex(
             model_name="facility",
-            index=models.Index(
-                fields=["condition"], name="infrastruct_conditi_bfb679_idx"
-            ),
+            index=models.Index(fields=["condition"], name="infrastruct_conditi_bfb679_idx"),
         ),
     ]

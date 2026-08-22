@@ -277,9 +277,7 @@ class Migration(migrations.Migration):
                 "ordering": ["name"],
                 "indexes": [
                     models.Index(fields=["code"], name="academics_s_code_3689e5_idx"),
-                    models.Index(
-                        fields=["category"], name="academics_s_categor_5c5105_idx"
-                    ),
+                    models.Index(fields=["category"], name="academics_s_categor_5c5105_idx"),
                 ],
             },
         ),

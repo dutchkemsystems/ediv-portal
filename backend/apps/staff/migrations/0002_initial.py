@@ -89,9 +89,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="staffperformance",
-            index=models.Index(
-                fields=["academic_year"], name="staff_staff_academi_dbe379_idx"
-            ),
+            index=models.Index(fields=["academic_year"], name="staff_staff_academi_dbe379_idx"),
         ),
         migrations.AddIndex(
             model_name="staffperformance",
@@ -103,9 +101,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="staffleave",
-            index=models.Index(
-                fields=["leave_type"], name="staff_staff_leave_t_a897b6_idx"
-            ),
+            index=models.Index(fields=["leave_type"], name="staff_staff_leave_t_a897b6_idx"),
         ),
         migrations.AddIndex(
             model_name="staffleave",
@@ -113,38 +109,26 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="staff",
-            index=models.Index(
-                fields=["staff_id"], name="staff_staff_staff_i_1228db_idx"
-            ),
+            index=models.Index(fields=["staff_id"], name="staff_staff_staff_i_1228db_idx"),
         ),
         migrations.AddIndex(
             model_name="staff",
-            index=models.Index(
-                fields=["employee_number"], name="staff_staff_employe_1b06ca_idx"
-            ),
+            index=models.Index(fields=["employee_number"], name="staff_staff_employe_1b06ca_idx"),
         ),
         migrations.AddIndex(
             model_name="staff",
-            index=models.Index(
-                fields=["category"], name="staff_staff_categor_10f8da_idx"
-            ),
+            index=models.Index(fields=["category"], name="staff_staff_categor_10f8da_idx"),
         ),
         migrations.AddIndex(
             model_name="staff",
-            index=models.Index(
-                fields=["designation"], name="staff_staff_designa_1ae0e9_idx"
-            ),
+            index=models.Index(fields=["designation"], name="staff_staff_designa_1ae0e9_idx"),
         ),
         migrations.AddIndex(
             model_name="staff",
-            index=models.Index(
-                fields=["school"], name="staff_staff_school__032c0f_idx"
-            ),
+            index=models.Index(fields=["school"], name="staff_staff_school__032c0f_idx"),
         ),
         migrations.AddIndex(
             model_name="staff",
-            index=models.Index(
-                fields=["is_active"], name="staff_staff_is_acti_0db61a_idx"
-            ),
+            index=models.Index(fields=["is_active"], name="staff_staff_is_acti_0db61a_idx"),
         ),
     ]

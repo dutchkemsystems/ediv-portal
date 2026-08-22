@@ -17,6 +17,16 @@ def health_check(request):
         return JsonResponse({"status": "unhealthy", "error": str(e)}, status=503)
 
 
+def wake_up(request):
+    """Lightweight endpoint for external cron services to keep Render free tier alive."""
+    return JsonResponse({"status": "ok", "message": "Service is awake"})
+
+
+def api_health(request):
+    """Fast API health check - no DB query, used by frontend to detect cold start."""
+    return JsonResponse({"status": "ok"})
+
+
 def debug_files(request):
     """Debug endpoint - only available when DEBUG=True"""
     if not settings.DEBUG:
@@ -82,6 +92,8 @@ def serve_frontend(request, path=""):
 
 urlpatterns = [
     path("health/", health_check),
+    path("api/health/", api_health),
+    path("wake/", wake_up),
     path("debug/files/", debug_files),
     path("admin/", admin.site.urls),
     path("api/users/", include("apps.users.urls")),
@@ -114,6 +126,7 @@ urlpatterns = [
     path("api/cpd/", include("apps.cpd.urls")),
     path("api/analytics/", include("apps.analytics.urls")),
     path("api/data-import-export/", include("apps.data_import_export.urls")),
+    path("api/access-databases/", include("apps.data_import_export.urls_access")),
     path("api/mail-workflow/", include("apps.mail_workflow.urls")),
     path("api/audit/", include("apps.audit.urls")),
     path("api/parent-teacher/", include("apps.parent_teacher.urls")),

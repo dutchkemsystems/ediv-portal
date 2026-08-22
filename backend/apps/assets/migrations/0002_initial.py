@@ -77,26 +77,18 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="asset",
-            index=models.Index(
-                fields=["school"], name="assets_asse_school__a5d801_idx"
-            ),
+            index=models.Index(fields=["school"], name="assets_asse_school__a5d801_idx"),
         ),
         migrations.AddIndex(
             model_name="asset",
-            index=models.Index(
-                fields=["asset_code"], name="assets_asse_asset_c_3198cc_idx"
-            ),
+            index=models.Index(fields=["asset_code"], name="assets_asse_asset_c_3198cc_idx"),
         ),
         migrations.AddIndex(
             model_name="asset",
-            index=models.Index(
-                fields=["category"], name="assets_asse_categor_f3ee6a_idx"
-            ),
+            index=models.Index(fields=["category"], name="assets_asse_categor_f3ee6a_idx"),
         ),
         migrations.AddIndex(
             model_name="asset",
-            index=models.Index(
-                fields=["condition"], name="assets_asse_conditi_114aeb_idx"
-            ),
+            index=models.Index(fields=["condition"], name="assets_asse_conditi_114aeb_idx"),
         ),
     ]

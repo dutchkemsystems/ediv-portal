@@ -6,23 +6,27 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('files', '0002_initial'),
+        ("files", "0002_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='file',
-            name='expected_completion_date',
+            model_name="file",
+            name="expected_completion_date",
             field=models.DateField(blank=True, null=True),
         ),
         migrations.AddField(
-            model_name='file',
-            name='status_timeline',
-            field=models.JSONField(blank=True, default=list, help_text='List of {timestamp, status, changed_by_id, changed_by_name, notes} entries'),
+            model_name="file",
+            name="status_timeline",
+            field=models.JSONField(
+                blank=True,
+                default=list,
+                help_text="List of {timestamp, status, changed_by_id, changed_by_name, notes} entries",
+            ),
         ),
         migrations.AddField(
-            model_name='filemovement',
-            name='completion_notes',
+            model_name="filemovement",
+            name="completion_notes",
             field=models.TextField(blank=True),
         ),
     ]

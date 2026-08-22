@@ -138,15 +138,11 @@ class Migration(migrations.Migration):
                 ("position", models.IntegerField(blank=True, null=True)),
                 (
                     "score",
-                    models.DecimalField(
-                        blank=True, decimal_places=2, max_digits=5, null=True
-                    ),
+                    models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True),
                 ),
                 (
                     "certificate",
-                    models.FileField(
-                        blank=True, upload_to="competitions/certificates/"
-                    ),
+                    models.FileField(blank=True, upload_to="competitions/certificates/"),
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),

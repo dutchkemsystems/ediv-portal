@@ -1,20 +1,20 @@
-from django.db import models
 from django.conf import settings
+from django.db import models
 
 
 class Certificate(models.Model):
     CERT_TYPE_CHOICES = [
-        ('TRANScript', 'Transcript'),
-        ('LEAVING', 'Leaving Certificate'),
-        ('MERIT', 'Merit Certificate'),
-        ('PARTICIPATION', 'Participation Certificate'),
-        ('ATHLETIC', 'Athletic Certificate'),
-        ('ACADEMIC', 'Academic Excellence'),
-        ('CUSTOM', 'Custom Certificate'),
+        ("TRANScript", "Transcript"),
+        ("LEAVING", "Leaving Certificate"),
+        ("MERIT", "Merit Certificate"),
+        ("PARTICIPATION", "Participation Certificate"),
+        ("ATHLETIC", "Athletic Certificate"),
+        ("ACADEMIC", "Academic Excellence"),
+        ("CUSTOM", "Custom Certificate"),
     ]
 
-    student = models.ForeignKey('students.Student', on_delete=models.CASCADE, related_name='blockchain_certificates')
-    school = models.ForeignKey('schools.School', on_delete=models.CASCADE, related_name='blockchain_certificates')
+    student = models.ForeignKey("students.Student", on_delete=models.CASCADE, related_name="blockchain_certificates")
+    school = models.ForeignKey("schools.School", on_delete=models.CASCADE, related_name="blockchain_certificates")
     certificate_type = models.CharField(max_length=20, choices=CERT_TYPE_CHOICES)
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
@@ -40,29 +40,32 @@ class Certificate(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'blockchain_certificates'
-        ordering = ['-issued_date']
+        db_table = "blockchain_certificates"
+        ordering = ["-issued_date"]
 
     def __str__(self):
         return f"{self.title} - {self.student}"
 
 
 class CertificateVerification(models.Model):
-    certificate = models.ForeignKey(Certificate, on_delete=models.CASCADE, related_name='verifications')
+    certificate = models.ForeignKey(Certificate, on_delete=models.CASCADE, related_name="verifications")
     verified_by = models.CharField(max_length=200)
-    verification_method = models.CharField(max_length=50, choices=[
-        ('QR_CODE', 'QR Code Scan'),
-        ('HASH', 'Hash Lookup'),
-        ('URL', 'Direct URL'),
-        ('API', 'API Verification'),
-    ])
+    verification_method = models.CharField(
+        max_length=50,
+        choices=[
+            ("QR_CODE", "QR Code Scan"),
+            ("HASH", "Hash Lookup"),
+            ("URL", "Direct URL"),
+            ("API", "API Verification"),
+        ],
+    )
     ip_address = models.GenericIPAddressField(null=True)
     is_valid = models.BooleanField()
     verified_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = 'certificate_verifications'
-        ordering = ['-verified_at']
+        db_table = "certificate_verifications"
+        ordering = ["-verified_at"]
 
     def __str__(self):
         return f"Verification: {self.certificate.cert_hash[:16]}... by {self.verified_by}"

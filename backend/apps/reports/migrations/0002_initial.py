@@ -35,15 +35,11 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="report",
-            index=models.Index(
-                fields=["report_type"], name="reports_rep_report__dbb097_idx"
-            ),
+            index=models.Index(fields=["report_type"], name="reports_rep_report__dbb097_idx"),
         ),
         migrations.AddIndex(
             model_name="report",
-            index=models.Index(
-                fields=["generated_by"], name="reports_rep_generat_4dc4d4_idx"
-            ),
+            index=models.Index(fields=["generated_by"], name="reports_rep_generat_4dc4d4_idx"),
         ),
         migrations.AddIndex(
             model_name="dashboard",
@@ -51,8 +47,6 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="dashboard",
-            index=models.Index(
-                fields=["is_default"], name="reports_das_is_defa_dff9e2_idx"
-            ),
+            index=models.Index(fields=["is_default"], name="reports_das_is_defa_dff9e2_idx"),
         ),
     ]

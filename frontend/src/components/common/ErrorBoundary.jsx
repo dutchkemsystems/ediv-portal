@@ -16,7 +16,7 @@ class ErrorBoundary extends React.Component {
     return { hasError: true, error }
   }
 
-  componentDidCatch(error, errorInfo) {
+  componentDidCatch(error, _errorInfo) {
     if (!error?.message?.includes('Network Error')) {
       console.error('Render error:', error)
     }

@@ -1,4 +1,5 @@
 from rest_framework import serializers
+
 from .models import AuditLog, ComplianceItem, ComplianceRecord, Violation
 
 
@@ -7,15 +8,27 @@ class AuditLogSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AuditLog
-        fields = ['id', 'user', 'user_name', 'action', 'module', 'object_type',
-                  'object_id', 'object_repr', 'description', 'ip_address',
-                  'old_value', 'new_value', 'created_at']
-        read_only_fields = ['id', 'created_at']
+        fields = [
+            "id",
+            "user",
+            "user_name",
+            "action",
+            "module",
+            "object_type",
+            "object_id",
+            "object_repr",
+            "description",
+            "ip_address",
+            "old_value",
+            "new_value",
+            "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]
 
     def get_user_name(self, obj):
         if obj.user:
             return obj.user.get_full_name()
-        return 'System'
+        return "System"
 
 
 class AuditLogListSerializer(serializers.ModelSerializer):
@@ -23,21 +36,31 @@ class AuditLogListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AuditLog
-        fields = ['id', 'user_name', 'action', 'module', 'object_repr', 'created_at']
+        fields = ["id", "user_name", "action", "module", "object_repr", "created_at"]
 
     def get_user_name(self, obj):
         if obj.user:
             return obj.user.get_full_name()
-        return 'System'
+        return "System"
 
 
 class ComplianceItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = ComplianceItem
-        fields = ['id', 'category', 'title', 'description', 'reference_document',
-                  'frequency', 'is_mandatory', 'applies_to', 'is_active',
-                  'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        fields = [
+            "id",
+            "category",
+            "title",
+            "description",
+            "reference_document",
+            "frequency",
+            "is_mandatory",
+            "applies_to",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
 
 
 class ComplianceRecordSerializer(serializers.ModelSerializer):
@@ -48,13 +71,30 @@ class ComplianceRecordSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ComplianceRecord
-        fields = ['id', 'item', 'item_title', 'school', 'school_name',
-                  'department', 'department_name', 'status', 'academic_year',
-                  'due_date', 'completion_date', 'evidence', 'reviewed_by',
-                  'reviewed_by_name', 'review_date', 'review_notes',
-                  'findings', 'recommendations', 'next_review_date',
-                  'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        fields = [
+            "id",
+            "item",
+            "item_title",
+            "school",
+            "school_name",
+            "department",
+            "department_name",
+            "status",
+            "academic_year",
+            "due_date",
+            "completion_date",
+            "evidence",
+            "reviewed_by",
+            "reviewed_by_name",
+            "review_date",
+            "review_notes",
+            "findings",
+            "recommendations",
+            "next_review_date",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
 
     def get_item_title(self, obj):
         return obj.item.title
@@ -77,7 +117,7 @@ class ComplianceRecordListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ComplianceRecord
-        fields = ['id', 'item_title', 'school_name', 'status', 'due_date', 'academic_year']
+        fields = ["id", "item_title", "school_name", "status", "due_date", "academic_year"]
 
     def get_item_title(self, obj):
         return obj.item.title
@@ -93,13 +133,31 @@ class ViolationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Violation
-        fields = ['id', 'title', 'description', 'severity', 'status', 'category',
-                  'school', 'school_name', 'department', 'reported_by',
-                  'reported_by_name', 'assigned_to', 'assigned_to_name',
-                  'incident_date', 'resolution_date', 'resolution_notes',
-                  'evidence', 'corrective_action', 'follow_up_required',
-                  'follow_up_date', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        fields = [
+            "id",
+            "title",
+            "description",
+            "severity",
+            "status",
+            "category",
+            "school",
+            "school_name",
+            "department",
+            "reported_by",
+            "reported_by_name",
+            "assigned_to",
+            "assigned_to_name",
+            "incident_date",
+            "resolution_date",
+            "resolution_notes",
+            "evidence",
+            "corrective_action",
+            "follow_up_required",
+            "follow_up_date",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
 
     def get_reported_by_name(self, obj):
         if obj.reported_by:
@@ -121,8 +179,17 @@ class ViolationListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Violation
-        fields = ['id', 'title', 'severity', 'status', 'category', 'school_name',
-                  'reported_by_name', 'incident_date', 'created_at']
+        fields = [
+            "id",
+            "title",
+            "severity",
+            "status",
+            "category",
+            "school_name",
+            "reported_by_name",
+            "incident_date",
+            "created_at",
+        ]
 
     def get_reported_by_name(self, obj):
         if obj.reported_by:

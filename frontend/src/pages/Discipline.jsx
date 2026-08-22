@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Box,
   Typography,
@@ -70,16 +70,7 @@ function Discipline() {
   const [filters, setFilters] = useState({ severity: '', status: '', incident_type: '' })
   const [showFilters, setShowFilters] = useState(false)
 
-  useEffect(() => {
-    fetchIncidents()
-    fetchStudents()
-  }, [])
-
-  useEffect(() => {
-    fetchIncidents()
-  }, [filters])
-
-  const fetchIncidents = async () => {
+  const fetchIncidents = useCallback(async () => {
     try {
       setLoading(true)
       const params = new URLSearchParams()
@@ -94,16 +85,25 @@ function Discipline() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters])
 
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     try {
       const response = await api.get('/students/students/')
       setStudents(response.data.results || response.data)
     } catch (error) {
       // silent
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    fetchIncidents()
+    fetchStudents()
+  }, [fetchIncidents, fetchStudents])
+
+  useEffect(() => {
+    fetchIncidents()
+  }, [fetchIncidents])
 
   const handleFilterChange = (field, value) => {
     setFilters(prev => ({ ...prev, [field]: value }))

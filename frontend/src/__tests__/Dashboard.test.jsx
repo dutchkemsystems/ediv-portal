@@ -1,4 +1,3 @@
-import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import { Provider } from 'react-redux'
 import { MemoryRouter } from 'react-router-dom'
@@ -41,29 +40,6 @@ const mockActivityData = {
     { file__title: 'Transfer Letter', action: 'TRANSFERRED', from_holder__first_name: 'John', to_holder__first_name: 'Jane' },
   ],
   recent_tasks: [],
-}
-
-const mockHrData = {
-  total_staff: 350,
-  by_category: [{ category: 'TEACHING', count: 200 }],
-  by_designation: [],
-  new_hires_30d: 12,
-  pending_leaves: 5,
-  approved_leaves: 20,
-  suspended: 2,
-  recent_leaves: [],
-}
-
-const mockFinanceData = {
-  total_collected: 5000000,
-  total_due: 2000000,
-  collection_rate: 71.4,
-  pending_payments: 15,
-  payments_today: 250000,
-  collection_by_school: [],
-  collection_by_method: [],
-  budget_summary: [],
-  fee_status: [],
 }
 
 describe('Dashboard Page', () => {

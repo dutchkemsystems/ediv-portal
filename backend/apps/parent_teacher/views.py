@@ -1,58 +1,59 @@
-from rest_framework import viewsets, permissions, filters
-from django_filters.rest_framework import DjangoFilterBackend
-from .models import PTAMeeting, ParentTeacherMessage, StudentReportShare
+from rest_framework import permissions, viewsets
+
+from .models import ParentTeacherMessage, PTAMeeting, StudentReportShare
 from .serializers import (
-    PTAMeetingSerializer, PTAMeetingListSerializer,
-    ParentTeacherMessageSerializer, ParentTeacherMessageListSerializer,
-    StudentReportShareSerializer, StudentReportShareListSerializer
+    ParentTeacherMessageListSerializer,
+    ParentTeacherMessageSerializer,
+    PTAMeetingListSerializer,
+    PTAMeetingSerializer,
+    StudentReportShareListSerializer,
+    StudentReportShareSerializer,
 )
 
 
 class PTAMeetingViewSet(viewsets.ModelViewSet):
-    queryset = PTAMeeting.objects.select_related('school', 'organized_by').all()
+    queryset = PTAMeeting.objects.select_related("school", "organized_by").all()
     permission_classes = [permissions.IsAuthenticated]
-    filterset_fields = ['school', 'meeting_type', 'status', 'scheduled_date']
-    search_fields = ['title', 'description', 'venue']
-    ordering_fields = ['scheduled_date', 'created_at']
+    filterset_fields = ["school", "meeting_type", "status", "scheduled_date"]
+    search_fields = ["title", "description", "venue"]
+    ordering_fields = ["scheduled_date", "created_at"]
 
     def get_serializer_class(self):
-        if self.action == 'list':
+        if self.action == "list":
             return PTAMeetingListSerializer
         return PTAMeetingSerializer
 
 
 class ParentTeacherMessageViewSet(viewsets.ModelViewSet):
-    queryset = ParentTeacherMessage.objects.select_related('sender', 'recipient', 'student__user').all()
+    queryset = ParentTeacherMessage.objects.select_related("sender", "recipient", "student__user").all()
     permission_classes = [permissions.IsAuthenticated]
-    filterset_fields = ['sender', 'recipient', 'student', 'category', 'is_read', 'is_urgent']
-    search_fields = ['subject', 'body', 'student__user__first_name', 'student__user__last_name']
-    ordering_fields = ['created_at', 'category']
+    filterset_fields = ["sender", "recipient", "student", "category", "is_read", "is_urgent"]
+    search_fields = ["subject", "body", "student__user__first_name", "student__user__last_name"]
+    ordering_fields = ["created_at", "category"]
 
     def get_serializer_class(self):
-        if self.action == 'list':
+        if self.action == "list":
             return ParentTeacherMessageListSerializer
         return ParentTeacherMessageSerializer
 
     def get_queryset(self):
         user = self.request.user
-        if user.role in ['SYSADMIN', 'TG_PS']:
-            return ParentTeacherMessage.objects.select_related('sender', 'recipient', 'student__user').all()
-        return ParentTeacherMessage.objects.select_related('sender', 'recipient', 'student__user').filter(
+        if user.role in ["SYSADMIN", "TG_PS"]:
+            return ParentTeacherMessage.objects.select_related("sender", "recipient", "student__user").all()
+        return ParentTeacherMessage.objects.select_related("sender", "recipient", "student__user").filter(
             sender=user
-        ) | ParentTeacherMessage.objects.select_related('sender', 'recipient', 'student__user').filter(
-            recipient=user
-        )
+        ) | ParentTeacherMessage.objects.select_related("sender", "recipient", "student__user").filter(recipient=user)
 
 
 class StudentReportShareViewSet(viewsets.ModelViewSet):
-    queryset = StudentReportShare.objects.select_related('student__user', 'shared_by', 'shared_with').all()
+    queryset = StudentReportShare.objects.select_related("student__user", "shared_by", "shared_with").all()
     permission_classes = [permissions.IsAuthenticated]
-    filterset_fields = ['student', 'report_type', 'academic_year', 'is_read']
-    search_fields = ['student__user__first_name', 'student__user__last_name']
-    ordering_fields = ['created_at', 'report_type']
+    filterset_fields = ["student", "report_type", "academic_year", "is_read"]
+    search_fields = ["student__user__first_name", "student__user__last_name"]
+    ordering_fields = ["created_at", "report_type"]
 
     def get_serializer_class(self):
-        if self.action == 'list':
+        if self.action == "list":
             return StudentReportShareListSerializer
         return StudentReportShareSerializer
 

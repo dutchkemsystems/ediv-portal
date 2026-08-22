@@ -1,14 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
   Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  MenuItem,
   Grid,
   Chip,
   Table,
@@ -19,15 +13,13 @@ import {
   TableRow,
   Paper,
   Switch,
-  FormControlLabel,
   Tabs,
   Tab,
   Alert,
 } from '@mui/material'
-import { Add as AddIcon, Security as SecurityIcon } from '@mui/icons-material'
+import { Security as SecurityIcon } from '@mui/icons-material'
 import api from '../api/client'
 import StatCard from '../components/common/StatCard'
-import { notify } from '../utils/notifications'
 
 const allRoles = [
   { value: 'SYSADMIN', label: 'System Administrator', category: 'Head Office' },
@@ -114,8 +106,7 @@ function Privileges() {
   const [tabValue, setTabValue] = useState(0)
   const [roleAccess, setRoleAccess] = useState(defaultAccess)
   const [users, setUsers] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [dialogOpen, setDialogOpen] = useState(false)
+  const [, setLoading] = useState(true)
   const [selectedRole, setSelectedRole] = useState('SYSADMIN')
 
   useEffect(() => {
@@ -154,7 +145,6 @@ function Privileges() {
 
   const headOfficeRoles = allRoles.filter(r => r.category === 'Head Office')
   const schoolRoles = allRoles.filter(r => r.category === 'School')
-  const otherRoles = allRoles.filter(r => r.category === 'Support' || r.category === 'External')
 
   return (
     <Box>

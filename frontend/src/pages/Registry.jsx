@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Box,
   Typography,
@@ -57,13 +57,13 @@ function Registry() {
 
   useEffect(() => {
     fetchDocuments()
-  }, [])
+  }, [fetchDocuments])
 
   useEffect(() => {
     fetchDocuments()
-  }, [filters])
+  }, [fetchDocuments, filters])
 
-  const fetchDocuments = async () => {
+  const fetchDocuments = useCallback(async () => {
     try {
       setLoading(true)
       const params = new URLSearchParams()
@@ -78,7 +78,7 @@ function Registry() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters])
 
   const handleFilterChange = (field, value) => {
     setFilters(prev => ({ ...prev, [field]: value }))

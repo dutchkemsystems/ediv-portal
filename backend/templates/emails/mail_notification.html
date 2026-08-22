@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { background: #C8102E; color: white; padding: 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .content { padding: 30px; color: #333; line-height: 1.6; }
+        .footer { background: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666; }
+        .btn { display: inline-block; padding: 12px 24px; background: #C8102E; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; }
+        .mail-card { background: #f9f9f9; border: 1px solid #ddd; border-radius: 6px; padding: 20px; margin: 15px 0; }
+        .mail-card h3 { margin-top: 0; color: #C8102E; }
+        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        .status-pending { background: #fff3e0; color: #e65100; }
+        .status-approved { background: #e8f5e9; color: #2e7d32; }
+        .status-assigned { background: #e3f2fd; color: #1565c0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Education District IV</h1>
+        </div>
+        <div class="content">
+            <h2>{{ title }}</h2>
+            <p>Dear {{ user_name }},</p>
+            <p>{{ message }}</p>
+            
+            {% if mail_number %}
+            <div class="mail-card">
+                <h3>Mail Reference: {{ mail_number }}</h3>
+                <p><strong>Subject:</strong> {{ mail_subject }}</p>
+                <p><strong>From:</strong> {{ mail_from }}</p>
+                <p><strong>Priority:</strong> {{ mail_priority }}</p>
+                {% if deadline %}
+                <p><strong>Deadline:</strong> {{ deadline }}</p>
+                {% endif %}
+                {% if action_required %}
+                <p><strong>Action Required:</strong> {{ action_required }}</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% if action_url %}
+            <p style="text-align: center; margin: 25px 0;">
+                <a href="{{ action_url }}" class="btn">{{ action_text|default:"Take Action" }}</a>
+            </p>
+            {% endif %}
+
+            <p>Best regards,<br><strong>Education District IV Portal</strong></p>
+        </div>
+        <div class="footer">
+            <p>Lagos State Ministry of Education &copy; {{ year }}. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

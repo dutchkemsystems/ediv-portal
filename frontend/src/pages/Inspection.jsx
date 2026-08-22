@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
   Button,
   Grid,
   Chip,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -18,8 +17,6 @@ import {
 } from '@mui/material'
 import {
   Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
   Assessment as AssessmentIcon,
 } from '@mui/icons-material'
 import DataTable from '../components/common/DataTable'
@@ -30,7 +27,7 @@ import api from '../api/client'
 
 function Inspection() {
   const [inspections, setInspections] = useState([])
-  const [checklists, setChecklists] = useState([])
+  const [, setChecklists] = useState([])
   const [loading, setLoading] = useState(true)
   const [openDialog, setOpenDialog] = useState(false)
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false)

@@ -1,10 +1,12 @@
 """Enhanced Multi-Channel Notification Service for file movements."""
+
 import logging
-from django.utils import timezone
+
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
-from django.conf import settings
 from django.template.loader import render_to_string
+from django.utils import timezone
 from django.utils.html import strip_tags
 
 User = get_user_model()
@@ -14,31 +16,40 @@ logger = logging.getLogger(__name__)
 class NotificationService:
     """Enhanced multi-channel notification service with email/SMS support."""
 
-    CHANNEL_CHOICES = ['email', 'sms', 'whatsapp', 'in_app']
+    CHANNEL_CHOICES = ["email", "sms", "whatsapp", "in_app"]
 
     @staticmethod
-    def send_notification(*, recipient, subject, message, channel='in_app',
-                         file=None, notification_type='FILE_MOVEMENT',
-                         priority='NORMAL', metadata=None) -> dict:
+    def send_notification(
+        *,
+        recipient,
+        subject,
+        message,
+        channel="in_app",
+        file=None,
+        notification_type="FILE_MOVEMENT",
+        priority="NORMAL",
+        metadata=None,
+    ) -> dict:
         """
         Send a notification through specified channel.
         Returns: {'success': bool, 'channel': str, 'error': str or None}
         """
         if channel not in NotificationService.CHANNEL_CHOICES:
             return {
-                'success': False,
-                'channel': channel,
-                'error': f'Invalid channel: {channel}',
+                "success": False,
+                "channel": channel,
+                "error": f"Invalid channel: {channel}",
             }
 
         try:
-            if channel == 'in_app':
+            if channel == "in_app":
                 from apps.communication.models import UserNotification
-                notif_type = 'INFO'
-                if priority in ('HIGH', 'URGENT'):
-                    notif_type = 'WARNING'
-                if notification_type == 'FILE_ESCALATION':
-                    notif_type = 'ERROR'
+
+                notif_type = "INFO"
+                if priority in ("HIGH", "URGENT"):
+                    notif_type = "WARNING"
+                if notification_type == "FILE_ESCALATION":
+                    notif_type = "ERROR"
                 UserNotification.objects.create(
                     user=recipient,
                     title=subject,
@@ -48,41 +59,44 @@ class NotificationService:
                 )
                 logger.info(f"In-app notification sent to {recipient}: {subject}")
 
-            elif channel == 'email':
+            elif channel == "email":
                 NotificationService._send_email(recipient, subject, message)
 
-            elif channel == 'sms':
+            elif channel == "sms":
                 NotificationService._send_sms(recipient, subject, message)
 
-            elif channel == 'whatsapp':
+            elif channel == "whatsapp":
                 NotificationService._send_whatsapp(recipient, subject, message)
 
-            return {'success': True, 'channel': channel, 'error': None}
+            return {"success": True, "channel": channel, "error": None}
 
         except Exception as e:
             logger.error(f"Failed to send {channel} notification to {recipient}: {e}")
-            return {'success': False, 'channel': channel, 'error': str(e)}
+            return {"success": False, "channel": channel, "error": str(e)}
 
     @staticmethod
     def _send_email(recipient, subject, message):
         """Send email notification."""
-        email_from = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@edivportal.gov.ng')
+        email_from = getattr(settings, "DEFAULT_FROM_EMAIL", "noreply@edivportal.gov.ng")
         html_message = None
 
         try:
-            html_message = render_to_string('emails/notification.html', {
-                'user': recipient,
-                'title': subject,
-                'message': message,
-                'year': timezone.now().year,
-            })
+            html_message = render_to_string(
+                "emails/notification.html",
+                {
+                    "user": recipient,
+                    "title": subject,
+                    "message": message,
+                    "year": timezone.now().year,
+                },
+            )
         except Exception:
             pass
 
         plain_message = strip_tags(html_message) if html_message else message
 
         send_mail(
-            subject=f'[{subject}] - Education District IV Portal',
+            subject=f"[{subject}] - Education District IV Portal",
             message=plain_message,
             from_email=email_from,
             recipient_list=[recipient.email],
@@ -94,9 +108,9 @@ class NotificationService:
     @staticmethod
     def _send_sms(recipient, subject, message):
         """Send SMS notification via Twilio if configured."""
-        account_sid = getattr(settings, 'TWILIO_ACCOUNT_SID', '')
-        auth_token = getattr(settings, 'TWILIO_AUTH_TOKEN', '')
-        from_number = getattr(settings, 'TWILIO_PHONE_NUMBER', '')
+        account_sid = getattr(settings, "TWILIO_ACCOUNT_SID", "")
+        auth_token = getattr(settings, "TWILIO_AUTH_TOKEN", "")
+        from_number = getattr(settings, "TWILIO_PHONE_NUMBER", "")
 
         if not all([account_sid, auth_token, from_number]):
             logger.info(f"[SMS] Twilio not configured. To: {recipient.phone_number} | {subject}: {message[:100]}")
@@ -104,6 +118,7 @@ class NotificationService:
 
         try:
             from twilio.rest import Client
+
             client = Client(account_sid, auth_token)
             sms_body = f"{subject}\n{message[:140]}"
             client.messages.create(
@@ -120,9 +135,9 @@ class NotificationService:
     @staticmethod
     def _send_whatsapp(recipient, subject, message):
         """Send WhatsApp notification via Twilio if configured."""
-        account_sid = getattr(settings, 'TWILIO_ACCOUNT_SID', '')
-        auth_token = getattr(settings, 'TWILIO_AUTH_TOKEN', '')
-        whatsapp_number = getattr(settings, 'WHATSAPP_PHONE_NUMBER', '')
+        account_sid = getattr(settings, "TWILIO_ACCOUNT_SID", "")
+        auth_token = getattr(settings, "TWILIO_AUTH_TOKEN", "")
+        whatsapp_number = getattr(settings, "WHATSAPP_PHONE_NUMBER", "")
 
         if not all([account_sid, auth_token, whatsapp_number]):
             logger.info(f"[WHATSAPP] Not configured. To: {recipient.phone_number} | {subject}")
@@ -130,12 +145,13 @@ class NotificationService:
 
         try:
             from twilio.rest import Client
+
             client = Client(account_sid, auth_token)
             wa_body = f"*{subject}*\n\n{message[:200]}"
             client.messages.create(
                 body=wa_body,
-                from_=f'whatsapp:{whatsapp_number}',
-                to=f'whatsapp:{recipient.phone_number}',
+                from_=f"whatsapp:{whatsapp_number}",
+                to=f"whatsapp:{recipient.phone_number}",
             )
             logger.info(f"WhatsApp sent to {recipient.phone_number}: {subject}")
         except ImportError:
@@ -144,12 +160,12 @@ class NotificationService:
             logger.error(f"WhatsApp send failed: {e}")
 
     @staticmethod
-    def send_multi_channel(*, recipient, subject, message, channels=None,
-                          file=None, notification_type='FILE_MOVEMENT',
-                          priority='NORMAL') -> list:
+    def send_multi_channel(
+        *, recipient, subject, message, channels=None, file=None, notification_type="FILE_MOVEMENT", priority="NORMAL"
+    ) -> list:
         """Send notification via multiple channels."""
         if channels is None:
-            channels = ['in_app', 'email']
+            channels = ["in_app", "email"]
 
         results = []
         for channel in channels:
@@ -171,12 +187,12 @@ class NotificationService:
         subject = f"File {file.file_number} assigned to you"
 
         if isinstance(movement, dict):
-            action_fn = movement.get('get_action_display')
-            action_display = action_fn() if callable(action_fn) else movement.get('action', '')
-            remarks = movement.get('remarks', '')
+            action_fn = movement.get("get_action_display")
+            action_display = action_fn() if callable(action_fn) else movement.get("action", "")
+            remarks = movement.get("remarks", "")
         else:
             action_display = movement.get_action_display()
-            remarks = movement.remarks or ''
+            remarks = movement.remarks or ""
 
         message = (
             f"File '{file.title}' ({file.file_number}) has been forwarded to you by "
@@ -186,9 +202,12 @@ class NotificationService:
             f"Remarks: {remarks or 'None'}"
         )
         return NotificationService.send_notification(
-            recipient=recipient, subject=subject, message=message,
-            file=file, notification_type='FILE_MOVEMENT',
-            priority=file.priority
+            recipient=recipient,
+            subject=subject,
+            message=message,
+            file=file,
+            notification_type="FILE_MOVEMENT",
+            priority=file.priority,
         )
 
     @staticmethod
@@ -210,18 +229,23 @@ class NotificationService:
 
         results = []
         for recipient in recipients:
-            results.append(NotificationService.send_notification(
-                recipient=recipient, subject=subject, message=message,
-                file=file, notification_type='FILE_ESCALATION',
-                priority='URGENT'
-            ))
-        return {'results': results}
+            results.append(
+                NotificationService.send_notification(
+                    recipient=recipient,
+                    subject=subject,
+                    message=message,
+                    file=file,
+                    notification_type="FILE_ESCALATION",
+                    priority="URGENT",
+                )
+            )
+        return {"results": results}
 
     @staticmethod
     def notify_deadline_approaching(*, file, hours_remaining) -> dict:
         """Send notification when file deadline is approaching."""
         if not file.current_holder:
-            return {'success': False, 'error': 'No current holder', 'channel': None}
+            return {"success": False, "error": "No current holder", "channel": None}
 
         subject = f"Deadline approaching: File {file.file_number}"
         message = (
@@ -230,9 +254,12 @@ class NotificationService:
             f"Priority: {file.get_priority_display()}"
         )
         return NotificationService.send_notification(
-            recipient=file.current_holder, subject=subject, message=message,
-            file=file, notification_type='DEADLINE_REMINDER',
-            priority='HIGH'
+            recipient=file.current_holder,
+            subject=subject,
+            message=message,
+            file=file,
+            notification_type="DEADLINE_REMINDER",
+            priority="HIGH",
         )
 
     @staticmethod
@@ -245,9 +272,12 @@ class NotificationService:
             f"Please return the file immediately."
         )
         return NotificationService.send_notification(
-            recipient=recipient, subject=subject, message=message,
-            file=file, notification_type='FILE_RECALL',
-            priority='HIGH'
+            recipient=recipient,
+            subject=subject,
+            message=message,
+            file=file,
+            notification_type="FILE_RECALL",
+            priority="HIGH",
         )
 
     @staticmethod
@@ -261,9 +291,12 @@ class NotificationService:
             f"Action required by: {step_info.get('role', 'N/A')}"
         )
         return NotificationService.send_notification(
-            recipient=to_user, subject=subject, message=message,
-            file=file, notification_type='FILE_MOVEMENT',
-            priority=file.priority
+            recipient=to_user,
+            subject=subject,
+            message=message,
+            file=file,
+            notification_type="FILE_MOVEMENT",
+            priority=file.priority,
         )
 
     @staticmethod
@@ -271,10 +304,11 @@ class NotificationService:
         """Get notifications for a user."""
         try:
             from apps.communication.models import UserNotification
+
             qs = UserNotification.objects.filter(user=user)
             if unread_only:
                 qs = qs.filter(is_read=False)
-            return list(qs.order_by('-created_at')[:limit])
+            return list(qs.order_by("-created_at")[:limit])
         except Exception as e:
             logger.error(f"Error fetching notifications for {user}: {e}")
             return []
@@ -284,10 +318,11 @@ class NotificationService:
         """Mark a notification as read."""
         try:
             from apps.communication.models import UserNotification
+
             notif = UserNotification.objects.get(id=notification_id, user=user)
             notif.is_read = True
             notif.read_at = timezone.now()
-            notif.save(update_fields=['is_read', 'read_at'])
+            notif.save(update_fields=["is_read", "read_at"])
             return True
         except Exception as e:
             logger.error(f"Error marking notification {notification_id} as read: {e}")

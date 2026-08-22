@@ -1,10 +1,11 @@
 """Tests for FileMovementService."""
-from django.test import TestCase
-from django.contrib.auth import get_user_model
-from django.utils import timezone
+
 from datetime import date, timedelta
 
-from apps.files.models import File, FileMovement, FileClassification
+from django.contrib.auth import get_user_model
+from django.test import TestCase
+
+from apps.files.models import File, FileMovement
 from apps.files.services.file_movement_service import FileMovementService
 
 User = get_user_model()
@@ -15,22 +16,22 @@ class FileMovementServiceCreateFileTest(TestCase):
 
     def setUp(self):
         self.user = User.objects.create_user(
-            email='creator@test.gov.ng',
-            password='TestPass123!@#',
-            first_name='Creator',
-            last_name='User',
-            role='SYSADMIN'
+            email="creator@test.gov.ng",
+            password="TestPass123!@#",
+            first_name="Creator",
+            last_name="User",
+            role="SYSADMIN",
         )
 
     def test_create_file_returns_file_instance(self):
         """create_file should return a File instance."""
         file_obj = FileMovementService.create_file(
-            title='Test Correspondence',
-            file_type='CORRESPONDENCE',
-            file_category='CORR',
-            description='A test file',
-            classification='CONFIDENTIAL',
-            priority='NORMAL',
+            title="Test Correspondence",
+            file_type="CORRESPONDENCE",
+            file_category="CORR",
+            description="A test file",
+            classification="CONFIDENTIAL",
+            priority="NORMAL",
             created_by=self.user,
         )
         self.assertIsInstance(file_obj, File)
@@ -38,70 +39,71 @@ class FileMovementServiceCreateFileTest(TestCase):
     def test_create_file_generates_file_number(self):
         """File number should be auto-generated with FIL prefix."""
         file_obj = FileMovementService.create_file(
-            title='Test File',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='LOW',
+            title="Test File",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="LOW",
             created_by=self.user,
         )
-        self.assertTrue(file_obj.file_number.startswith('FIL-'))
+        self.assertTrue(file_obj.file_number.startswith("FIL-"))
         self.assertIn(str(date.today().year), file_obj.file_number)
 
     def test_create_file_with_department(self):
         """File number should include department code when department provided."""
         from apps.departments.models import Department
-        dept = Department.objects.create(name='Finance', code='FIN', category='CORE')
+
+        dept = Department.objects.create(name="Finance", code="FIN", category="CORE")
         file_obj = FileMovementService.create_file(
-            title='Budget File',
-            file_type='INVOICE',
-            file_category='FIN',
-            description='Budget document',
-            classification='CONFIDENTIAL',
-            priority='HIGH',
+            title="Budget File",
+            file_type="INVOICE",
+            file_category="FIN",
+            description="Budget document",
+            classification="CONFIDENTIAL",
+            priority="HIGH",
             created_by=self.user,
             department=dept,
         )
-        self.assertIn('FIN', file_obj.file_number)
-        self.assertTrue(file_obj.file_number.startswith(f'FIL-FIN-{date.today().year}'))
+        self.assertIn("FIN", file_obj.file_number)
+        self.assertTrue(file_obj.file_number.startswith(f"FIL-FIN-{date.today().year}"))
 
     def test_create_file_auto_increments_sequence(self):
         """Successive files should have incrementing sequence numbers."""
         file1 = FileMovementService.create_file(
-            title='File 1',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="File 1",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.user,
         )
         file2 = FileMovementService.create_file(
-            title='File 2',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="File 2",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.user,
         )
         # Both should have valid file numbers and be different
         self.assertNotEqual(file1.file_number, file2.file_number)
         # Extract sequence numbers
-        seq1 = int(file1.file_number.split('-')[-1])
-        seq2 = int(file2.file_number.split('-')[-1])
+        seq1 = int(file1.file_number.split("-")[-1])
+        seq2 = int(file2.file_number.split("-")[-1])
         self.assertEqual(seq2, seq1 + 1)
 
     def test_create_file_sets_created_by(self):
         """File's created_by should be set to the provided user."""
         file_obj = FileMovementService.create_file(
-            title='My File',
-            file_type='CORRESPONDENCE',
-            file_category='CORR',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="My File",
+            file_type="CORRESPONDENCE",
+            file_category="CORR",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.user,
         )
         self.assertEqual(file_obj.created_by, self.user)
@@ -109,12 +111,12 @@ class FileMovementServiceCreateFileTest(TestCase):
     def test_create_file_sets_current_holder(self):
         """File's current_holder should be set to created_by."""
         file_obj = FileMovementService.create_file(
-            title='My File',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="My File",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.user,
         )
         self.assertEqual(file_obj.current_holder, self.user)
@@ -122,98 +124,99 @@ class FileMovementServiceCreateFileTest(TestCase):
     def test_create_file_sets_status_draft(self):
         """New file should have DRAFT status."""
         file_obj = FileMovementService.create_file(
-            title='Draft File',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="Draft File",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.user,
         )
-        self.assertEqual(file_obj.status, 'DRAFT')
+        self.assertEqual(file_obj.status, "DRAFT")
 
     def test_create_file_records_created_movement(self):
         """Creating a file should record a CREATED movement."""
         file_obj = FileMovementService.create_file(
-            title='With Movement',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="With Movement",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.user,
         )
         movement = FileMovement.objects.filter(file=file_obj).first()
         self.assertIsNotNone(movement)
-        self.assertEqual(movement.action, 'CREATED')
+        self.assertEqual(movement.action, "CREATED")
         self.assertEqual(movement.from_holder, self.user)
 
     def test_create_file_adds_to_status_timeline(self):
         """Creating a file should add an entry to status_timeline."""
         file_obj = FileMovementService.create_file(
-            title='Timeline File',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="Timeline File",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.user,
         )
         self.assertGreaterEqual(len(file_obj.status_timeline), 1)
         entry = file_obj.status_timeline[0]
-        self.assertEqual(entry['status'], 'DRAFT')
-        self.assertIn('timestamp', entry)
-        self.assertEqual(entry['changed_by_id'], self.user.id)
+        self.assertEqual(entry["status"], "DRAFT")
+        self.assertIn("timestamp", entry)
+        self.assertEqual(entry["changed_by_id"], self.user.id)
 
     def test_create_file_with_template(self):
         """If template provided, defaults should be applied."""
         from apps.files.models import FileTemplate
+
         template = FileTemplate.objects.create(
-            name='Correspondence Template',
-            category='CORRESPONDENCE',
-            file_type='CORRESPONDENCE',
-            file_category='CORR',
-            default_classification='INTERNAL',
-            default_priority='HIGH',
+            name="Correspondence Template",
+            category="CORRESPONDENCE",
+            file_type="CORRESPONDENCE",
+            file_category="CORR",
+            default_classification="INTERNAL",
+            default_priority="HIGH",
             created_by=self.user,
         )
         file_obj = FileMovementService.create_file(
-            title='From Template',
-            file_type='CORRESPONDENCE',
-            file_category='CORR',
-            description='',
-            classification='INTERNAL',
-            priority='HIGH',
+            title="From Template",
+            file_type="CORRESPONDENCE",
+            file_category="CORR",
+            description="",
+            classification="INTERNAL",
+            priority="HIGH",
             created_by=self.user,
             template=template,
         )
         self.assertIsNotNone(file_obj)
-        self.assertEqual(file_obj.file_type, 'CORRESPONDENCE')
+        self.assertEqual(file_obj.file_type, "CORRESPONDENCE")
 
     def test_create_file_with_tags(self):
         """Tags should be saved on the file."""
         file_obj = FileMovementService.create_file(
-            title='Tagged File',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="Tagged File",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.user,
-            tags=['important', 'review'],
+            tags=["important", "review"],
         )
-        self.assertEqual(file_obj.tags, ['important', 'review'])
+        self.assertEqual(file_obj.tags, ["important", "review"])
 
     def test_create_file_with_due_date(self):
         """Due date should be saved on the file."""
         due = date.today() + timedelta(days=7)
         file_obj = FileMovementService.create_file(
-            title='Due File',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='URGENT',
+            title="Due File",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="URGENT",
             created_by=self.user,
             due_date=due,
         )
@@ -222,14 +225,15 @@ class FileMovementServiceCreateFileTest(TestCase):
     def test_create_file_with_school(self):
         """School should be saved on the file."""
         from apps.schools.models import School
-        school = School.objects.create(name='Test School', code='TSC01')
+
+        school = School.objects.create(name="Test School", code="TSC01")
         file_obj = FileMovementService.create_file(
-            title='School File',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="School File",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.user,
             school=school,
         )
@@ -241,26 +245,22 @@ class FileMovementServiceMoveFileTest(TestCase):
 
     def setUp(self):
         self.sender = User.objects.create_user(
-            email='sender@test.gov.ng',
-            password='TestPass123!@#',
-            first_name='Sender',
-            last_name='User',
-            role='SYSADMIN'
+            email="sender@test.gov.ng",
+            password="TestPass123!@#",
+            first_name="Sender",
+            last_name="User",
+            role="SYSADMIN",
         )
         self.receiver = User.objects.create_user(
-            email='receiver@test.gov.ng',
-            password='TestPass123!@#',
-            first_name='Receiver',
-            last_name='User',
-            role='TCH'
+            email="receiver@test.gov.ng", password="TestPass123!@#", first_name="Receiver", last_name="User", role="TCH"
         )
         self.file = FileMovementService.create_file(
-            title='Test File',
-            file_type='CORRESPONDENCE',
-            file_category='CORR',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="Test File",
+            file_type="CORRESPONDENCE",
+            file_category="CORR",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.sender,
         )
 
@@ -270,8 +270,8 @@ class FileMovementServiceMoveFileTest(TestCase):
             file=self.file,
             from_holder=self.sender,
             to_holder=self.receiver,
-            action='FORWARDED',
-            remarks='Please review',
+            action="FORWARDED",
+            remarks="Please review",
         )
         self.assertIsInstance(movement, FileMovement)
 
@@ -281,7 +281,7 @@ class FileMovementServiceMoveFileTest(TestCase):
             file=self.file,
             from_holder=self.sender,
             to_holder=self.receiver,
-            action='FORWARDED',
+            action="FORWARDED",
         )
         self.file.refresh_from_db()
         self.assertEqual(self.file.current_holder, self.receiver)
@@ -292,10 +292,10 @@ class FileMovementServiceMoveFileTest(TestCase):
             file=self.file,
             from_holder=self.sender,
             to_holder=self.receiver,
-            action='FORWARDED',
+            action="FORWARDED",
         )
         self.file.refresh_from_db()
-        self.assertEqual(self.file.status, 'IN_TRANSIT')
+        self.assertEqual(self.file.status, "IN_TRANSIT")
 
     def test_move_file_records_movement(self):
         """move_file should create a FileMovement record with correct fields."""
@@ -303,14 +303,14 @@ class FileMovementServiceMoveFileTest(TestCase):
             file=self.file,
             from_holder=self.sender,
             to_holder=self.receiver,
-            action='FORWARDED',
-            remarks='Review please',
+            action="FORWARDED",
+            remarks="Review please",
         )
         self.assertEqual(movement.file, self.file)
         self.assertEqual(movement.from_holder, self.sender)
         self.assertEqual(movement.to_holder, self.receiver)
-        self.assertEqual(movement.action, 'FORWARDED')
-        self.assertEqual(movement.remarks, 'Review please')
+        self.assertEqual(movement.action, "FORWARDED")
+        self.assertEqual(movement.remarks, "Review please")
 
     def test_move_file_adds_to_timeline(self):
         """move_file should add entry to status_timeline."""
@@ -318,7 +318,7 @@ class FileMovementServiceMoveFileTest(TestCase):
             file=self.file,
             from_holder=self.sender,
             to_holder=self.receiver,
-            action='FORWARDED',
+            action="FORWARDED",
         )
         self.file.refresh_from_db()
         # At least the CREATED entry from create_file + the move entry
@@ -327,18 +327,14 @@ class FileMovementServiceMoveFileTest(TestCase):
     def test_move_file_validates_from_holder(self):
         """move_file should raise ValueError if from_holder is not current_holder."""
         stranger = User.objects.create_user(
-            email='stranger@test.gov.ng',
-            password='TestPass123!@#',
-            first_name='Stranger',
-            last_name='User',
-            role='TCH'
+            email="stranger@test.gov.ng", password="TestPass123!@#", first_name="Stranger", last_name="User", role="TCH"
         )
         with self.assertRaises(ValueError):
             FileMovementService.move_file(
                 file=self.file,
                 from_holder=stranger,
                 to_holder=self.receiver,
-                action='FORWARDED',
+                action="FORWARDED",
             )
 
     def test_move_file_with_expected_return_date(self):
@@ -348,7 +344,7 @@ class FileMovementServiceMoveFileTest(TestCase):
             file=self.file,
             from_holder=self.sender,
             to_holder=self.receiver,
-            action='FORWARDED',
+            action="FORWARDED",
             expected_return_date=return_date,
         )
         self.assertEqual(movement.expected_return_date, return_date)
@@ -360,14 +356,14 @@ class FileMovementServiceMoveFileTest(TestCase):
             file=self.file,
             from_holder=self.sender,
             to_holder=self.receiver,
-            action='FORWARDED',
+            action="FORWARDED",
         )
         # Now receiver returns it
         movement = FileMovementService.move_file(
             file=self.file,
             from_holder=self.receiver,
             to_holder=self.sender,
-            action='RETURNED',
+            action="RETURNED",
         )
         self.assertTrue(movement.is_returned)
         self.assertIsNotNone(movement.actual_return_date)
@@ -378,37 +374,37 @@ class FileMovementServiceMoveFileTest(TestCase):
             file=self.file,
             from_holder=self.sender,
             to_holder=self.receiver,
-            action='ESCALATED',
+            action="ESCALATED",
         )
         self.file.refresh_from_db()
         # NORMAL -> HIGH
-        self.assertEqual(self.file.priority, 'HIGH')
+        self.assertEqual(self.file.priority, "HIGH")
 
     def test_move_file_escalated_high_to_urgent(self):
         """When ESCALATED and priority is HIGH, it should become URGENT."""
-        self.file.priority = 'HIGH'
+        self.file.priority = "HIGH"
         self.file.save()
         FileMovementService.move_file(
             file=self.file,
             from_holder=self.sender,
             to_holder=self.receiver,
-            action='ESCALATED',
+            action="ESCALATED",
         )
         self.file.refresh_from_db()
-        self.assertEqual(self.file.priority, 'URGENT')
+        self.assertEqual(self.file.priority, "URGENT")
 
     def test_move_file_escalated_urgent_stays_urgent(self):
         """When ESCALATED and already URGENT, should stay URGENT."""
-        self.file.priority = 'URGENT'
+        self.file.priority = "URGENT"
         self.file.save()
         FileMovementService.move_file(
             file=self.file,
             from_holder=self.sender,
             to_holder=self.receiver,
-            action='ESCALATED',
+            action="ESCALATED",
         )
         self.file.refresh_from_db()
-        self.assertEqual(self.file.priority, 'URGENT')
+        self.assertEqual(self.file.priority, "URGENT")
 
 
 class FileMovementServiceReceiveFileTest(TestCase):
@@ -416,33 +412,29 @@ class FileMovementServiceReceiveFileTest(TestCase):
 
     def setUp(self):
         self.sender = User.objects.create_user(
-            email='sender@test.gov.ng',
-            password='TestPass123!@#',
-            first_name='Sender',
-            last_name='User',
-            role='SYSADMIN'
+            email="sender@test.gov.ng",
+            password="TestPass123!@#",
+            first_name="Sender",
+            last_name="User",
+            role="SYSADMIN",
         )
         self.receiver = User.objects.create_user(
-            email='receiver@test.gov.ng',
-            password='TestPass123!@#',
-            first_name='Receiver',
-            last_name='User',
-            role='TCH'
+            email="receiver@test.gov.ng", password="TestPass123!@#", first_name="Receiver", last_name="User", role="TCH"
         )
         self.file = FileMovementService.create_file(
-            title='Test File',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="Test File",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.sender,
         )
         FileMovementService.move_file(
             file=self.file,
             from_holder=self.sender,
             to_holder=self.receiver,
-            action='FORWARDED',
+            action="FORWARDED",
         )
 
     def test_receive_file_returns_movement(self):
@@ -468,16 +460,16 @@ class FileMovementServiceReceiveFileTest(TestCase):
             received_by=self.receiver,
         )
         self.file.refresh_from_db()
-        self.assertEqual(self.file.status, 'ACTIVE')
+        self.assertEqual(self.file.status, "ACTIVE")
 
     def test_receive_file_marks_movement_returned(self):
         """receive_file should mark the last movement as returned."""
-        movement = FileMovementService.receive_file(
+        FileMovementService.receive_file(
             file=self.file,
             received_by=self.receiver,
         )
         # The latest movement (the receive one) or the forwarded one should be marked
-        last_movement = FileMovement.objects.filter(file=self.file).order_by('-movement_date').first()
+        last_movement = FileMovement.objects.filter(file=self.file).order_by("-movement_date").first()
         self.assertTrue(last_movement.is_returned)
 
     def test_receive_file_sets_actual_return_date(self):
@@ -486,7 +478,7 @@ class FileMovementServiceReceiveFileTest(TestCase):
             file=self.file,
             received_by=self.receiver,
         )
-        last_movement = FileMovement.objects.filter(file=self.file).order_by('-movement_date').first()
+        last_movement = FileMovement.objects.filter(file=self.file).order_by("-movement_date").first()
         self.assertIsNotNone(last_movement.actual_return_date)
 
 
@@ -495,33 +487,29 @@ class FileMovementServiceRecallFileTest(TestCase):
 
     def setUp(self):
         self.sender = User.objects.create_user(
-            email='sender@test.gov.ng',
-            password='TestPass123!@#',
-            first_name='Sender',
-            last_name='User',
-            role='SYSADMIN'
+            email="sender@test.gov.ng",
+            password="TestPass123!@#",
+            first_name="Sender",
+            last_name="User",
+            role="SYSADMIN",
         )
         self.receiver = User.objects.create_user(
-            email='receiver@test.gov.ng',
-            password='TestPass123!@#',
-            first_name='Receiver',
-            last_name='User',
-            role='TCH'
+            email="receiver@test.gov.ng", password="TestPass123!@#", first_name="Receiver", last_name="User", role="TCH"
         )
         self.file = FileMovementService.create_file(
-            title='Recall File',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="Recall File",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.sender,
         )
         FileMovementService.move_file(
             file=self.file,
             from_holder=self.sender,
             to_holder=self.receiver,
-            action='FORWARDED',
+            action="FORWARDED",
         )
 
     def test_recall_file_returns_movement(self):
@@ -529,7 +517,7 @@ class FileMovementServiceRecallFileTest(TestCase):
         movement = FileMovementService.recall_file(
             file=self.file,
             recalled_by=self.sender,
-            reason='Need it back',
+            reason="Need it back",
         )
         self.assertIsInstance(movement, FileMovement)
 
@@ -547,18 +535,14 @@ class FileMovementServiceRecallFileTest(TestCase):
         movement = FileMovementService.recall_file(
             file=self.file,
             recalled_by=self.sender,
-            reason='Urgent need',
+            reason="Urgent need",
         )
-        self.assertEqual(movement.action, 'RETURNED')
+        self.assertEqual(movement.action, "RETURNED")
 
     def test_recall_file_validates_recalled_by(self):
         """recall_file should raise ValueError if recalled_by is not the previous sender."""
         stranger = User.objects.create_user(
-            email='stranger@test.gov.ng',
-            password='TestPass123!@#',
-            first_name='Stranger',
-            last_name='User',
-            role='TCH'
+            email="stranger@test.gov.ng", password="TestPass123!@#", first_name="Stranger", last_name="User", role="TCH"
         )
         with self.assertRaises(ValueError):
             FileMovementService.recall_file(
@@ -572,19 +556,15 @@ class FileMovementServiceEscalateFileTest(TestCase):
 
     def setUp(self):
         self.user = User.objects.create_user(
-            email='user@test.gov.ng',
-            password='TestPass123!@#',
-            first_name='User',
-            last_name='Test',
-            role='SYSADMIN'
+            email="user@test.gov.ng", password="TestPass123!@#", first_name="User", last_name="Test", role="SYSADMIN"
         )
         self.file = FileMovementService.create_file(
-            title='Escalate File',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="Escalate File",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.user,
         )
 
@@ -593,7 +573,7 @@ class FileMovementServiceEscalateFileTest(TestCase):
         movement = FileMovementService.escalate_file(
             file=self.file,
             escalated_by=self.user,
-            reason='Needs attention',
+            reason="Needs attention",
         )
         self.assertIsInstance(movement, FileMovement)
 
@@ -604,28 +584,28 @@ class FileMovementServiceEscalateFileTest(TestCase):
             escalated_by=self.user,
         )
         self.file.refresh_from_db()
-        self.assertEqual(self.file.priority, 'HIGH')
+        self.assertEqual(self.file.priority, "HIGH")
 
     def test_escalate_file_increments_priority_high_to_urgent(self):
         """Escalating HIGH priority should make it URGENT."""
-        self.file.priority = 'HIGH'
+        self.file.priority = "HIGH"
         self.file.save()
         FileMovementService.escalate_file(
             file=self.file,
             escalated_by=self.user,
         )
         self.file.refresh_from_db()
-        self.assertEqual(self.file.priority, 'URGENT')
+        self.assertEqual(self.file.priority, "URGENT")
 
     def test_escalate_file_records_escalated_movement(self):
         """escalate_file should record ESCALATED movement."""
         movement = FileMovementService.escalate_file(
             file=self.file,
             escalated_by=self.user,
-            reason='Critical issue',
+            reason="Critical issue",
         )
-        self.assertEqual(movement.action, 'ESCALATED')
-        self.assertEqual(movement.remarks, 'Critical issue')
+        self.assertEqual(movement.action, "ESCALATED")
+        self.assertEqual(movement.remarks, "Critical issue")
 
     def test_escalate_file_adds_to_timeline(self):
         """escalate_file should add entry to status_timeline."""
@@ -642,43 +622,39 @@ class FileMovementServiceArchiveFileTest(TestCase):
 
     def setUp(self):
         self.user = User.objects.create_user(
-            email='user@test.gov.ng',
-            password='TestPass123!@#',
-            first_name='User',
-            last_name='Test',
-            role='SYSADMIN'
+            email="user@test.gov.ng", password="TestPass123!@#", first_name="User", last_name="Test", role="SYSADMIN"
         )
 
     def test_archive_closed_file(self):
         """Archiving a CLOSED file should work."""
         file_obj = FileMovementService.create_file(
-            title='Archive File',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="Archive File",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.user,
         )
-        file_obj.status = 'CLOSED'
+        file_obj.status = "CLOSED"
         file_obj.save()
         movement = FileMovementService.archive_file(
             file=file_obj,
             archived_by=self.user,
         )
         file_obj.refresh_from_db()
-        self.assertEqual(file_obj.status, 'ARCHIVED')
-        self.assertEqual(movement.action, 'ARCHIVED')
+        self.assertEqual(file_obj.status, "ARCHIVED")
+        self.assertEqual(movement.action, "ARCHIVED")
 
     def test_archive_rejects_non_closed_file(self):
         """Archiving a non-CLOSED file should raise ValueError."""
         file_obj = FileMovementService.create_file(
-            title='Active File',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="Active File",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.user,
         )
         with self.assertRaises(ValueError):
@@ -690,23 +666,23 @@ class FileMovementServiceArchiveFileTest(TestCase):
     def test_archive_records_movement(self):
         """archive_file should record ARCHIVED movement."""
         file_obj = FileMovementService.create_file(
-            title='Archive Movement',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="Archive Movement",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.user,
         )
-        file_obj.status = 'CLOSED'
+        file_obj.status = "CLOSED"
         file_obj.save()
         movement = FileMovementService.archive_file(
             file=file_obj,
             archived_by=self.user,
-            notes='Archived per policy',
+            notes="Archived per policy",
         )
-        self.assertEqual(movement.action, 'ARCHIVED')
-        self.assertEqual(movement.remarks, 'Archived per policy')
+        self.assertEqual(movement.action, "ARCHIVED")
+        self.assertEqual(movement.remarks, "Archived per policy")
 
 
 class FileMovementServiceGetFileTimelineTest(TestCase):
@@ -714,29 +690,21 @@ class FileMovementServiceGetFileTimelineTest(TestCase):
 
     def setUp(self):
         self.user = User.objects.create_user(
-            email='user@test.gov.ng',
-            password='TestPass123!@#',
-            first_name='User',
-            last_name='Test',
-            role='SYSADMIN'
+            email="user@test.gov.ng", password="TestPass123!@#", first_name="User", last_name="Test", role="SYSADMIN"
         )
         self.receiver = User.objects.create_user(
-            email='receiver@test.gov.ng',
-            password='TestPass123!@#',
-            first_name='Receiver',
-            last_name='User',
-            role='TCH'
+            email="receiver@test.gov.ng", password="TestPass123!@#", first_name="Receiver", last_name="User", role="TCH"
         )
 
     def test_get_timeline_empty(self):
         """Timeline for newly created file should have at least the CREATED entry."""
         file_obj = FileMovementService.create_file(
-            title='Timeline File',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="Timeline File",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.user,
         )
         timeline = FileMovementService.get_file_timeline(file_obj)
@@ -746,28 +714,25 @@ class FileMovementServiceGetFileTimelineTest(TestCase):
     def test_get_timeline_chronological(self):
         """Timeline entries should be in chronological order."""
         file_obj = FileMovementService.create_file(
-            title='Timeline File 2',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="Timeline File 2",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.user,
         )
         FileMovementService.move_file(
             file=file_obj,
             from_holder=self.user,
             to_holder=self.receiver,
-            action='FORWARDED',
+            action="FORWARDED",
         )
         timeline = FileMovementService.get_file_timeline(file_obj)
         self.assertGreaterEqual(len(timeline), 2)
         # Check chronological order
         for i in range(len(timeline) - 1):
-            self.assertLessEqual(
-                timeline[i]['timestamp'],
-                timeline[i + 1]['timestamp']
-            )
+            self.assertLessEqual(timeline[i]["timestamp"], timeline[i + 1]["timestamp"])
 
 
 class FileMovementServiceGetUserPendingFilesTest(TestCase):
@@ -775,32 +740,24 @@ class FileMovementServiceGetUserPendingFilesTest(TestCase):
 
     def setUp(self):
         self.user = User.objects.create_user(
-            email='user@test.gov.ng',
-            password='TestPass123!@#',
-            first_name='User',
-            last_name='Test',
-            role='SYSADMIN'
+            email="user@test.gov.ng", password="TestPass123!@#", first_name="User", last_name="Test", role="SYSADMIN"
         )
         self.other = User.objects.create_user(
-            email='other@test.gov.ng',
-            password='TestPass123!@#',
-            first_name='Other',
-            last_name='User',
-            role='TCH'
+            email="other@test.gov.ng", password="TestPass123!@#", first_name="Other", last_name="User", role="TCH"
         )
 
     def test_returns_active_files_held_by_user(self):
         """Should return files where user is current_holder with ACTIVE status."""
         file_obj = FileMovementService.create_file(
-            title='Active File',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="Active File",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.user,
         )
-        file_obj.status = 'ACTIVE'
+        file_obj.status = "ACTIVE"
         file_obj.save()
         files = FileMovementService.get_user_pending_files(self.user)
         self.assertIn(file_obj, files)
@@ -808,15 +765,15 @@ class FileMovementServiceGetUserPendingFilesTest(TestCase):
     def test_returns_pending_files_held_by_user(self):
         """Should return files with PENDING status held by user."""
         file_obj = FileMovementService.create_file(
-            title='Pending File',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="Pending File",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.user,
         )
-        file_obj.status = 'PENDING'
+        file_obj.status = "PENDING"
         file_obj.save()
         files = FileMovementService.get_user_pending_files(self.user)
         self.assertIn(file_obj, files)
@@ -824,12 +781,12 @@ class FileMovementServiceGetUserPendingFilesTest(TestCase):
     def test_excludes_draft_files(self):
         """Should not return DRAFT files."""
         file_obj = FileMovementService.create_file(
-            title='Draft File',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="Draft File",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.user,
         )
         files = FileMovementService.get_user_pending_files(self.user)
@@ -838,15 +795,15 @@ class FileMovementServiceGetUserPendingFilesTest(TestCase):
     def test_excludes_other_users_files(self):
         """Should not return files held by other users."""
         file_obj = FileMovementService.create_file(
-            title='Other File',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="Other File",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.user,
         )
-        file_obj.status = 'ACTIVE'
+        file_obj.status = "ACTIVE"
         file_obj.current_holder = self.other
         file_obj.save()
         files = FileMovementService.get_user_pending_files(self.user)
@@ -858,25 +815,22 @@ class FileMovementServiceGetDepartmentFilesTest(TestCase):
 
     def setUp(self):
         self.user = User.objects.create_user(
-            email='user@test.gov.ng',
-            password='TestPass123!@#',
-            first_name='User',
-            last_name='Test',
-            role='SYSADMIN'
+            email="user@test.gov.ng", password="TestPass123!@#", first_name="User", last_name="Test", role="SYSADMIN"
         )
         from apps.departments.models import Department
-        self.dept = Department.objects.create(name='Finance', code='FIN', category='CORE')
-        self.other_dept = Department.objects.create(name='HR', code='HR', category='SUPPORT')
+
+        self.dept = Department.objects.create(name="Finance", code="FIN", category="CORE")
+        self.other_dept = Department.objects.create(name="HR", code="HR", category="SUPPORT")
 
     def test_returns_department_files(self):
         """Should return files belonging to the department."""
         file_obj = FileMovementService.create_file(
-            title='Dept File',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="Dept File",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.user,
             department=self.dept,
         )
@@ -886,41 +840,41 @@ class FileMovementServiceGetDepartmentFilesTest(TestCase):
     def test_filters_by_status(self):
         """Should filter by status when provided."""
         file_obj = FileMovementService.create_file(
-            title='Active Dept File',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="Active Dept File",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.user,
             department=self.dept,
         )
-        file_obj.status = 'ACTIVE'
+        file_obj.status = "ACTIVE"
         file_obj.save()
 
         draft_file = FileMovementService.create_file(
-            title='Draft Dept File',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="Draft Dept File",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.user,
             department=self.dept,
         )
-        files = FileMovementService.get_department_files(self.dept, status='ACTIVE')
+        files = FileMovementService.get_department_files(self.dept, status="ACTIVE")
         self.assertIn(file_obj, files)
         self.assertNotIn(draft_file, files)
 
     def test_excludes_other_departments(self):
         """Should not return files from other departments."""
         file_obj = FileMovementService.create_file(
-            title='Finance File',
-            file_type='MEMO',
-            file_category='ADMIN',
-            description='',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="Finance File",
+            file_type="MEMO",
+            file_category="ADMIN",
+            description="",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.user,
             department=self.dept,
         )
@@ -933,29 +887,25 @@ class FileMovementServiceSearchFilesTest(TestCase):
 
     def setUp(self):
         self.user = User.objects.create_user(
-            email='user@test.gov.ng',
-            password='TestPass123!@#',
-            first_name='User',
-            last_name='Test',
-            role='SYSADMIN'
+            email="user@test.gov.ng", password="TestPass123!@#", first_name="User", last_name="Test", role="SYSADMIN"
         )
         self.file1 = FileMovementService.create_file(
-            title='Budget Report',
-            file_type='REPORT',
-            file_category='FIN',
-            description='Annual budget report',
-            classification='CONFIDENTIAL',
-            priority='HIGH',
+            title="Budget Report",
+            file_type="REPORT",
+            file_category="FIN",
+            description="Annual budget report",
+            classification="CONFIDENTIAL",
+            priority="HIGH",
             created_by=self.user,
-            tags=['budget', 'annual'],
+            tags=["budget", "annual"],
         )
         self.file2 = FileMovementService.create_file(
-            title='Staff Meeting Minutes',
-            file_type='MINUTES',
-            file_category='ADMIN',
-            description='Minutes from staff meeting',
-            classification='PUBLIC',
-            priority='NORMAL',
+            title="Staff Meeting Minutes",
+            file_type="MINUTES",
+            file_category="ADMIN",
+            description="Minutes from staff meeting",
+            classification="PUBLIC",
+            priority="NORMAL",
             created_by=self.user,
         )
 
@@ -967,31 +917,31 @@ class FileMovementServiceSearchFilesTest(TestCase):
 
     def test_search_by_query(self):
         """Query should search title and description."""
-        results = FileMovementService.search_files(query='budget')
+        results = FileMovementService.search_files(query="budget")
         self.assertIn(self.file1, results)
 
     def test_search_by_file_type(self):
         """Should filter by file_type."""
-        results = FileMovementService.search_files(file_type='REPORT')
+        results = FileMovementService.search_files(file_type="REPORT")
         self.assertIn(self.file1, results)
         self.assertNotIn(self.file2, results)
 
     def test_search_by_status(self):
         """Should filter by status."""
-        self.file1.status = 'ACTIVE'
+        self.file1.status = "ACTIVE"
         self.file1.save()
-        results = FileMovementService.search_files(status='ACTIVE')
+        results = FileMovementService.search_files(status="ACTIVE")
         self.assertIn(self.file1, results)
 
     def test_search_by_classification(self):
         """Should filter by classification."""
-        results = FileMovementService.search_files(classification='CONFIDENTIAL')
+        results = FileMovementService.search_files(classification="CONFIDENTIAL")
         self.assertIn(self.file1, results)
         self.assertNotIn(self.file2, results)
 
     def test_search_by_priority(self):
         """Should filter by priority."""
-        results = FileMovementService.search_files(priority='HIGH')
+        results = FileMovementService.search_files(priority="HIGH")
         self.assertIn(self.file1, results)
         self.assertNotIn(self.file2, results)
 
@@ -1014,7 +964,8 @@ class FileMovementServiceSearchFilesTest(TestCase):
     def test_search_by_department(self):
         """Should filter by department."""
         from apps.departments.models import Department
-        dept = Department.objects.create(name='Finance', code='FIN', category='CORE')
+
+        dept = Department.objects.create(name="Finance", code="FIN", category="CORE")
         self.file1.department = dept
         self.file1.save()
         results = FileMovementService.search_files(department=dept.id)

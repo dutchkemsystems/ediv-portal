@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Box,
   Typography,
@@ -37,6 +37,13 @@ import ConfirmDialog from '../components/common/ConfirmDialog'
 import api from '../api/client'
 import { notify } from '../utils/notifications'
 
+const buildQuery = (filters) => {
+  const params = new URLSearchParams()
+  Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v) })
+  const q = params.toString()
+  return q ? `?${q}` : ''
+}
+
 function HR() {
   const [tab, setTab] = useState(0)
   const [jobPostings, setJobPostings] = useState([])
@@ -49,7 +56,7 @@ function HR() {
   const [openViewDialog, setOpenViewDialog] = useState(false)
   const [selectedItem, setSelectedItem] = useState(null)
   const [formData, setFormData] = useState({})
-  const [formErrors, setFormErrors] = useState({})
+  const [, setFormErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
 
   // Filters
@@ -59,60 +66,53 @@ function HR() {
   const [payslipFilters, setPayslipFilters] = useState({ status: '' })
   const [showFilters, setShowFilters] = useState(false)
 
-  useEffect(() => {
-    fetchAll()
-  }, [])
+  const fetchJobPostings = useCallback(async () => {
+    try {
+      const res = await api.get(`/hr/job-postings/${buildQuery(jobFilters)}`)
+      setJobPostings(res.data.results || res.data)
+    } catch (error) { /* silent */ }
+  }, [jobFilters])
 
-  useEffect(() => {
-    if (tab === 0) fetchJobPostings()
-    if (tab === 1) fetchApplications()
-    if (tab === 2) fetchPayrollPeriods()
-    if (tab === 3) fetchPayslips()
-  }, [jobFilters, appFilters, payrollFilters, payslipFilters])
+  const fetchApplications = useCallback(async () => {
+    try {
+      const res = await api.get(`/hr/applications/${buildQuery(appFilters)}`)
+      setApplications(res.data.results || res.data)
+    } catch (error) { /* silent */ }
+  }, [appFilters])
 
-  const fetchAll = async () => {
+  const fetchPayrollPeriods = useCallback(async () => {
+    try {
+      const res = await api.get(`/hr/payroll-periods/${buildQuery(payrollFilters)}`)
+      setPayrollPeriods(res.data.results || res.data)
+    } catch (error) { /* silent */ }
+  }, [payrollFilters])
+
+  const fetchPayslips = useCallback(async () => {
+    try {
+      const res = await api.get(`/hr/payslips/${buildQuery(payslipFilters)}`)
+      setPayslips(res.data.results || res.data)
+    } catch (error) { /* silent */ }
+  }, [payslipFilters])
+
+  const fetchAll = useCallback(async () => {
     try {
       setLoading(true)
       await Promise.all([fetchJobPostings(), fetchApplications(), fetchPayrollPeriods(), fetchPayslips()])
     } finally {
       setLoading(false)
     }
-  }
+  }, [fetchJobPostings, fetchApplications, fetchPayrollPeriods, fetchPayslips])
 
-  const buildQuery = (filters) => {
-    const params = new URLSearchParams()
-    Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v) })
-    const q = params.toString()
-    return q ? `?${q}` : ''
-  }
+  useEffect(() => {
+    fetchAll()
+  }, [fetchAll])
 
-  const fetchJobPostings = async () => {
-    try {
-      const res = await api.get(`/hr/job-postings/${buildQuery(jobFilters)}`)
-      setJobPostings(res.data.results || res.data)
-    } catch (error) { /* silent */ }
-  }
-
-  const fetchApplications = async () => {
-    try {
-      const res = await api.get(`/hr/applications/${buildQuery(appFilters)}`)
-      setApplications(res.data.results || res.data)
-    } catch (error) { /* silent */ }
-  }
-
-  const fetchPayrollPeriods = async () => {
-    try {
-      const res = await api.get(`/hr/payroll-periods/${buildQuery(payrollFilters)}`)
-      setPayrollPeriods(res.data.results || res.data)
-    } catch (error) { /* silent */ }
-  }
-
-  const fetchPayslips = async () => {
-    try {
-      const res = await api.get(`/hr/payslips/${buildQuery(payslipFilters)}`)
-      setPayslips(res.data.results || res.data)
-    } catch (error) { /* silent */ }
-  }
+  useEffect(() => {
+    if (tab === 0) fetchJobPostings()
+    if (tab === 1) fetchApplications()
+    if (tab === 2) fetchPayrollPeriods()
+    if (tab === 3) fetchPayslips()
+  }, [tab, fetchJobPostings, fetchApplications, fetchPayrollPeriods, fetchPayslips])
 
   const handleFilterChange = (field, value) => {
     if (tab === 0) setJobFilters(prev => ({ ...prev, [field]: value }))

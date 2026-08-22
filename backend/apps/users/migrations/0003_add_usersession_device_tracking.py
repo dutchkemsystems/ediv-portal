@@ -8,31 +8,54 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('users', '0002_roleprivilege_alter_user_mfa_secret_privilege'),
+        ("users", "0002_roleprivilege_alter_user_mfa_secret_privilege"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='UserSession',
+            name="UserSession",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('session_key', models.CharField(db_index=True, max_length=64, unique=True)),
-                ('device_fingerprint', models.CharField(blank=True, db_index=True, max_length=256)),
-                ('device_type', models.CharField(blank=True, help_text='e.g. desktop, mobile, tablet', max_length=50)),
-                ('device_os', models.CharField(blank=True, max_length=100)),
-                ('device_browser', models.CharField(blank=True, max_length=100)),
-                ('ip_address', models.GenericIPAddressField(blank=True, null=True)),
-                ('user_agent', models.TextField(blank=True)),
-                ('status', models.CharField(choices=[('ACTIVE', 'Active'), ('IDLE', 'Idle'), ('EXPIRED', 'Expired'), ('REVOKED', 'Revoked')], default='ACTIVE', max_length=10)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('last_activity', models.DateTimeField(auto_now=True)),
-                ('expires_at', models.DateTimeField(blank=True, null=True)),
-                ('revoked_at', models.DateTimeField(blank=True, null=True)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='sessions', to=settings.AUTH_USER_MODEL)),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("session_key", models.CharField(db_index=True, max_length=64, unique=True)),
+                ("device_fingerprint", models.CharField(blank=True, db_index=True, max_length=256)),
+                ("device_type", models.CharField(blank=True, help_text="e.g. desktop, mobile, tablet", max_length=50)),
+                ("device_os", models.CharField(blank=True, max_length=100)),
+                ("device_browser", models.CharField(blank=True, max_length=100)),
+                ("ip_address", models.GenericIPAddressField(blank=True, null=True)),
+                ("user_agent", models.TextField(blank=True)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("ACTIVE", "Active"),
+                            ("IDLE", "Idle"),
+                            ("EXPIRED", "Expired"),
+                            ("REVOKED", "Revoked"),
+                        ],
+                        default="ACTIVE",
+                        max_length=10,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("last_activity", models.DateTimeField(auto_now=True)),
+                ("expires_at", models.DateTimeField(blank=True, null=True)),
+                ("revoked_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="sessions",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-last_activity'],
-                'indexes': [models.Index(fields=['user', 'status'], name='users_users_user_id_2c9826_idx'), models.Index(fields=['session_key'], name='users_users_session_70af4d_idx'), models.Index(fields=['device_fingerprint'], name='users_users_device__ee31a5_idx')],
+                "ordering": ["-last_activity"],
+                "indexes": [
+                    models.Index(fields=["user", "status"], name="users_users_user_id_2c9826_idx"),
+                    models.Index(fields=["session_key"], name="users_users_session_70af4d_idx"),
+                    models.Index(fields=["device_fingerprint"], name="users_users_device__ee31a5_idx"),
+                ],
             },
         ),
     ]

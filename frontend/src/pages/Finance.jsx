@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Box,
   Typography,
@@ -24,7 +24,6 @@ import {
 } from '@mui/material'
 import {
   Add as AddIcon,
-  Edit as EditIcon,
   AccountBalance as FinanceIcon,
   AttachMoney as MoneyIcon,
   TrendingUp as TrendIcon,
@@ -79,27 +78,7 @@ function Finance() {
   const [structureFilters, setStructureFilters] = useState({ school: '', fee_type: '', term: '' })
   const [showFilters, setShowFilters] = useState(false)
 
-  useEffect(() => {
-    fetchData()
-    fetchSchools()
-  }, [])
-
-  useEffect(() => {
-    if (tabValue === 0) fetchStudentFees()
-    if (tabValue === 1) fetchPayments()
-    if (tabValue === 2) fetchFeeStructures()
-  }, [feeFilters, paymentFilters, structureFilters])
-
-  const fetchData = async () => {
-    try {
-      setLoading(true)
-      await Promise.all([fetchStudentFees(), fetchPayments(), fetchFeeStructures()])
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const fetchStudentFees = async () => {
+  const fetchStudentFees = useCallback(async () => {
     try {
       const params = new URLSearchParams()
       if (feeFilters.status) params.append('status', feeFilters.status)
@@ -110,9 +89,9 @@ function Finance() {
     } catch (error) {
       // silent
     }
-  }
+  }, [feeFilters])
 
-  const fetchPayments = async () => {
+  const fetchPayments = useCallback(async () => {
     try {
       const params = new URLSearchParams()
       if (paymentFilters.is_confirmed) params.append('is_confirmed', paymentFilters.is_confirmed)
@@ -123,9 +102,9 @@ function Finance() {
     } catch (error) {
       // silent
     }
-  }
+  }, [paymentFilters])
 
-  const fetchFeeStructures = async () => {
+  const fetchFeeStructures = useCallback(async () => {
     try {
       const params = new URLSearchParams()
       if (structureFilters.school) params.append('school', structureFilters.school)
@@ -137,16 +116,36 @@ function Finance() {
     } catch (error) {
       // silent
     }
-  }
+  }, [structureFilters])
 
-  const fetchSchools = async () => {
+  const fetchSchools = useCallback(async () => {
     try {
       const res = await api.get('/schools/schools/')
       setSchools(res.data.results || res.data || [])
     } catch (error) {
       // silent
     }
-  }
+  }, [])
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true)
+      await Promise.all([fetchStudentFees(), fetchPayments(), fetchFeeStructures()])
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchStudentFees, fetchPayments, fetchFeeStructures])
+
+  useEffect(() => {
+    fetchData()
+    fetchSchools()
+  }, [fetchData, fetchSchools])
+
+  useEffect(() => {
+    if (tabValue === 0) fetchStudentFees()
+    if (tabValue === 1) fetchPayments()
+    if (tabValue === 2) fetchFeeStructures()
+  }, [tabValue, fetchStudentFees, fetchPayments, fetchFeeStructures])
 
   const handleFilterChange = (field, value) => {
     if (tabValue === 0) setFeeFilters(prev => ({ ...prev, [field]: value }))
