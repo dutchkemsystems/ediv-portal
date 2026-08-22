@@ -1,27 +1,39 @@
-import secrets
 import os
+import secrets
 from datetime import timedelta
-from rest_framework import viewsets, permissions, status, generics
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
+
+from django.conf import settings
 from django.contrib.auth import authenticate
 from django.core.cache import cache
 from django.core.mail import send_mail
-from django.conf import settings
-from config.security import AccountLockout, AuditLogger, SessionManager, DeviceFingerprint
-from .models import User, Privilege, RolePrivilege
-from .serializers import (
-    UserSerializer, UserCreateSerializer,
-    ChangePasswordSerializer, LoginSerializer,
-    PasswordResetRequestSerializer, PasswordResetConfirmSerializer,
-    MFAEnableSerializer, MFAVerifySerializer,
-    PrivilegeSerializer, PrivilegeListSerializer, RolePrivilegeSerializer,
-    CreateSchoolStaffSerializer, DeleteSchoolStaffSerializer,
-)
+from rest_framework import generics, permissions, status, throttles, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
+
+from config.security import AccountLockout, AuditLogger, SessionManager
+
 from .mfa import (
-    generate_mfa_secret, get_mfa_qr_code_url,
-    verify_mfa_code, get_mfa_provisioning_uri,
+    generate_mfa_secret,
+    get_mfa_provisioning_uri,
+    get_mfa_qr_code_url,
+    verify_mfa_code,
+)
+from .models import Privilege, RolePrivilege, User
+from .serializers import (
+    ChangePasswordSerializer,
+    CreateSchoolStaffSerializer,
+    DeleteSchoolStaffSerializer,
+    LoginSerializer,
+    MFAEnableSerializer,
+    MFAVerifySerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
+    PrivilegeListSerializer,
+    PrivilegeSerializer,
+    RolePrivilegeSerializer,
+    UserCreateSerializer,
+    UserSerializer,
 )
 
 
@@ -29,91 +41,95 @@ class IsAdminOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return True
-        return request.user.role == 'SYSADMIN'
+        return request.user.role == "SYSADMIN"
 
 
 class IsAdminOrPrincipal(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return True
-        return request.user.role in ('SYSADMIN', 'PRI', 'VP')
+        return request.user.role in ("SYSADMIN", "PRI", "VP")
 
 
 class CanCreateStaff(permissions.BasePermission):
     """SYSADMIN, TG_PS, Principals, and VPs can create staff with sub-login."""
+
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return True
-        return request.user.role in ('SYSADMIN', 'TG_PS', 'PRI', 'VP')
+        return request.user.role in ("SYSADMIN", "TG_PS", "PRI", "VP")
 
 
 class CanCreateSchoolStaff(permissions.BasePermission):
     """SYSADMIN, TG_PS, Principals, and VPs can create school staff sub-logins."""
+
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return True
-        return request.user.role in ('SYSADMIN', 'TG_PS', 'PRI', 'VP')
+        return request.user.role in ("SYSADMIN", "TG_PS", "PRI", "VP")
 
 
 class CanDeleteSchoolStaff(permissions.BasePermission):
     """Only SYSADMIN, TG_PS can delete school staff accounts."""
+
     def has_permission(self, request, view):
-        return request.user.role in ('SYSADMIN', 'TG_PS')
+        return request.user.role in ("SYSADMIN", "TG_PS")
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
+    queryset = User.objects.all().order_by("-created_at")
     permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly]
-    filterset_fields = ['role', 'is_active']
-    search_fields = ['email', 'first_name', 'last_name']
-    ordering_fields = ['created_at', 'last_name']
+    filterset_fields = ["role", "is_active"]
+    search_fields = ["email", "first_name", "last_name"]
+    ordering_fields = ["created_at", "last_name"]
 
     def get_permissions(self):
-        if self.action == 'create_school_staff':
+        if self.action == "create_school_staff":
             return [permissions.IsAuthenticated(), CanCreateSchoolStaff()]
-        if self.action == 'delete_school_staff':
+        if self.action == "delete_school_staff":
             return [permissions.IsAuthenticated(), CanDeleteSchoolStaff()]
         return super().get_permissions()
 
     def get_serializer_class(self):
-        if self.action == 'create':
+        if self.action == "create":
             return UserCreateSerializer
         return UserSerializer
 
     def get_queryset(self):
         user = self.request.user
-        if user.role == 'SYSADMIN':
-            return User.objects.all()
+        if user.role == "SYSADMIN":
+            return User.objects.all().order_by("-created_at")
         elif user.is_department_head or user.is_head_office_staff:
-            return User.objects.all()
+            return User.objects.all().order_by("-created_at")
         elif user.is_school_staff:
-            return User.objects.filter(role__in=['PRI', 'VP', 'TCH', 'STD'])
-        return User.objects.filter(id=user.id)
+            return User.objects.filter(role__in=["PRI", "VP", "TCH", "STD"]).order_by("-created_at")
+        return User.objects.filter(id=user.id).order_by("-created_at")
 
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=["get"])
     def me(self, request):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=["post"])
     def change_password(self, request):
-        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+        serializer = ChangePasswordSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
-        request.user.set_password(serializer.validated_data['new_password'])
+        request.user.set_password(serializer.validated_data["new_password"])
         request.user.save()
 
         from config.security import AuditLogger
+
         AuditLogger.log_action(
             user=request.user,
-            action='PASSWORD_CHANGE',
-            resource_type='User',
+            action="PASSWORD_CHANGE",
+            resource_type="User",
             resource_id=request.user.id,
             description=f"Password changed for {request.user.email}",
         )
 
-        return Response({'message': 'Password changed successfully.'})
+        return Response({"message": "Password changed successfully."})
 
-    @action(detail=False, methods=['post'], url_path='create-school-staff')
+    @action(detail=False, methods=["post"], url_path="create-school-staff")
     def create_school_staff(self, request):
         """Create a school staff sub-login (Principal, VP, Teacher, Non-Teaching).
 
@@ -121,83 +137,90 @@ class UserViewSet(viewsets.ModelViewSet):
         PRI/VP: creates TCH/SA_OFF for their own school only.
         Returns temp_password on success — caller must share it securely.
         """
-        serializer = CreateSchoolStaffSerializer(data=request.data, context={'request': request})
+        serializer = CreateSchoolStaffSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         result = serializer.create(serializer.validated_data)
 
-        user = result['user']
-        staff = result['staff']
-        temp_password = result['temp_password']
-        school = result['school']
+        user = result["user"]
+        staff = result["staff"]
+        temp_password = result["temp_password"]
+        school = result["school"]
 
         from config.security import AuditLogger
+
         AuditLogger.log_action(
             user=request.user,
-            action='CREATE',
-            resource_type='User',
+            action="CREATE",
+            resource_type="User",
             resource_id=user.id,
             description=f"Created {user.role} account for {user.get_full_name()} at {school.name}",
-            new_value={'email': user.email, 'role': user.role, 'school': school.name},
+            new_value={"email": user.email, "role": user.role, "school": school.name},
         )
 
-        return Response({
-            'message': f"Account created for {user.get_full_name()} ({user.get_role_display()}) at {school.name}.",
-            'user': {
-                'id': user.id,
-                'email': user.email,
-                'first_name': user.first_name,
-                'last_name': user.last_name,
-                'role': user.role,
-                'school': school.name,
-                'school_code': school.code,
-                'temp_password': temp_password,
+        return Response(
+            {
+                "message": f"Account created for {user.get_full_name()} ({user.get_role_display()}) at {school.name}.",
+                "user": {
+                    "id": user.id,
+                    "email": user.email,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "role": user.role,
+                    "school": school.name,
+                    "school_code": school.code,
+                    "temp_password": temp_password,
+                },
+                "staff": {
+                    "id": staff.id,
+                    "staff_id": staff.staff_id,
+                    "employee_number": staff.employee_number,
+                },
             },
-            'staff': {
-                'id': staff.id,
-                'staff_id': staff.staff_id,
-                'employee_number': staff.employee_number,
-            },
-        }, status=status.HTTP_201_CREATED)
+            status=status.HTTP_201_CREATED,
+        )
 
-    @action(detail=False, methods=['post'], url_path='delete-school-staff')
+    @action(detail=False, methods=["post"], url_path="delete-school-staff")
     def delete_school_staff(self, request):
         """Deactivate a school staff user account (SYSADMIN/TG_PS only).
 
         Does NOT hard-delete — sets is_active=False so the account can be restored.
         """
-        serializer = DeleteSchoolStaffSerializer(data=request.data, context={'request': request})
+        serializer = DeleteSchoolStaffSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         target_user = serializer.save()
 
         from config.security import AuditLogger
+
         AuditLogger.log_action(
             user=request.user,
-            action='DELETE',
-            resource_type='User',
+            action="DELETE",
+            resource_type="User",
             resource_id=target_user.id,
             description=f"Deactivated {target_user.get_role_display()} account: {target_user.email}",
-            old_value={'is_active': True},
-            new_value={'is_active': False},
+            old_value={"is_active": True},
+            new_value={"is_active": False},
         )
 
-        return Response({
-            'message': f"Account for {target_user.get_full_name()} ({target_user.email}) has been deactivated.",
-            'user': {
-                'id': target_user.id,
-                'email': target_user.email,
-                'is_active': target_user.is_active,
-            },
-        })
+        return Response(
+            {
+                "message": f"Account for {target_user.get_full_name()} ({target_user.email}) has been deactivated.",
+                "user": {
+                    "id": target_user.id,
+                    "email": target_user.email,
+                    "is_active": target_user.is_active,
+                },
+            }
+        )
 
-    @action(detail=False, methods=['get'], url_path='school-staff')
+    @action(detail=False, methods=["get"], url_path="school-staff")
     def list_school_staff(self, request):
         """List all staff at the caller's school (for Principals/VPs) or a specific school (for admins)."""
         user = request.user
-        school_id = request.query_params.get('school_id')
+        school_id = request.query_params.get("school_id")
 
         from apps.schools.models import School
 
-        if user.role in ('SYSADMIN', 'TG_PS'):
+        if user.role in ("SYSADMIN", "TG_PS"):
             if school_id:
                 school = School.objects.filter(id=school_id).first()
             else:
@@ -206,30 +229,36 @@ class UserViewSet(viewsets.ModelViewSet):
             school = School.objects.filter(principal=user).first() or School.objects.filter(vice_principal=user).first()
 
         if not school:
-            return Response({'school': None, 'staff': []})
+            return Response({"school": None, "staff": []})
 
         from apps.staff.models import Staff
-        staff_users = Staff.objects.filter(school=school).select_related('user')
-        staff_list = [{
-            'id': s.user.id,
-            'email': s.user.email,
-            'first_name': s.user.first_name,
-            'last_name': s.user.last_name,
-            'full_name': s.user.get_full_name(),
-            'role': s.user.role,
-            'role_display': s.user.get_role_display(),
-            'phone_number': s.user.phone_number,
-            'staff_id': s.staff_id,
-            'employee_number': s.employee_number,
-            'category': s.category,
-            'designation': s.designation,
-            'is_active': s.user.is_active,
-        } for s in staff_users]
 
-        return Response({
-            'school': {'id': school.id, 'name': school.name, 'code': school.code},
-            'staff': staff_list,
-        })
+        staff_users = Staff.objects.filter(school=school).select_related("user")
+        staff_list = [
+            {
+                "id": s.user.id,
+                "email": s.user.email,
+                "first_name": s.user.first_name,
+                "last_name": s.user.last_name,
+                "full_name": s.user.get_full_name(),
+                "role": s.user.role,
+                "role_display": s.user.get_role_display(),
+                "phone_number": s.user.phone_number,
+                "staff_id": s.staff_id,
+                "employee_number": s.employee_number,
+                "category": s.category,
+                "designation": s.designation,
+                "is_active": s.user.is_active,
+            }
+            for s in staff_users
+        ]
+
+        return Response(
+            {
+                "school": {"id": school.id, "name": school.name, "code": school.code},
+                "staff": staff_list,
+            }
+        )
 
 
 class AuthViewSet(viewsets.ViewSet):
@@ -240,9 +269,9 @@ class AuthViewSet(viewsets.ViewSet):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        email = serializer.validated_data['email']
-        ip_address = request.META.get('REMOTE_ADDR', 'unknown')
-        user_agent = request.META.get('HTTP_USER_AGENT', '')
+        email = serializer.validated_data["email"]
+        ip_address = request.META.get("REMOTE_ADDR", "unknown")
+        user_agent = request.META.get("HTTP_USER_AGENT", "")
 
         # Check account lockout
         try:
@@ -250,17 +279,13 @@ class AuthViewSet(viewsets.ViewSet):
             is_locked, remaining = AccountLockout.check_lockout(user_check)
             if is_locked:
                 return Response(
-                    {'error': f'Account is locked. Try again in {int(remaining / 60)} minutes.'},
-                    status=status.HTTP_403_FORBIDDEN
+                    {"error": f"Account is locked. Try again in {int(remaining / 60)} minutes."},
+                    status=status.HTTP_403_FORBIDDEN,
                 )
         except User.DoesNotExist:
             pass
 
-        user = authenticate(
-            request=request,
-            username=email,
-            password=serializer.validated_data['password']
-        )
+        user = authenticate(request=request, username=email, password=serializer.validated_data["password"])
 
         if user is None:
             try:
@@ -269,24 +294,19 @@ class AuthViewSet(viewsets.ViewSet):
                 AuditLogger.log_login(user_check, ip_address, False, user_agent=user_agent)
             except User.DoesNotExist:
                 pass
-            return Response(
-                {'error': 'Invalid credentials'},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+            return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
         if not user.is_active:
             AuditLogger.log_login(user, ip_address, False, user_agent=user_agent)
-            return Response(
-                {'error': 'Account is disabled'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            return Response({"error": "Account is disabled"}, status=status.HTTP_403_FORBIDDEN)
 
         AccountLockout.reset_attempts(user)
         AuditLogger.log_login(user, ip_address, True, user_agent=user_agent)
 
         from config.realtime import RealtimeBroadcaster
+
         RealtimeBroadcaster.broadcast_dashboard_update(
-            data={'event': 'user_login', 'user': user.get_full_name(), 'role': user.role}
+            data={"event": "user_login", "user": user.get_full_name(), "role": user.role}
         )
 
         if user.mfa_enabled:
@@ -294,42 +314,45 @@ class AuthViewSet(viewsets.ViewSet):
             # AccessToken has type='access'; RefreshToken has type='refresh'.
             # simplejwt's TokenBackend rejects tokens decoded as the wrong type.
             temp_token = AccessToken()
-            temp_token['user_id'] = user.id
+            temp_token["user_id"] = user.id
             temp_token.set_exp(lifetime=timedelta(minutes=5))
-            return Response({
-                'mfa_required': True,
-                'temp_token': str(temp_token),
-                'user': UserSerializer(user).data,
-            })
+            return Response(
+                {
+                    "mfa_required": True,
+                    "temp_token": str(temp_token),
+                    "user": UserSerializer(user).data,
+                }
+            )
 
         refresh = RefreshToken.for_user(user)
 
-        return Response({
-            'access': str(refresh.access_token),
-            'refresh': str(refresh),
-            'user': UserSerializer(user).data,
-        })
+        return Response(
+            {
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "user": UserSerializer(user).data,
+            }
+        )
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=["post"])
     def refresh(self, request):
         try:
-            refresh = RefreshToken(request.data.get('refresh'))
-            return Response({
-                'access': str(refresh.access_token),
-            })
-        except Exception:
+            refresh = RefreshToken(request.data.get("refresh"))
             return Response(
-                {'error': 'Invalid refresh token'},
-                status=status.HTTP_401_UNAUTHORIZED
+                {
+                    "access": str(refresh.access_token),
+                }
             )
+        except Exception:
+            return Response({"error": "Invalid refresh token"}, status=status.HTTP_401_UNAUTHORIZED)
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=["post"])
     def logout(self, request):
         try:
-            refresh = RefreshToken(request.data.get('refresh'))
+            refresh = RefreshToken(request.data.get("refresh"))
             # UserSession rows are keyed by the access-token jti, so revoke the
             # token owner's tracked sessions here (blacklist covers the refresh).
-            user_id = refresh.get('user_id')
+            user_id = refresh.get("user_id")
             if user_id:
                 try:
                     user = User.objects.get(id=user_id)
@@ -337,84 +360,73 @@ class AuthViewSet(viewsets.ViewSet):
                 except User.DoesNotExist:
                     pass
             refresh.blacklist()
-            return Response({'message': 'Logged out successfully.'})
+            return Response({"message": "Logged out successfully."})
         except Exception:
-            return Response(
-                {'error': 'Invalid token'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=["post"])
     def forgot_password(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        email = serializer.validated_data['email']
+        email = serializer.validated_data["email"]
 
         # Always return success to prevent email enumeration
         try:
             user = User.objects.get(email=email, is_active=True)
         except User.DoesNotExist:
-            return Response(
-                {'message': 'If an account exists with this email, a reset link has been sent.'}
-            )
+            return Response({"message": "If an account exists with this email, a reset link has been sent."})
 
         # Generate secure token
         token = secrets.token_urlsafe(32)
         cache_key = f"ediv:password_reset:{token}"
-        cache.set(cache_key, {'user_id': user.id, 'created_at': str(__import__('datetime').datetime.now())}, timeout=3600)
+        cache.set(
+            cache_key, {"user_id": user.id, "created_at": str(__import__("datetime").datetime.now())}, timeout=3600
+        )
 
         # Build reset URL
-        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
+        frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:3000")
         reset_url = f"{frontend_url}/reset-password?token={token}"
 
         # Send email
         try:
             send_mail(
-                subject='Education District IV — Password Reset Request',
+                subject="Education District IV — Password Reset Request",
                 message=(
-                    f'Hello {user.get_full_name()},\n\n'
-                    f'We received a request to reset your password.\n\n'
-                    f'Click the link below to reset your password (valid for 1 hour):\n\n'
-                    f'{reset_url}\n\n'
-                    f'If you did not request this, please ignore this email.\n\n'
-                    f'Regards,\nEducation District IV Portal'
+                    f"Hello {user.get_full_name()},\n\n"
+                    f"We received a request to reset your password.\n\n"
+                    f"Click the link below to reset your password (valid for 1 hour):\n\n"
+                    f"{reset_url}\n\n"
+                    f"If you did not request this, please ignore this email.\n\n"
+                    f"Regards,\nEducation District IV Portal"
                 ),
-                from_email=getattr(settings, 'EMAIL_HOST_USER', 'noreply@ediv.gov.ng'),
+                from_email=getattr(settings, "EMAIL_HOST_USER", "noreply@ediv.gov.ng"),
                 recipient_list=[user.email],
                 fail_silently=True,
             )
         except Exception:
             pass  # Don't reveal email failure to the user
 
-        return Response(
-            {'message': 'If an account exists with this email, a reset link has been sent.'}
-        )
+        return Response({"message": "If an account exists with this email, a reset link has been sent."})
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=["post"])
     def reset_password(self, request):
         serializer = PasswordResetConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        token = serializer.validated_data['token']
-        new_password = serializer.validated_data['new_password']
+        token = serializer.validated_data["token"]
+        new_password = serializer.validated_data["new_password"]
 
         cache_key = f"ediv:password_reset:{token}"
         reset_data = cache.get(cache_key)
 
         if not reset_data:
-            return Response(
-                {'error': 'Invalid or expired reset token.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Invalid or expired reset token."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            user = User.objects.get(id=reset_data['user_id'], is_active=True)
+            user = User.objects.get(id=reset_data["user_id"], is_active=True)
         except User.DoesNotExist:
-            return Response(
-                {'error': 'Invalid or expired reset token.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Invalid or expired reset token."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Set new password
         user.set_password(new_password)
@@ -427,35 +439,38 @@ class AuthViewSet(viewsets.ViewSet):
 
         # Invalidate all existing sessions
         from config.security import SessionManager
+
         SessionManager.revoke_all_sessions(user)
 
-        AuditLogger.log_action(user, 'PASSWORD_RESET', 'user', user.id)
+        AuditLogger.log_action(user, "PASSWORD_RESET", "user", user.id)
 
-        return Response({'message': 'Password reset successfully. You can now log in with your new password.'})
+        return Response({"message": "Password reset successfully. You can now log in with your new password."})
 
-    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=False, methods=["post"], permission_classes=[permissions.IsAuthenticated])
     def mfa_setup(self, request):
         user = request.user
         if user.mfa_enabled:
             return Response(
-                {'error': 'MFA is already enabled. Disable it first to reconfigure.'},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "MFA is already enabled. Disable it first to reconfigure."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         secret = generate_mfa_secret()
         user.mfa_secret = secret
-        user.save(update_fields=['mfa_secret'])
+        user.save(update_fields=["mfa_secret"])
 
         qr_url = get_mfa_qr_code_url(secret, user.email)
         provisioning_uri = get_mfa_provisioning_uri(secret, user.email)
 
-        return Response({
-            'secret': secret,
-            'qr_code_url': qr_url,
-            'provisioning_uri': provisioning_uri,
-        })
+        return Response(
+            {
+                "secret": secret,
+                "qr_code_url": qr_url,
+                "provisioning_uri": provisioning_uri,
+            }
+        )
 
-    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=False, methods=["post"], permission_classes=[permissions.IsAuthenticated])
     def mfa_enable(self, request):
         serializer = MFAEnableSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -463,100 +478,82 @@ class AuthViewSet(viewsets.ViewSet):
         user = request.user
         if not user.mfa_secret:
             return Response(
-                {'error': 'MFA setup not initiated. Call mfa/setup first.'},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "MFA setup not initiated. Call mfa/setup first."}, status=status.HTTP_400_BAD_REQUEST
             )
 
         if user.mfa_enabled:
-            return Response(
-                {'error': 'MFA is already enabled.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "MFA is already enabled."}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not verify_mfa_code(user.mfa_secret, serializer.validated_data['code']):
-            return Response(
-                {'error': 'Invalid MFA code.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        if not verify_mfa_code(user.mfa_secret, serializer.validated_data["code"]):
+            return Response({"error": "Invalid MFA code."}, status=status.HTTP_400_BAD_REQUEST)
 
         user.mfa_enabled = True
-        user.save(update_fields=['mfa_enabled'])
+        user.save(update_fields=["mfa_enabled"])
 
-        return Response({'message': 'MFA enabled successfully.'})
+        return Response({"message": "MFA enabled successfully."})
 
-    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=False, methods=["post"], permission_classes=[permissions.IsAuthenticated])
     def mfa_disable(self, request):
         serializer = MFAEnableSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         user = request.user
         if not user.mfa_enabled:
-            return Response(
-                {'error': 'MFA is not enabled.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "MFA is not enabled."}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not verify_mfa_code(user.mfa_secret, serializer.validated_data['code']):
-            return Response(
-                {'error': 'Invalid MFA code.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        if not verify_mfa_code(user.mfa_secret, serializer.validated_data["code"]):
+            return Response({"error": "Invalid MFA code."}, status=status.HTTP_400_BAD_REQUEST)
 
         user.mfa_enabled = False
-        user.mfa_secret = ''
-        user.save(update_fields=['mfa_enabled', 'mfa_secret'])
+        user.mfa_secret = ""
+        user.save(update_fields=["mfa_enabled", "mfa_secret"])
 
-        return Response({'message': 'MFA disabled successfully.'})
+        return Response({"message": "MFA disabled successfully."})
 
-    @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny])
+    @action(detail=False, methods=["post"], permission_classes=[permissions.AllowAny])
     def mfa_verify(self, request):
         serializer = MFAVerifySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        temp_token = serializer.validated_data['temp_token']
-        mfa_code = serializer.validated_data['mfa_code']
+        temp_token = serializer.validated_data["temp_token"]
+        mfa_code = serializer.validated_data["mfa_code"]
 
         try:
             from rest_framework_simplejwt.tokens import AccessToken
+
             token = AccessToken(temp_token)
-            user_id = token['user_id']
+            user_id = token["user_id"]
         except Exception:
-            return Response(
-                {'error': 'Invalid or expired temp token.'},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+            return Response({"error": "Invalid or expired temp token."}, status=status.HTTP_401_UNAUTHORIZED)
 
         try:
             user = User.objects.get(id=user_id, is_active=True)
         except User.DoesNotExist:
-            return Response(
-                {'error': 'Invalid or expired temp token.'},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
+            return Response({"error": "Invalid or expired temp token."}, status=status.HTTP_401_UNAUTHORIZED)
 
         if not user.mfa_enabled:
-            return Response(
-                {'error': 'MFA is not enabled for this account.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "MFA is not enabled for this account."}, status=status.HTTP_400_BAD_REQUEST)
 
         if not verify_mfa_code(user.mfa_secret, mfa_code):
-            return Response(
-                {'error': 'Invalid MFA code.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Invalid MFA code."}, status=status.HTTP_400_BAD_REQUEST)
 
         refresh = RefreshToken.for_user(user)
 
-        return Response({
-            'access': str(refresh.access_token),
-            'refresh': str(refresh),
-            'user': UserSerializer(user).data,
-        })
+        return Response(
+            {
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "user": UserSerializer(user).data,
+            }
+        )
 
-    @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny])
+    @action(detail=False, methods=["post"], permission_classes=[permissions.IsAdminUser])
     def seed(self, request):
-        """Seed all data - departments, schools, users"""
+        """Seed all data - departments, schools, users. Admin + DEBUG only."""
+        from django.conf import settings as django_settings
+
+        if not django_settings.DEBUG:
+            return Response({"error": "Not available in production"}, status=403)
         import io
         from django.core.management import call_command
 
@@ -564,69 +561,72 @@ class AuthViewSet(viewsets.ViewSet):
 
         # 1. Seed admin user
         import os
-        email = 'admin@ediv.gov.ng'
-        password = os.environ.get('ADMIN_PASSWORD')
+
+        email = "admin@ediv.gov.ng"
+        password = os.environ.get("ADMIN_PASSWORD")
         if not password:
-            return Response({'error': 'ADMIN_PASSWORD env var not set'}, status=500)
+            return Response({"error": "ADMIN_PASSWORD env var not set"}, status=500)
         user, created = User.objects.get_or_create(
             email=email,
             defaults={
-                'first_name': 'System',
-                'last_name': 'Administrator',
-                'role': 'SYSADMIN',
-                'is_staff': True,
-                'is_superuser': True,
+                "first_name": "System",
+                "last_name": "Administrator",
+                "role": "SYSADMIN",
+                "is_staff": True,
+                "is_superuser": True,
             },
         )
         user.set_password(password)
         user.is_active = True
         user.is_staff = True
         user.is_superuser = True
-        user.role = 'SYSADMIN'
+        user.role = "SYSADMIN"
         user.failed_login_attempts = 0
         user.locked_until = None
         user.save()
-        results['admin_user'] = 'created' if created else 'updated'
+        results["admin_user"] = "created" if created else "updated"
 
         # 2. Seed departments
         try:
             out = io.StringIO()
-            call_command('seed_departments', stdout=out)
-            results['departments'] = out.getvalue()[:200]
+            call_command("seed_departments", stdout=out)
+            results["departments"] = out.getvalue()[:200]
         except Exception as e:
-            results['departments'] = f'error: {str(e)[:100]}'
+            results["departments"] = f"error: {str(e)[:100]}"
 
         # 3. Seed schools
         try:
             out = io.StringIO()
-            call_command('seed_schools', stdout=out)
-            results['schools'] = out.getvalue()[:200]
+            call_command("seed_schools", stdout=out)
+            results["schools"] = out.getvalue()[:200]
         except Exception as e:
-            results['schools'] = f'error: {str(e)[:100]}'
+            results["schools"] = f"error: {str(e)[:100]}"
 
         # 4. Seed users (depends on schools + departments existing)
         try:
             out = io.StringIO()
-            call_command('seed_users', stdout=out)
-            results['users'] = out.getvalue()[:500]
+            call_command("seed_users", stdout=out)
+            results["users"] = out.getvalue()[:500]
         except Exception as e:
-            results['users'] = f'error: {str(e)[:100]}'
+            results["users"] = f"error: {str(e)[:100]}"
 
         # 5. Count totals
-        results['totals'] = {
-            'users': User.objects.count(),
+        results["totals"] = {
+            "users": User.objects.count(),
         }
         try:
             from apps.schools.models import School
-            results['totals']['schools'] = School.objects.count()
+
+            results["totals"]["schools"] = School.objects.count()
         except Exception:
-            results['totals']['schools'] = 'unavailable'
+            results["totals"]["schools"] = "unavailable"
         try:
             from apps.departments.models import Department, Unit
-            results['totals']['departments'] = Department.objects.count()
-            results['totals']['units'] = Unit.objects.count()
+
+            results["totals"]["departments"] = Department.objects.count()
+            results["totals"]["units"] = Unit.objects.count()
         except Exception:
-            results['totals']['departments'] = 'unavailable'
+            results["totals"]["departments"] = "unavailable"
 
         return Response(results)
 
@@ -638,38 +638,40 @@ class UnlockView(generics.GenericAPIView):
 
     Auth: The shared secret in the `X-Unlock-Token` header must match the
     `UNLOCK_TOKEN` environment variable. No user authentication required.
+    Rate limited to prevent brute-force attacks.
 
     Action: clears failed_login_attempts, locked_until, MFA, and resets the
     password to the one supplied in the request body. Creates the admin user
     if it does not exist.
     """
+
     authentication_classes = []
     permission_classes = []
-    throttle_classes = []
+    throttle_classes = [throttles.AnonRateThrottle]
 
     def post(self, request):
-        provided = request.META.get('HTTP_X_UNLOCK_TOKEN', '')
+        provided = request.META.get("HTTP_X_UNLOCK_TOKEN", "")
         if not provided:
             return Response(
-                {'error': 'Missing unlock token.'},
+                {"error": "Missing unlock token."},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
-        expected = os.environ.get('UNLOCK_TOKEN', '')
+        expected = os.environ.get("UNLOCK_TOKEN", "")
         if not expected:
             return Response(
-                {'error': 'Unlock token not configured on the server.'},
+                {"error": "Unlock token not configured on the server."},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
         if provided != expected:
             return Response(
-                {'error': 'Invalid unlock token.'},
+                {"error": "Invalid unlock token."},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
-        email = (request.data.get('email') or 'admin@ediv.gov.ng').strip().lower()
-        password = request.data.get('password') or User.objects.make_random_password()
+        email = (request.data.get("email") or "admin@ediv.gov.ng").strip().lower()
+        password = request.data.get("password") or User.objects.make_random_password()
 
         results = {}
 
@@ -680,23 +682,23 @@ class UnlockView(generics.GenericAPIView):
             user = User.objects.create_user(
                 email=email,
                 password=password,
-                first_name='System',
-                last_name='Administrator',
-                role='SYSADMIN',
+                first_name="System",
+                last_name="Administrator",
+                role="SYSADMIN",
                 is_staff=True,
                 is_superuser=True,
             )
             created = True
 
         # Snapshot before
-        results['before'] = {
-            'is_active': user.is_active,
-            'is_staff': user.is_staff,
-            'is_superuser': user.is_superuser,
-            'failed_login_attempts': user.failed_login_attempts,
-            'locked_until': user.locked_until.isoformat() if user.locked_until else None,
-            'mfa_enabled': user.mfa_enabled,
-            'role': user.role,
+        results["before"] = {
+            "is_active": user.is_active,
+            "is_staff": user.is_staff,
+            "is_superuser": user.is_superuser,
+            "failed_login_attempts": user.failed_login_attempts,
+            "locked_until": user.locked_until.isoformat() if user.locked_until else None,
+            "mfa_enabled": user.mfa_enabled,
+            "role": user.role,
         }
 
         # Reset
@@ -706,39 +708,39 @@ class UnlockView(generics.GenericAPIView):
         user.is_staff = True
         user.is_superuser = True
         user.mfa_enabled = False
-        user.mfa_secret = ''
+        user.mfa_secret = ""
         user.set_password(password)
         user.save()
 
         # Clear cache lockout (best-effort)
         try:
-            cache.delete(f'ediv:lockout:{user.id}')
-            if hasattr(cache, 'delete_pattern'):
-                cache.delete_pattern('ediv:lockout:*')
+            cache.delete(f"ediv:lockout:{user.id}")
+            if hasattr(cache, "delete_pattern"):
+                cache.delete_pattern("ediv:lockout:*")
         except Exception as e:
-            results['cache_warning'] = str(e)
+            results["cache_warning"] = str(e)
 
         # Verify
         user.refresh_from_db()
         auth_ok = authenticate(email=email, password=password)
-        results['after'] = {
-            'is_active': user.is_active,
-            'failed_login_attempts': user.failed_login_attempts,
-            'locked_until': user.locked_until.isoformat() if user.locked_until else None,
-            'mfa_enabled': user.mfa_enabled,
-            'password_works': auth_ok is not None,
+        results["after"] = {
+            "is_active": user.is_active,
+            "failed_login_attempts": user.failed_login_attempts,
+            "locked_until": user.locked_until.isoformat() if user.locked_until else None,
+            "mfa_enabled": user.mfa_enabled,
+            "password_works": auth_ok is not None,
         }
-        results['created'] = created
+        results["created"] = created
 
         # Audit log (best-effort)
         try:
             AuditLogger.log_action(
                 user=user,
-                action='ADMIN_UNLOCK',
-                resource_type='User',
+                action="ADMIN_UNLOCK",
+                resource_type="User",
                 resource_id=user.id,
                 description=f'Admin unlock endpoint called from {request.META.get("REMOTE_ADDR", "unknown")}',
-                ip_address=request.META.get('REMOTE_ADDR'),
+                ip_address=request.META.get("REMOTE_ADDR"),
             )
         except Exception:
             pass
@@ -749,12 +751,12 @@ class UnlockView(generics.GenericAPIView):
 class PrivilegeViewSet(viewsets.ModelViewSet):
     queryset = Privilege.objects.all()
     permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly]
-    filterset_fields = ['role', 'module']
-    search_fields = ['role', 'module']
-    ordering_fields = ['role', 'module', 'created_at']
+    filterset_fields = ["role", "module"]
+    search_fields = ["role", "module"]
+    ordering_fields = ["role", "module", "created_at"]
 
     def get_serializer_class(self):
-        if self.action == 'list':
+        if self.action == "list":
             return PrivilegeListSerializer
         return PrivilegeSerializer
 
@@ -763,5 +765,5 @@ class RolePrivilegeViewSet(viewsets.ModelViewSet):
     queryset = RolePrivilege.objects.all()
     permission_classes = [permissions.IsAuthenticated, IsAdminOrReadOnly]
     serializer_class = RolePrivilegeSerializer
-    filterset_fields = ['role']
-    search_fields = ['role', 'description']
+    filterset_fields = ["role"]
+    search_fields = ["role", "description"]

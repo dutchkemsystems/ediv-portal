@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Box,
   Typography,
@@ -99,7 +99,6 @@ function Staff() {
   const canManageStaff = ['SYSADMIN', 'TG_PS', 'PRI', 'VP'].includes(currentUser?.role)
 
   useEffect(() => {
-    fetchStaff()
     fetchCurrentUser()
     fetchSchools()
     fetchDepartments()
@@ -107,7 +106,7 @@ function Staff() {
 
   useEffect(() => {
     fetchStaff()
-  }, [filters])
+  }, [fetchStaff])
 
   const fetchCurrentUser = async () => {
     try {
@@ -118,7 +117,7 @@ function Staff() {
     }
   }
 
-  const fetchStaff = async () => {
+  const fetchStaff = useCallback(async () => {
     try {
       const params = new URLSearchParams()
       if (filters.category) params.append('category', filters.category)
@@ -135,7 +134,7 @@ function Staff() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters])
 
   const fetchSchools = async () => {
     try {

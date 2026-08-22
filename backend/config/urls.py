@@ -1,58 +1,59 @@
-from django.contrib import admin
-from django.urls import path, include, re_path
+import os
+
 from django.conf import settings
 from django.conf.urls.static import static
-from django.http import JsonResponse, FileResponse
+from django.contrib import admin
 from django.db import connection
-import os
+from django.http import FileResponse, JsonResponse
+from django.urls import include, path, re_path
 
 
 def health_check(request):
     try:
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
-        return JsonResponse({'status': 'healthy', 'database': 'connected'})
+        return JsonResponse({"status": "healthy", "database": "connected"})
     except Exception as e:
-        return JsonResponse({'status': 'unhealthy', 'error': str(e)}, status=503)
+        return JsonResponse({"status": "unhealthy", "error": str(e)}, status=503)
 
 
 def debug_files(request):
-    """Debug endpoint to see what files exist"""
-    import os
+    """Debug endpoint - only available when DEBUG=True"""
+    if not settings.DEBUG:
+        return JsonResponse({"error": "Not Found"}, status=404)
     base = settings.BASE_DIR
     results = {}
-    # Check various paths
-    for name, path in [
-        ('BASE_DIR', str(base)),
-        ('frontend_dist_1', os.path.join(base, '..', 'frontend', 'dist')),
-        ('frontend_dist_2', os.path.join(base, 'frontend', 'dist')),
-        ('staticfiles', os.path.join(base, 'staticfiles')),
-        ('static', os.path.join(base, 'static')),
+    for name, dir_path in [
+        ("BASE_DIR", str(base)),
+        ("frontend_dist_1", os.path.join(base, "..", "frontend", "dist")),
+        ("frontend_dist_2", os.path.join(base, "frontend", "dist")),
+        ("staticfiles", os.path.join(base, "staticfiles")),
+        ("static", os.path.join(base, "static")),
     ]:
-        if os.path.exists(path):
+        if os.path.exists(dir_path):
             try:
-                files = os.listdir(path)[:20]
-                results[name] = {'exists': True, 'files': files}
-            except:
-                results[name] = {'exists': True, 'error': 'cannot list'}
+                files = os.listdir(dir_path)[:20]
+                results[name] = {"exists": True, "files": files}
+            except Exception:
+                results[name] = {"exists": True, "error": "cannot list"}
         else:
-            results[name] = {'exists': False}
+            results[name] = {"exists": False}
     return JsonResponse(results)
 
 
-def serve_frontend(request, path=''):
+def serve_frontend(request, path=""):
     """Serve the React frontend for all non-API routes"""
     # API routes that miss a URL pattern should return JSON 404, not HTML
-    full_path = request.path or ''
-    if full_path.startswith('/api/'):
-        return JsonResponse({'error': 'Not Found', 'path': full_path}, status=404)
+    full_path = request.path or ""
+    if full_path.startswith("/api/"):
+        return JsonResponse({"error": "Not Found", "path": full_path}, status=404)
 
     # Try multiple possible locations for the frontend build
     possible_dirs = [
-        os.path.join(settings.BASE_DIR, '..', 'frontend', 'dist'),
-        os.path.join(settings.BASE_DIR, 'frontend', 'dist'),
-        os.path.join(settings.BASE_DIR, 'staticfiles', 'frontend'),
-        os.path.join(settings.BASE_DIR, 'static', 'frontend'),
+        os.path.join(settings.BASE_DIR, "..", "frontend", "dist"),
+        os.path.join(settings.BASE_DIR, "frontend", "dist"),
+        os.path.join(settings.BASE_DIR, "staticfiles", "frontend"),
+        os.path.join(settings.BASE_DIR, "static", "frontend"),
     ]
 
     for frontend_dir in possible_dirs:
@@ -60,73 +61,73 @@ def serve_frontend(request, path=''):
         if path:
             file_path = os.path.join(frontend_dir, path)
             if os.path.isfile(file_path):
-                content_type = 'text/html'
-                if path.endswith('.js'):
-                    content_type = 'application/javascript'
-                elif path.endswith('.css'):
-                    content_type = 'text/css'
-                elif path.endswith('.json'):
-                    content_type = 'application/json'
-                elif path.endswith('.png') or path.endswith('.ico'):
-                    content_type = 'image/png'
-                return FileResponse(open(file_path, 'rb'), content_type=content_type)
+                content_type = "text/html"
+                if path.endswith(".js"):
+                    content_type = "application/javascript"
+                elif path.endswith(".css"):
+                    content_type = "text/css"
+                elif path.endswith(".json"):
+                    content_type = "application/json"
+                elif path.endswith(".png") or path.endswith(".ico"):
+                    content_type = "image/png"
+                return FileResponse(open(file_path, "rb"), content_type=content_type)
 
         # For all other routes, serve index.html (SPA fallback)
-        index_path = os.path.join(frontend_dir, 'index.html')
+        index_path = os.path.join(frontend_dir, "index.html")
         if os.path.isfile(index_path):
-            return FileResponse(open(index_path, 'rb'), content_type='text/html')
+            return FileResponse(open(index_path, "rb"), content_type="text/html")
 
-    return JsonResponse({'error': 'Frontend not built', 'checked': possible_dirs}, status=404)
+    return JsonResponse({"error": "Frontend not built", "checked": possible_dirs}, status=404)
 
 
 urlpatterns = [
-    path('health/', health_check),
-    path('debug/files/', debug_files),
-    path('admin/', admin.site.urls),
-    path('api/users/', include('apps.users.urls')),
-    path('api/schools/', include('apps.schools.urls')),
-    path('api/staff/', include('apps.staff.urls')),
-    path('api/students/', include('apps.students.urls')),
-    path('api/academics/', include('apps.academics.urls')),
-    path('api/attendance/', include('apps.attendance.urls')),
-    path('api/finance/', include('apps.finance.urls')),
-    path('api/communication/', include('apps.communication.urls')),
-    path('api/reports/', include('apps.reports.urls')),
-    path('api/hr/', include('apps.hr.urls')),
-    path('api/registry/', include('apps.registry.urls')),
-    path('api/departments/', include('apps.departments.urls')),
-    path('api/files/', include('apps.files.urls')),
-    path('api/workflows/', include('apps.workflows.urls')),
-    path('api/notifications/', include('apps.notifications.urls')),
-    path('api/inspection/', include('apps.inspection.urls')),
-    path('api/co-curricular/', include('apps.co_curricular.urls')),
-    path('api/french/', include('apps.french.urls')),
-    path('api/infrastructure/', include('apps.infrastructure.urls')),
-    path('api/library/', include('apps.library.urls')),
-    path('api/e-learning/', include('apps.e_learning.urls')),
-    path('api/wellness/', include('apps.wellness.urls')),
-    path('api/alumni/', include('apps.alumni.urls')),
-    path('api/assets/', include('apps.assets.urls')),
-    path('api/discipline/', include('apps.discipline.urls')),
-    path('api/timetable/', include('apps.timetable.urls')),
-    path('api/transport/', include('apps.transport.urls')),
-    path('api/cpd/', include('apps.cpd.urls')),
-    path('api/analytics/', include('apps.analytics.urls')),
-    path('api/data-import-export/', include('apps.data_import_export.urls')),
-    path('api/mail-workflow/', include('apps.mail_workflow.urls')),
-    path('api/audit/', include('apps.audit.urls')),
-    path('api/parent-teacher/', include('apps.parent_teacher.urls')),
-    path('api/predictive/', include('apps.predictive_analytics.urls')),
-    path('api/chatbot/', include('apps.chatbot.urls')),
-    path('api/blockchain-certs/', include('apps.blockchain_cert.urls')),
-    path('api/multilingual/', include('apps.multilingual.urls')),
-    path('api/gamification/', include('apps.gamification.urls')),
-    path('api/push-notifications/', include('apps.push_notifications.urls')),
-    path('api/iot/', include('apps.iot_dashboard.urls')),
-    path('api/benchmarking/', include('apps.benchmarking.urls')),
-    path('api/report-card-gen/', include('apps.report_card_gen.urls')),
+    path("health/", health_check),
+    path("debug/files/", debug_files),
+    path("admin/", admin.site.urls),
+    path("api/users/", include("apps.users.urls")),
+    path("api/schools/", include("apps.schools.urls")),
+    path("api/staff/", include("apps.staff.urls")),
+    path("api/students/", include("apps.students.urls")),
+    path("api/academics/", include("apps.academics.urls")),
+    path("api/attendance/", include("apps.attendance.urls")),
+    path("api/finance/", include("apps.finance.urls")),
+    path("api/communication/", include("apps.communication.urls")),
+    path("api/reports/", include("apps.reports.urls")),
+    path("api/hr/", include("apps.hr.urls")),
+    path("api/registry/", include("apps.registry.urls")),
+    path("api/departments/", include("apps.departments.urls")),
+    path("api/files/", include("apps.files.urls")),
+    path("api/workflows/", include("apps.workflows.urls")),
+    path("api/notifications/", include("apps.notifications.urls")),
+    path("api/inspection/", include("apps.inspection.urls")),
+    path("api/co-curricular/", include("apps.co_curricular.urls")),
+    path("api/french/", include("apps.french.urls")),
+    path("api/infrastructure/", include("apps.infrastructure.urls")),
+    path("api/library/", include("apps.library.urls")),
+    path("api/e-learning/", include("apps.e_learning.urls")),
+    path("api/wellness/", include("apps.wellness.urls")),
+    path("api/alumni/", include("apps.alumni.urls")),
+    path("api/assets/", include("apps.assets.urls")),
+    path("api/discipline/", include("apps.discipline.urls")),
+    path("api/timetable/", include("apps.timetable.urls")),
+    path("api/transport/", include("apps.transport.urls")),
+    path("api/cpd/", include("apps.cpd.urls")),
+    path("api/analytics/", include("apps.analytics.urls")),
+    path("api/data-import-export/", include("apps.data_import_export.urls")),
+    path("api/mail-workflow/", include("apps.mail_workflow.urls")),
+    path("api/audit/", include("apps.audit.urls")),
+    path("api/parent-teacher/", include("apps.parent_teacher.urls")),
+    path("api/predictive/", include("apps.predictive_analytics.urls")),
+    path("api/chatbot/", include("apps.chatbot.urls")),
+    path("api/blockchain-certs/", include("apps.blockchain_cert.urls")),
+    path("api/multilingual/", include("apps.multilingual.urls")),
+    path("api/gamification/", include("apps.gamification.urls")),
+    path("api/push-notifications/", include("apps.push_notifications.urls")),
+    path("api/iot/", include("apps.iot_dashboard.urls")),
+    path("api/benchmarking/", include("apps.benchmarking.urls")),
+    path("api/report-card-gen/", include("apps.report_card_gen.urls")),
     # Catch-all for SPA routing - must be last
-    re_path(r'^(?P<path>.*)$', serve_frontend, {'path': ''}),
+    re_path(r"^(?P<path>.*)$", serve_frontend, {"path": ""}),
 ]
 
 if settings.DEBUG:

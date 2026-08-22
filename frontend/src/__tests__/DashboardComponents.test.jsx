@@ -1,4 +1,3 @@
-import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import { Provider } from 'react-redux'
 import { MemoryRouter } from 'react-router-dom'
@@ -33,13 +32,17 @@ function renderWithProviders(ui, {
   )
 }
 
-const emptyStats = {
-  total_schools: 0, total_students: 0, total_staff: 0, total_files: 0,
-  active_files: 0, pending_files: 0,
-}
-
 const defaultMocks = () => {
-  mockGet.mockImplementation(() => Promise.resolve({ data: emptyStats }))
+  mockGet.mockImplementation((url) => {
+    if (url.includes('students_by_lga')) return Promise.resolve({ data: [{ school__lga: 'Apapa', count: 5000 }] })
+    if (url.includes('staff_by_role')) return Promise.resolve({ data: [{ category: 'Teaching', count: 300 }] })
+    if (url.includes('attendance_stats')) return Promise.resolve({ data: [{ status: 'PRESENT', count: 500 }, { status: 'ABSENT', count: 50 }] })
+    if (url.includes('financial_stats')) return Promise.resolve({ data: { total_collected: 1000000, collection_rate: 78 } })
+    if (url.includes('user_stats')) return Promise.resolve({ data: { total_users: 100, recent_logins_24h: 20 } })
+    if (url.includes('system_status')) return Promise.resolve({ data: { database: 'online', storage_percent: 67 } })
+    if (url.includes('recent_activity')) return Promise.resolve({ data: { recent_files: [], recent_tasks: [] } })
+    return Promise.resolve({ data: { total_schools: 0, total_students: 0, total_staff: 0, active_files: 0, pending_files: 0 } })
+  })
 }
 
 describe('Role-specific Dashboard Components', () => {
@@ -48,7 +51,7 @@ describe('Role-specific Dashboard Components', () => {
     defaultMocks()
   })
 
-  it('SysAdminDashboard renders 8 KPI cards', async () => {
+  it('SysAdminDashboard renders KPI cards', async () => {
     renderWithProviders(<SysAdminDashboard />, {
       preloadedState: { auth: { user: { first_name: 'Admin', role: 'SYSADMIN' }, isAuthenticated: true } },
     })

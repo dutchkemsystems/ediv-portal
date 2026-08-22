@@ -1,4 +1,3 @@
-import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import { Provider } from 'react-redux'
 import { MemoryRouter } from 'react-router-dom'
@@ -11,6 +10,7 @@ vi.mock('../api/client', () => ({
   default: { get: vi.fn().mockResolvedValue({ data: {} }), post: vi.fn().mockResolvedValue({ data: {} }) },
 }))
 
+vi.mock('../pages/Landing', () => ({ default: () => <div data-testid="landing-page">Landing Page</div> }))
 vi.mock('../pages/Login', () => ({ default: () => <div data-testid="login-page">Login Page</div> }))
 vi.mock('../pages/ForgotPassword', () => ({ default: () => <div data-testid="forgot-password-page">Forgot Password Page</div> }))
 vi.mock('../pages/ResetPassword', () => ({ default: () => <div data-testid="reset-password-page">Reset Password Page</div> }))
@@ -21,6 +21,7 @@ vi.mock('../pages/Students', () => ({ default: () => <div>Students Page</div> })
 vi.mock('../pages/Attendance', () => ({ default: () => <div>Attendance Page</div> }))
 vi.mock('../pages/Academics', () => ({ default: () => <div>Academics Page</div> }))
 vi.mock('../pages/Finance', () => ({ default: () => <div>Finance Page</div> }))
+vi.mock('../pages/Grants', () => ({ default: () => <div>Grants Page</div> }))
 vi.mock('../pages/HR', () => ({ default: () => <div>HR Page</div> }))
 vi.mock('../pages/Registry', () => ({ default: () => <div>Registry Page</div> }))
 vi.mock('../pages/Files', () => ({ default: () => <div>Files Page</div> }))
@@ -41,6 +42,15 @@ vi.mock('../pages/French', () => ({ default: () => <div>French Page</div> }))
 vi.mock('../pages/CoCurricular', () => ({ default: () => <div>CoCurricular Page</div> }))
 vi.mock('../pages/CPD', () => ({ default: () => <div>CPD Page</div> }))
 vi.mock('../pages/Reports', () => ({ default: () => <div>Reports Page</div> }))
+vi.mock('../pages/DataImportExport', () => ({ default: () => <div>DataImportExport Page</div> }))
+vi.mock('../pages/MailWorkflow', () => ({ default: () => <div>MailWorkflow Page</div> }))
+vi.mock('../pages/MemoWorkflow', () => ({ default: () => <div>MemoWorkflow Page</div> }))
+vi.mock('../pages/MFAVerify', () => ({ default: () => <div>MFAVerify Page</div> }))
+vi.mock('../pages/MFASetup', () => ({ default: () => <div>MFASetup Page</div> }))
+vi.mock('../pages/Departments', () => ({ default: () => <div>Departments Page</div> }))
+vi.mock('../pages/Audit', () => ({ default: () => <div>Audit Page</div> }))
+vi.mock('../pages/ParentTeacher', () => ({ default: () => <div>ParentTeacher Page</div> }))
+vi.mock('../pages/Privileges', () => ({ default: () => <div>Privileges Page</div> }))
 vi.mock('../components/common/Layout', () => ({ default: ({ children }) => <div data-testid="layout">{children}</div> }))
 
 function renderWithProviders(ui, {
@@ -59,12 +69,12 @@ function renderWithProviders(ui, {
 
 describe('App Routing', () => {
   describe('unauthenticated users', () => {
-    it('redirects to /login when accessing /', async () => {
+    it('shows Landing page at /', async () => {
       renderWithProviders(<App />, { initialEntries: ['/'] })
-      await waitFor(() => expect(screen.getByTestId('login-page')).toBeInTheDocument())
+      await waitFor(() => expect(screen.getByTestId('landing-page')).toBeInTheDocument())
     })
 
-    it('redirects to /login when accessing /schools', async () => {
+    it('redirects to /login when accessing protected route /schools', async () => {
       renderWithProviders(<App />, { initialEntries: ['/schools'] })
       await waitFor(() => expect(screen.getByTestId('login-page')).toBeInTheDocument())
     })
@@ -95,8 +105,8 @@ describe('App Routing', () => {
       },
     }
 
-    it('shows dashboard when accessing /', async () => {
-      renderWithProviders(<App />, { preloadedState: authenticatedState, initialEntries: ['/'] })
+    it('shows dashboard when accessing /dashboard', async () => {
+      renderWithProviders(<App />, { preloadedState: authenticatedState, initialEntries: ['/dashboard'] })
       await waitFor(() => expect(screen.getByTestId('dashboard-page')).toBeInTheDocument())
     })
 
@@ -106,7 +116,7 @@ describe('App Routing', () => {
     })
 
     it('renders layout for protected routes', async () => {
-      renderWithProviders(<App />, { preloadedState: authenticatedState, initialEntries: ['/'] })
+      renderWithProviders(<App />, { preloadedState: authenticatedState, initialEntries: ['/schools'] })
       await waitFor(() => expect(screen.getByTestId('layout')).toBeInTheDocument())
     })
 
@@ -127,7 +137,7 @@ describe('App Routing', () => {
         },
       }
       renderWithProviders(<App />, { preloadedState: authenticatedState, initialEntries: ['/nonexistent'] })
-      await waitFor(() => expect(screen.getByTestId('dashboard-page')).toBeInTheDocument())
+      await waitFor(() => expect(screen.getByTestId('landing-page')).toBeInTheDocument())
     })
   })
 })

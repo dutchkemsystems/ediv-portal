@@ -1,5 +1,4 @@
-import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { Provider } from 'react-redux'
 import { MemoryRouter } from 'react-router-dom'
 import { configureStore } from '@reduxjs/toolkit'
@@ -36,14 +35,14 @@ describe('Login Page', () => {
 
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
   })
 
   it('renders the portal title and subtitle', () => {
     renderWithProviders(<Login />)
 
     expect(screen.getByText('Education District IV')).toBeInTheDocument()
-    expect(screen.getByText('Portal Login')).toBeInTheDocument()
+    expect(screen.getByText('Welcome Back')).toBeInTheDocument()
   })
 
   it('renders Forgot Password link', () => {
@@ -111,7 +110,7 @@ describe('Login Page', () => {
     })
 
     // When loading, the button shows CircularProgress instead of text
-    expect(screen.queryByRole('button', { name: /login/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /sign in/i })).not.toBeInTheDocument()
   })
 
   it('renders email field with correct type', () => {

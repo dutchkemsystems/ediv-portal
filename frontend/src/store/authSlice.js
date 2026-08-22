@@ -32,6 +32,20 @@ export const login = createAsyncThunk(
   }
 )
 
+export const fetchCurrentUser = createAsyncThunk(
+  'auth/fetchCurrentUser',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/users/users/me/')
+      return response.data
+    } catch (error) {
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
+      return rejectWithValue('Session expired')
+    }
+  }
+)
+
 export const logout = createAsyncThunk('auth/logout', async () => {
   const refreshToken = localStorage.getItem('refresh_token')
   try {
@@ -123,6 +137,19 @@ const authSlice = createSlice({
         state.isAuthenticated = false
         state.user = null
         state.mfa_required = false
+      })
+      .addCase(fetchCurrentUser.pending, (state) => {
+        state.loading = true
+      })
+      .addCase(fetchCurrentUser.fulfilled, (state, action) => {
+        state.loading = false
+        state.user = action.payload
+        state.isAuthenticated = true
+      })
+      .addCase(fetchCurrentUser.rejected, (state) => {
+        state.loading = false
+        state.isAuthenticated = false
+        state.user = null
       })
   },
 })

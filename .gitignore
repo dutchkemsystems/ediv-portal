@@ -5,6 +5,7 @@ __pycache__/
 .env
 .env.local
 .env.production
+.env.production.*
 db.sqlite3
 staticfiles/
 media/

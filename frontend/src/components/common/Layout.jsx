@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -29,7 +29,6 @@ import {
   Assignment as AssignmentIcon,
   AccountBalance as FinanceIcon,
   Assessment as ReportsIcon,
-  Settings as SettingsIcon,
   Logout as LogoutIcon,
   CalendarToday as CalendarIcon,
   Work as WorkIcon,
@@ -55,12 +54,11 @@ import {
   Security as AuditIcon,
   Handshake as ParentTeacherIcon,
 } from '@mui/icons-material'
-import { logout } from '../../store/authSlice'
+import { logout, fetchCurrentUser } from '../../store/authSlice'
 
 const drawerWidth = 260
 
 const lagosRed = '#C8102E'
-const lagosGreen = '#00843D'
 
 const getMenuItems = (role) => {
   const allItems = [
@@ -129,9 +127,15 @@ const getMenuItems = (role) => {
 function Layout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [anchorEl, setAnchorEl] = useState(null)
-  const { user } = useSelector((state) => state.auth)
+  const { user, isAuthenticated } = useSelector((state) => state.auth)
   const dispatch = useDispatch()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (isAuthenticated && !user) {
+      dispatch(fetchCurrentUser())
+    }
+  }, [isAuthenticated, user, dispatch])
 
   const menuItems = getMenuItems(user?.role)
 

@@ -28,20 +28,17 @@ jobs:
 
       - name: Run Bandit (static analysis)
         run: bandit -r backend/ -f json -o bandit-report.json || true
-        continue-on-error: true
 
       - name: Run Safety (dependency check)
         run: |
           cd backend
           pip install -r requirements/base.txt
           safety check --json --output safety-report.json || true
-        continue-on-error: true
 
       - name: Run pip-audit
         run: |
           cd backend
           pip-audit --format json --output pip-audit-report.json || true
-        continue-on-error: true
 
       - name: Upload security reports
         uses: actions/upload-artifact@v4
@@ -60,23 +57,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run Trivy vulnerability scanner (backend)
+      - name: Run Trivy vulnerability scanner (backend Dockerfile)
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'python:3.11-slim'
+          scan-type: 'config'
+          scan-ref: 'docker/'
           format: 'json'
           output: 'trivy-backend.json'
           severity: 'CRITICAL,HIGH'
-        continue-on-error: true
 
-      - name: Run Trivy vulnerability scanner (frontend)
+      - name: Run Trivy filesystem scan (backend dependencies)
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'node:18-slim'
+          scan-type: 'fs'
+          scan-ref: 'backend/'
           format: 'json'
-          output: 'trivy-frontend.json'
+          output: 'trivy-fs.json'
           severity: 'CRITICAL,HIGH'
-        continue-on-error: true
+          ignore-unfixed: true
 
       - name: Upload Docker scan results
         uses: actions/upload-artifact@v4
@@ -85,7 +83,7 @@ jobs:
           name: docker-security-reports
           path: |
             trivy-backend.json
-            trivy-frontend.json
+            trivy-fs.json
 
   secrets-scan:
     name: Secrets Detection

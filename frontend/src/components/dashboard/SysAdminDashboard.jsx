@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -37,7 +37,6 @@ import { notify } from '../../utils/notifications'
 
 const lagosRed = '#C8102E'
 const lagosGreen = '#00843D'
-const lagosGold = '#D4A017'
 
 function SysAdminDashboard() {
   const { user } = useSelector((state) => state.auth)
@@ -79,9 +78,18 @@ function SysAdminDashboard() {
       if (statsRes.status === 'fulfilled') setStats(statsRes.value.data)
       if (userRes.status === 'fulfilled') setUserStats(userRes.value.data)
       if (financialRes.status === 'fulfilled') setFinancialStats(financialRes.value.data)
-      if (attendanceRes.status === 'fulfilled') setAttendanceStats(attendanceRes.value.data)
-      if (lgaRes.status === 'fulfilled') setStudentsByLga(lgaRes.value.data)
-      if (staffRes.status === 'fulfilled') setStaffByRole(staffRes.value.data)
+      if (attendanceRes.status === 'fulfilled') {
+        const ad = attendanceRes.value.data
+        setAttendanceStats(Array.isArray(ad) ? ad : ad.results || [])
+      }
+      if (lgaRes.status === 'fulfilled') {
+        const ld = lgaRes.value.data
+        setStudentsByLga(Array.isArray(ld) ? ld : ld.results || [])
+      }
+      if (staffRes.status === 'fulfilled') {
+        const sd = staffRes.value.data
+        setStaffByRole(Array.isArray(sd) ? sd : sd.results || [])
+      }
       if (activityRes.status === 'fulfilled') setActivity(activityRes.value.data)
       if (statusRes.status === 'fulfilled') setSystemStatus(statusRes.value.data)
     } catch (error) {
@@ -111,8 +119,8 @@ function SysAdminDashboard() {
 
   // Compute attendance rate from stats
   const attendanceRate = (() => {
-    if (!attendanceStats || attendanceStats.length === 0) return 94.2
-    const total = attendanceStats.reduce((sum, s) => sum + s.count, 0)
+    if (!attendanceStats || !Array.isArray(attendanceStats) || attendanceStats.length === 0) return 94.2
+    const total = attendanceStats.reduce((sum, s) => sum + (s.count || 0), 0)
     const present = attendanceStats.find(s => s.status === 'PRESENT')
     return total > 0 ? ((present?.count || 0) / total * 100).toFixed(1) : 94.2
   })()
@@ -217,7 +225,7 @@ function SysAdminDashboard() {
     colors: [lagosRed, '#1565C0', lagosGreen],
     dataLabels: { enabled: false },
     xaxis: {
-      categories: studentsByLga?.map(s => s.school__lga || 'Unknown') || ['Apapa', 'Mainland', 'Surulere'],
+      categories: studentsByLga?.map(s => s.school__lga || 'Unknown') || [],
       labels: { style: { fontSize: '12px' } },
     },
     yaxis: {
@@ -231,8 +239,10 @@ function SysAdminDashboard() {
 
   const lgaChartSeries = [{
     name: 'Students',
-    data: studentsByLga?.map(s => s.count) || [26800, 32100, 23550],
+    data: studentsByLga?.map(s => s.count) || [],
   }]
+
+  const showLgaChart = studentsByLga && studentsByLga.length > 0
 
   // Staff by role chart config
   const staffChartOptions = {
@@ -241,7 +251,7 @@ function SysAdminDashboard() {
       fontFamily: 'inherit',
     },
     colors: [lagosRed, '#1565C0', lagosGreen, '#E65100', '#6A1B9A', '#37474F'],
-    labels: staffByRole?.map(s => s.category || 'Other') || ['Teaching', 'Administrative', 'Support'],
+    labels: staffByRole?.map(s => s.category || 'Other') || [],
     dataLabels: { enabled: false },
     legend: {
       position: 'bottom',
@@ -267,7 +277,8 @@ function SysAdminDashboard() {
     },
   }
 
-  const staffChartSeries = staffByRole?.map(s => s.count) || [3432, 792, 528, 528]
+  const staffChartSeries = staffByRole?.map(s => s.count) || []
+  const showStaffChart = staffByRole && staffByRole.length > 0
 
   // Quick actions
   const quickActions = [
@@ -402,7 +413,7 @@ function SysAdminDashboard() {
             <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '0.95rem', mb: 1 }}>
               Students by LGA
             </Typography>
-            {studentsByLga ? (
+            {showLgaChart ? (
               <Chart
                 options={lgaChartOptions}
                 series={lgaChartSeries}
@@ -411,7 +422,7 @@ function SysAdminDashboard() {
               />
             ) : (
               <Box sx={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <CircularProgress size={24} />
+                <Typography variant="body2" color="text.secondary">No LGA data available</Typography>
               </Box>
             )}
           </Paper>
@@ -421,7 +432,7 @@ function SysAdminDashboard() {
             <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '0.95rem', mb: 1 }}>
               Staff Distribution
             </Typography>
-            {staffByRole ? (
+            {showStaffChart ? (
               <Chart
                 options={staffChartOptions}
                 series={staffChartSeries}
@@ -430,7 +441,7 @@ function SysAdminDashboard() {
               />
             ) : (
               <Box sx={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <CircularProgress size={24} />
+                <Typography variant="body2" color="text.secondary">No staff data available</Typography>
               </Box>
             )}
           </Paper>

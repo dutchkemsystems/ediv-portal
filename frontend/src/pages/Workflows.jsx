@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Box,
   Typography,
@@ -42,7 +42,7 @@ import { notify } from '../utils/notifications'
 function Workflows() {
   const [workflows, setWorkflows] = useState([])
   const [tasks, setTasks] = useState([])
-  const [instances, setInstances] = useState([])
+  const [, setInstances] = useState([])
   const [loading, setLoading] = useState(true)
   const [openFormDialog, setOpenFormDialog] = useState(false)
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
@@ -50,7 +50,7 @@ function Workflows() {
   const [openViewDialog, setOpenViewDialog] = useState(false)
   const [selectedItem, setSelectedItem] = useState(null)
   const [formData, setFormData] = useState({ name: '', description: '', status: 'DRAFT', trigger_type: '', assigned_to: '', due_date: '' })
-  const [formErrors, setFormErrors] = useState({})
+  const [, setFormErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
 
   // Filters
@@ -59,22 +59,23 @@ function Workflows() {
 
   useEffect(() => {
     fetchAll()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
     fetchWorkflows()
-  }, [filters])
+  }, [fetchWorkflows])
 
-  const fetchAll = async () => {
+  const fetchAll = useCallback(async () => {
     try {
       setLoading(true)
       await Promise.all([fetchWorkflows(), fetchTasks(), fetchInstances()])
     } finally {
       setLoading(false)
     }
-  }
+  }, [fetchWorkflows, fetchTasks, fetchInstances])
 
-  const fetchWorkflows = async () => {
+  const fetchWorkflows = useCallback(async () => {
     try {
       const params = new URLSearchParams()
       if (filters.status) params.append('status', filters.status)
@@ -85,21 +86,21 @@ function Workflows() {
     } catch (error) {
       notify.error('Failed to load workflows')
     }
-  }
+  }, [filters])
 
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
       const res = await api.get('/workflows/tasks/')
       setTasks(res.data.results || res.data)
     } catch (error) { /* silent */ }
-  }
+  }, [])
 
-  const fetchInstances = async () => {
+  const fetchInstances = useCallback(async () => {
     try {
       const res = await api.get('/workflows/instances/')
       setInstances(res.data.results || res.data)
     } catch (error) { /* silent */ }
-  }
+  }, [])
 
   const handleFilterChange = (field, value) => {
     setFilters(prev => ({ ...prev, [field]: value }))
@@ -121,11 +122,6 @@ function Workflows() {
     setFormData({ name: item.name || '', description: item.description || '', status: item.status || 'DRAFT', trigger_type: item.trigger_type || '', assigned_to: item.assigned_to || '', due_date: item.due_date || '' })
     setFormErrors({})
     setOpenFormDialog(true)
-  }
-
-  const handleOpenView = (item) => {
-    setSelectedItem(item)
-    setOpenViewDialog(true)
   }
 
   const handleViewTasks = (workflow) => {

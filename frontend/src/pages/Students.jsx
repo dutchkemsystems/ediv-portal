@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Box,
   Typography,
@@ -94,16 +94,15 @@ function Students() {
   const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
-    fetchStudents()
     fetchSchools()
     fetchClasses()
   }, [])
 
   useEffect(() => {
     fetchStudents()
-  }, [filters])
+  }, [fetchStudents])
 
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     try {
       const params = new URLSearchParams()
       if (filters.school) params.append('school', filters.school)
@@ -119,7 +118,7 @@ function Students() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters])
 
   const fetchSchools = async () => {
     try {
