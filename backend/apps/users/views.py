@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib.auth import authenticate
 from django.core.cache import cache
 from django.core.mail import send_mail
-from rest_framework import generics, permissions, status, throttles, viewsets
+from rest_framework import generics, permissions, status, throttling, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
@@ -647,7 +647,7 @@ class UnlockView(generics.GenericAPIView):
 
     authentication_classes = []
     permission_classes = []
-    throttle_classes = [throttles.AnonRateThrottle]
+    throttle_classes = [throttling.AnonRateThrottle]
 
     def post(self, request):
         provided = request.META.get("HTTP_X_UNLOCK_TOKEN", "")
