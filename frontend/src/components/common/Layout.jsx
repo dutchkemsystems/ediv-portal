@@ -53,6 +53,13 @@ import {
   Domain as DepartmentIcon,
   Security as AuditIcon,
   Handshake as ParentTeacherIcon,
+  PredictiveAnalytics as PredictiveIcon,
+  WorkspacePremium as GamificationIcon,
+  Verified as BlockchainIcon,
+  SmartToy as ChatbotIcon,
+  Compare as BenchmarkIcon,
+  Sensors as IoTIcon,
+  Translate as MultilingualIcon,
 } from '@mui/icons-material'
 import { logout, fetchCurrentUser } from '../../store/authSlice'
 
@@ -97,6 +104,14 @@ const getMenuItems = (role) => {
     { text: 'Data Import/Export', icon: <AssignmentIcon />, path: '/data-import-export' },
     { text: 'Access Databases', icon: <AssignmentIcon />, path: '/access-databases' },
     { text: 'Mail Workflow', icon: <MailIcon />, path: '/mail-workflow' },
+    { text: 'Memo Workflow', icon: <MailIcon />, path: '/memo-workflow' },
+    { text: 'Predictive Analytics', icon: <PredictiveIcon />, path: '/predictive' },
+    { text: 'Gamification', icon: <GamificationIcon />, path: '/gamification' },
+    { text: 'Blockchain Certs', icon: <BlockchainIcon />, path: '/blockchain-certs' },
+    { text: 'AI Chatbot', icon: <ChatbotIcon />, path: '/chatbot' },
+    { text: 'Benchmarking', icon: <BenchmarkIcon />, path: '/benchmarking' },
+    { text: 'IoT Dashboard', icon: <IoTIcon />, path: '/iot' },
+    { text: 'Multilingual', icon: <MultilingualIcon />, path: '/multilingual' },
   ]
 
   const roleAccess = {
@@ -116,11 +131,11 @@ const getMenuItems = (role) => {
     REG: ['/dashboard', '/registry', '/files', '/workflows', '/data-import-export', '/access-databases', '/notifications'],
     REG_OFF: ['/dashboard', '/registry', '/files', '/workflows', '/notifications'],
     SA_OFF: ['/dashboard', '/schools', '/students', '/reports', '/notifications'],
-    PRI: ['/dashboard', '/schools', '/students', '/staff', '/academics', '/attendance', '/timetable', '/reports', '/discipline', '/library', '/notifications'],
-    VP: ['/dashboard', '/students', '/staff', '/academics', '/attendance', '/timetable', '/reports', '/discipline', '/notifications'],
-    TCH: ['/dashboard', '/students', '/academics', '/attendance', '/timetable', '/e-learning', '/discipline', '/notifications'],
-    STD: ['/dashboard', '/academics', '/attendance', '/library', '/e-learning', '/notifications'],
-    PAR: ['/dashboard', '/students', '/finance', '/communication', '/parent-teacher', '/notifications'],
+    PRI: ['/dashboard', '/schools', '/students', '/staff', '/academics', '/attendance', '/timetable', '/reports', '/discipline', '/library', '/notifications', '/chatbot', '/gamification', '/blockchain-certs'],
+    VP: ['/dashboard', '/students', '/staff', '/academics', '/attendance', '/timetable', '/reports', '/discipline', '/notifications', '/chatbot', '/gamification'],
+    TCH: ['/dashboard', '/students', '/academics', '/attendance', '/timetable', '/e-learning', '/discipline', '/notifications', '/chatbot', '/gamification'],
+    STD: ['/dashboard', '/academics', '/attendance', '/library', '/e-learning', '/notifications', '/chatbot', '/gamification', '/blockchain-certs'],
+    PAR: ['/dashboard', '/students', '/finance', '/communication', '/parent-teacher', '/notifications', '/chatbot'],
   }
 
   const allowedPaths = roleAccess[role] || ['/dashboard']

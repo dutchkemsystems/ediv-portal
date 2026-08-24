@@ -47,6 +47,13 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'))
 const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 const MFAVerify = lazy(() => import('./pages/MFAVerify'))
 const MFASetup = lazy(() => import('./pages/MFASetup'))
+const Predictive = lazy(() => import('./pages/Predictive'))
+const Gamification = lazy(() => import('./pages/Gamification'))
+const BlockchainCert = lazy(() => import('./pages/BlockchainCert'))
+const Chatbot = lazy(() => import('./pages/Chatbot'))
+const Benchmarking = lazy(() => import('./pages/Benchmarking'))
+const IoT = lazy(() => import('./pages/IoT'))
+const Multilingual = lazy(() => import('./pages/Multilingual'))
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useSelector((state) => state.auth)
@@ -112,6 +119,13 @@ function App() {
             { path: '/access-databases', element: AccessDatabase },
             { path: '/mail-workflow', element: MailWorkflow },
             { path: '/memo-workflow', element: MemoWorkflow },
+            { path: '/predictive', element: Predictive },
+            { path: '/gamification', element: Gamification },
+            { path: '/blockchain-certs', element: BlockchainCert },
+            { path: '/chatbot', element: Chatbot },
+            { path: '/benchmarking', element: Benchmarking },
+            { path: '/iot', element: IoT },
+            { path: '/multilingual', element: Multilingual },
           ].map(({ path, element: Page }) => (
             <Route
               key={path}
