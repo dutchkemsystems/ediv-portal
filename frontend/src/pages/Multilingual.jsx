@@ -44,7 +44,7 @@ export default function Multilingual() {
     setLoading(true)
     setError('')
     try {
-      const res = await api.get('/api/multilingual/translations/')
+      const res = await api.get('/multilingual/entries/')
       setTranslations(res.data.results || res.data || [])
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to load translations.')
@@ -56,7 +56,7 @@ export default function Multilingual() {
   const fetchMyLanguage = useCallback(async () => {
     setLanguageLoading(true)
     try {
-      const res = await api.get('/api/multilingual/user-language-preferences/?user=current')
+      const res = await api.get('/multilingual/preferences/')
       const data = res.data.results || res.data || []
       if (Array.isArray(data) && data.length > 0) {
         setSelectedLanguage(data[0].language || 'en')
@@ -96,7 +96,7 @@ export default function Multilingual() {
     setLoading(true)
     setError('')
     try {
-      await api.put(`/api/multilingual/translations/${editingRow.id}/`, {
+      await api.put(`/multilingual/entries/${editingRow.id}/`, {
         key: editingRow.key,
         english: editForm.english,
         yoruba: editForm.yoruba,
@@ -118,7 +118,7 @@ export default function Multilingual() {
     setError('')
     setSuccess('')
     try {
-      await api.post('/api/multilingual/user-language-preferences/', {
+      await api.post('/multilingual/preferences/', {
         language: selectedLanguage,
       })
       setCurrentLanguage(selectedLanguage)

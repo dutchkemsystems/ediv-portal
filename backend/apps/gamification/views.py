@@ -2,7 +2,7 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .models import Badge, PointCategory, PointTransaction, UserBadge, UserPoints
+from .models import Badge, Leaderboard, PointCategory, PointTransaction, UserBadge, UserPoints
 from .serializers import (
     BadgeSerializer,
     LeaderboardSerializer,
@@ -87,6 +87,7 @@ class UserBadgeViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class LeaderboardViewSet(viewsets.ModelViewSet):
+    queryset = Leaderboard.objects.all()
     serializer_class = LeaderboardSerializer
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ["get"]

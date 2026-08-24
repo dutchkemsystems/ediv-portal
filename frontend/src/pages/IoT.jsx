@@ -75,16 +75,20 @@ function IoT() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [devicesRes, readingsRes, alertsRes, statsRes] = await Promise.all([
-        api.get('/iot/iot-devices/'),
-        api.get('/iot/sensor-readings/'),
-        api.get('/iot/iot-alerts/'),
-        api.get('/iot/iot-devices/device_stats/'),
+      const [devicesRes, readingsRes, alertsRes] = await Promise.all([
+        api.get('/iot/devices/'),
+        api.get('/iot/readings/'),
+        api.get('/iot/alerts/'),
       ])
       setDevices(devicesRes.data.results || devicesRes.data)
       setReadings(readingsRes.data.results || readingsRes.data)
       setAlerts(alertsRes.data.results || alertsRes.data)
-      setStats(statsRes.data)
+      try {
+        const statsRes = await api.get('/iot/alerts/dashboard/')
+        setStats(statsRes.data)
+      } catch {
+        setStats({ total_devices: devicesRes.data.results?.length || devicesRes.data?.length || 0 })
+      }
     } catch (error) {
       console.error('Error fetching IoT data:', error)
     } finally {
@@ -104,7 +108,7 @@ function IoT() {
 
   const handleAcknowledge = async (alertId) => {
     try {
-      await api.post(`/iot/iot-alerts/${alertId}/acknowledge/`)
+      await api.post(`/iot/alerts/${alertId}/acknowledge/`)
       setAlerts((prev) =>
         prev.map((a) => (a.id === alertId ? { ...a, status: 'ACKNOWLEDGED' } : a))
       )

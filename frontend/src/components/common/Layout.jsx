@@ -53,7 +53,7 @@ import {
   Domain as DepartmentIcon,
   Security as AuditIcon,
   Handshake as ParentTeacherIcon,
-  PredictiveAnalytics as PredictiveIcon,
+  AutoGraph as PredictiveIcon,
   WorkspacePremium as GamificationIcon,
   Verified as BlockchainIcon,
   SmartToy as ChatbotIcon,

@@ -67,10 +67,10 @@ function Gamification() {
     setError(null)
     try {
       const [leaderboardRes, badgesRes, pointsRes, statsRes] = await Promise.all([
-        api.get('/gamification/leaderboard/'),
-        api.get('/gamification/user-badges/?user=current'),
-        api.get('/gamification/point-transactions/?user=current'),
-        api.get('/gamification/my-stats/'),
+        api.get('/gamification/points/leaderboard/'),
+        api.get('/gamification/user-badges/'),
+        api.get('/gamification/transactions/'),
+        api.get('/gamification/points/my-stats/'),
       ])
       setLeaderboard(leaderboardRes.data.results || leaderboardRes.data)
       setBadges(badgesRes.data.results || badgesRes.data)

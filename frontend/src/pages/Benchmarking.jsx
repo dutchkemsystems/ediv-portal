@@ -62,7 +62,7 @@ function Benchmarking() {
 
   const fetchRankings = useCallback(async () => {
     try {
-      const response = await api.get('/benchmarking/school-benchmarks/rankings/')
+      const response = await api.get('/benchmarking/benchmarks/rankings/')
       setRankings(response.data.results || response.data)
     } catch (err) {
       setError('Failed to load rankings')
@@ -81,7 +81,7 @@ function Benchmarking() {
   const fetchMetrics = useCallback(async () => {
     try {
       const params = metricsCategory ? `?category=${metricsCategory}` : ''
-      const response = await api.get(`/benchmarking/school-benchmarks/${params}`)
+      const response = await api.get(`/benchmarking/metrics/${params}`)
       setMetrics(response.data.results || response.data)
     } catch (err) {
       setError('Failed to load metrics')
@@ -110,7 +110,7 @@ function Benchmarking() {
     try {
       setCalculating(true)
       setError('')
-      await api.post('/benchmarking/school-benchmarks/calculate/')
+      await api.post('/benchmarking/benchmarks/calculate/')
       await fetchRankings()
       await fetchMetrics()
     } catch (err) {
@@ -133,8 +133,11 @@ function Benchmarking() {
     try {
       setCompareLoading(true)
       setError('')
-      const ids = selectedSchools.join(',')
-      const response = await api.get(`/benchmarking/school-benchmarks/compare/?schools=${ids}`)
+      const ids = selectedSchools
+      const response = await api.post('/benchmarking/comparisons/compare/', {
+        school_a: ids[0],
+        school_b: ids[1],
+      })
       setCompareData(response.data)
     } catch (err) {
       setError('Failed to compare schools')

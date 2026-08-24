@@ -53,8 +53,8 @@ const Chatbot = () => {
 
   const fetchSuggestions = useCallback(async () => {
     try {
-      const response = await api.get('/chatbot/suggestions/')
-      setSuggestions(response.data || [])
+      const response = await api.get('/chatbot/sessions/suggestions/')
+      setSuggestions(response.data.suggestions || response.data || [])
     } catch (err) {
       console.error('Failed to load suggestions:', err)
     }
@@ -63,26 +63,23 @@ const Chatbot = () => {
   const fetchChatHistory = useCallback(async () => {
     if (!sessionId) return
     try {
-      const response = await api.get(`/chatbot/chat-history/${sessionId}/`)
-      const history = response.data || []
-      setMessages(history)
-      setChatHistory((prev) => {
-        const existing = prev.find((s) => s.session_id === sessionId)
-        if (existing) {
-          return prev.map((s) =>
-            s.session_id === sessionId ? { ...s, messages: history } : s
-          )
-        }
-        return [
-          {
-            session_id: sessionId,
-            preview: history[0]?.message || 'New chat',
-            messages: history,
-            created_at: new Date().toISOString(),
-          },
-          ...prev,
-        ]
-      })
+      const response = await api.get('/chatbot/sessions/history/')
+      const sessions = response.data || []
+      setChatHistory(sessions.map(s => ({
+        session_id: s.id,
+        preview: s.messages?.length > 0 ? s.messages[0].content?.substring(0, 50) || 'Chat' : 'New chat',
+        messages: s.messages || [],
+        created_at: s.created_at,
+      })))
+      const currentSession = sessions.find(s => String(s.id) === String(sessionId))
+      if (currentSession) {
+        const history = (currentSession.messages || []).map(m => ({
+          role: m.role,
+          message: m.content,
+          timestamp: m.created_at,
+        }))
+        setMessages(history)
+      }
     } catch (err) {
       console.error('Failed to load chat history:', err)
     }
@@ -115,13 +112,20 @@ const Chatbot = () => {
       setIsTyping(true)
 
       try {
-        const response = await api.post('/chatbot/send-message/', {
+        const response = await api.post('/chatbot/sessions/send/', {
           session_id: sessionId,
           message,
         })
 
-        const botMessage = response.data
+        const botMessage = {
+          role: 'assistant',
+          message: response.data.reply || response.data.message || response.data.content,
+          timestamp: new Date().toISOString(),
+        }
         setMessages((prev) => [...prev, botMessage])
+        if (response.data.suggestions) {
+          setSuggestions(response.data.suggestions)
+        }
       } catch (err) {
         console.error('Failed to send message:', err)
         setMessages((prev) => [

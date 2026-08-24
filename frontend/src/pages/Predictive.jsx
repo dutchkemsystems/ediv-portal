@@ -82,7 +82,7 @@ function Predictive() {
 
   const fetchRiskSummary = useCallback(async () => {
     try {
-      const response = await api.get('/predictive/risk-summary/')
+      const response = await api.get('/predictive/risk-profiles/summary/')
       setRiskSummary(response.data)
     } catch (err) {
       // silent
@@ -119,7 +119,7 @@ function Predictive() {
       setAnalyzing(true)
       setError('')
       setSuccess('')
-      const response = await api.post('/predictive/analyze-all/')
+      const response = await api.post('/predictive/risk-profiles/analyze-all/')
       setSuccess(response.data?.message || 'Analysis completed successfully')
       await Promise.all([fetchRiskProfiles(), fetchRiskSummary(), fetchAlerts()])
     } catch (err) {
