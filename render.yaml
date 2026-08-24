@@ -5,10 +5,10 @@ services:
     plan: free
     buildCommand: |
       cd /opt/render/project/src && pip install --no-cache-dir -r requirements.txt && cd backend && python manage.py collectstatic --noinput
-    startCommand: cd /opt/render/project/src/backend && python manage.py migrate --noinput && python manage.py ensure_admin && (python manage.py seed_departments; python manage.py seed_schools; python manage.py seed_users; true) && gunicorn ediv_portal.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 180
+    startCommand: cd /opt/render/project/src/backend && python manage.py migrate --noinput && python manage.py ensure_admin && (python manage.py seed_departments & python manage.py seed_schools & python manage.py seed_users &) && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 180
     envVars:
       - key: DJANGO_SETTINGS_MODULE
-        value: ediv_portal.settings
+        value: config.settings.production
       - key: PYTHONPATH
         value: /opt/render/project/src/backend
       - key: DATABASE_URL
@@ -52,9 +52,22 @@ services:
       - key: STUDENT_PASSWORD
         sync: false
       - key: FRONTEND_URL
-        value: "https://ediv-portal.onrender.com"
+        value: "https://ediv-frontend-static.onrender.com"
     healthCheckPath: /health/
     autoDeploy: true
+
+  - type: static
+    name: ediv-frontend-static
+    plan: free
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    routes:
+      - type: rewrite
+        source: /**
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        value: "https://ediv-portal.onrender.com/api"
 
 cron:
   - name: wake-up
