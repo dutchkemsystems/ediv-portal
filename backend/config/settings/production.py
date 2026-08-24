@@ -1,3 +1,4 @@
+import logging
 import os
 
 import dj_database_url
@@ -71,4 +72,23 @@ GUNICORN_TIMEOUT = int(os.environ.get("GUNICORN_TIMEOUT", "180"))
 
 STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+# ---- Cloudinary file storage (production uploads) ----
+CLOUDINARY_URL = os.environ.get("CLOUDINARY_URL")
+if CLOUDINARY_URL:
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.cloudinary.CloudinaryStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+    # Limit upload sizes (10MB default, 50MB for large Access DB files)
+    FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+    DATA_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024   # 50MB
+else:
+    STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    logging.getLogger(__name__).warning(
+        "CLOUDINARY_URL not set — uploads use local filesystem and will be lost on restart."
+    )

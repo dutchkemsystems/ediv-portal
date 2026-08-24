@@ -53,6 +53,8 @@ services:
         sync: false
       - key: FRONTEND_URL
         value: "https://ediv-frontend-static.onrender.com"
+      - key: CLOUDINARY_URL
+        sync: false
     healthCheckPath: /health/
     autoDeploy: true
 
