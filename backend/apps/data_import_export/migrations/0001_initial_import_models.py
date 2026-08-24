@@ -28,6 +28,7 @@ class Migration(migrations.Migration):
                             ("PDF", "PDF"),
                             ("WORD", "Word"),
                             ("JSON", "JSON"),
+                            ("ACCESS", "Microsoft Access"),
                         ],
                         max_length=10,
                     ),

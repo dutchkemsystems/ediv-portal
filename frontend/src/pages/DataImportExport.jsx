@@ -20,6 +20,9 @@ import {
   IconButton,
   LinearProgress,
   Container,
+  FormControl,
+  InputLabel,
+  Select,
 } from '@mui/material'
 import {
   CloudUpload as UploadIcon,
@@ -27,6 +30,8 @@ import {
   CheckCircle as CheckIcon,
   Error as ErrorIcon,
   Refresh as RefreshIcon,
+  CameraAlt as OCRIcon,
+  ContentCopy as CopyIcon,
 } from '@mui/icons-material'
 import api from '../api/client'
 import StatCard from '../components/common/StatCard'
@@ -54,6 +59,14 @@ const FORMAT_OPTIONS = [
   { value: 'json', label: 'JSON' },
 ]
 
+const OCR_LANGUAGES = [
+  { value: 'eng', label: 'English' },
+  { value: 'fra', label: 'French' },
+  { value: 'ara', label: 'Arabic' },
+  { value: 'deu', label: 'German' },
+  { value: 'spa', label: 'Spanish' },
+]
+
 function DataImportExport() {
   const [tabValue, setTabValue] = useState(0)
   const [jobs, setJobs] = useState([])
@@ -65,6 +78,12 @@ function DataImportExport() {
   const [exportFormat, setExportFormat] = useState('csv')
   const [alert, setAlert] = useState(null)
   const [dragOver, setDragOver] = useState(false)
+  // OCR state
+  const [ocrFile, setOcrFile] = useState(null)
+  const [ocrLanguage, setOcrLanguage] = useState('eng')
+  const [ocrResult, setOcrResult] = useState(null)
+  const [ocrLoading, setOcrLoading] = useState(false)
+  const [ocrDragOver, setOcrDragOver] = useState(false)
 
   const fetchJobs = useCallback(async () => {
     setLoading(true)
@@ -138,11 +157,54 @@ function DataImportExport() {
     }
   }
 
+  const handleOCR = async () => {
+    if (!ocrFile) {
+      setAlert({ type: 'error', msg: 'Please select an image or PDF for OCR' })
+      return
+    }
+    setOcrLoading(true)
+    setOcrResult(null)
+    setAlert(null)
+    const formData = new FormData()
+    formData.append('file', ocrFile)
+    formData.append('language', ocrLanguage)
+    try {
+      const res = await api.post('/files/ocr/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      setOcrResult(res.data)
+      if (res.data.error) {
+        setAlert({ type: 'warning', msg: res.data.error })
+      } else {
+        setAlert({ type: 'success', msg: `OCR completed. ${res.data.word_count} words extracted with ${res.data.confidence}% confidence.` })
+      }
+    } catch (err) {
+      setAlert({ type: 'error', msg: err.response?.data?.error || 'OCR processing failed' })
+    } finally {
+      setOcrLoading(false)
+    }
+  }
+
+  const handleCopyOCRText = () => {
+    if (ocrResult?.text) {
+      navigator.clipboard.writeText(ocrResult.text)
+      setAlert({ type: 'success', msg: 'Text copied to clipboard' })
+    }
+  }
+
   const handleDrop = (e) => {
     e.preventDefault()
     setDragOver(false)
     if (e.dataTransfer.files.length > 0) {
       setSelectedFile(e.dataTransfer.files[0])
+    }
+  }
+
+  const handleOcrDrop = (e) => {
+    e.preventDefault()
+    setOcrDragOver(false)
+    if (e.dataTransfer.files.length > 0) {
+      setOcrFile(e.dataTransfer.files[0])
     }
   }
 
@@ -177,6 +239,7 @@ function DataImportExport() {
         <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tab label="Import Data" />
           <Tab label="Export Data" />
+          <Tab label="OCR Scanner" />
           <Tab label="Job History" />
         </Tabs>
 
@@ -184,6 +247,9 @@ function DataImportExport() {
           <Box sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
               Import Data from File
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Supported formats: CSV, Excel (.xlsx/.xls), PDF, Word (.docx), JSON, MS Access (.accdb/.mdb), Images (JPEG/PNG with OCR)
             </Typography>
             <Grid container spacing={2} alignItems="center">
               <Grid item xs={12} sm={4}>
@@ -221,7 +287,7 @@ function DataImportExport() {
                   <input
                     id="file-input"
                     type="file"
-                    accept=".csv,.xlsx,.xls,.pdf,.docx,.json,.accdb,.mdb"
+                    accept=".csv,.xlsx,.xls,.pdf,.docx,.json,.accdb,.mdb,.jpg,.jpeg,.png"
                     style={{ display: 'none' }}
                     onChange={(e) => setSelectedFile(e.target.files[0])}
                   />
@@ -229,7 +295,7 @@ function DataImportExport() {
                     <Typography variant="body2">{selectedFile.name}</Typography>
                   ) : (
                     <Typography variant="body2" color="text.secondary">
-                      Drag & drop file here, or click to browse (CSV, Excel, PDF, Word, JSON)
+                      Drag & drop file here, or click to browse
                     </Typography>
                   )}
                 </Box>
@@ -303,6 +369,106 @@ function DataImportExport() {
         )}
 
         {tabValue === 2 && (
+          <Box sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              OCR Document Scanner
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Extract text from images (JPEG, PNG) and scanned PDFs using Optical Character Recognition
+            </Typography>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} sm={3}>
+                <FormControl fullWidth>
+                  <InputLabel>OCR Language</InputLabel>
+                  <Select
+                    value={ocrLanguage}
+                    onChange={(e) => setOcrLanguage(e.target.value)}
+                    label="OCR Language"
+                  >
+                    {OCR_LANGUAGES.map((lang) => (
+                      <MenuItem key={lang.value} value={lang.value}>
+                        {lang.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={5}>
+                <Box
+                  onDragOver={(e) => { e.preventDefault(); setOcrDragOver(true) }}
+                  onDragLeave={() => setOcrDragOver(false)}
+                  onDrop={handleOcrDrop}
+                  sx={{
+                    border: '2px dashed',
+                    borderColor: ocrDragOver ? lagosRed : '#ccc',
+                    borderRadius: 1,
+                    p: 2,
+                    textAlign: 'center',
+                    bgcolor: ocrDragOver ? '#fff5f5' : 'background.paper',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                  onClick={() => document.getElementById('ocr-file-input').click()}
+                >
+                  <input
+                    id="ocr-file-input"
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.tiff,.tif,.bmp,.pdf"
+                    style={{ display: 'none' }}
+                    onChange={(e) => setOcrFile(e.target.files[0])}
+                  />
+                  {ocrFile ? (
+                    <Typography variant="body2">{ocrFile.name}</Typography>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      Drag & drop image or scanned PDF here
+                    </Typography>
+                  )}
+                </Box>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Button
+                  variant="contained"
+                  fullWidth
+                  startIcon={<OCRIcon />}
+                  onClick={handleOCR}
+                  disabled={!ocrFile || ocrLoading}
+                  sx={{ bgcolor: lagosRed, '&:hover': { bgcolor: '#a00d24' } }}
+                >
+                  {ocrLoading ? 'Scanning...' : 'Extract Text'}
+                </Button>
+              </Grid>
+            </Grid>
+            {ocrLoading && <LinearProgress sx={{ mt: 2 }} />}
+            {ocrResult && (
+              <Paper sx={{ mt: 3, p: 2, bgcolor: 'grey.50' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  <Typography variant="subtitle1" fontWeight="bold">
+                    Extracted Text
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    <Chip label={`${ocrResult.word_count} words`} size="small" />
+                    <Chip label={`${ocrResult.confidence}% confidence`} size="small" color={ocrResult.confidence > 80 ? 'success' : 'warning'} />
+                    <IconButton size="small" onClick={handleCopyOCRText} title="Copy text">
+                      <CopyIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                </Box>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={10}
+                  value={ocrResult.text || ''}
+                  InputProps={{ readOnly: true }}
+                  variant="outlined"
+                  size="small"
+                />
+              </Paper>
+            )}
+          </Box>
+        )}
+
+        {tabValue === 3 && (
           <Box sx={{ p: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
               <Typography variant="h6">Import Job History</Typography>

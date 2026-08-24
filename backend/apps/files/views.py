@@ -1229,3 +1229,90 @@ class ReindexSearchView(APIView):
 
         result = SearchService.reindex_all()
         return Response(result)
+
+
+class OCRView(APIView):
+    """OCR endpoint for extracting text from images and scanned documents."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        """
+        Extract text from uploaded file using OCR.
+
+        POST /api/files/ocr/
+        Body: multipart/form-data with 'file' field
+        Optional: 'language' (default: 'eng'), 'preprocess' (default: 'auto')
+        """
+        from .services.ocr_service import OCRService
+
+        if not OCRService.is_available():
+            return Response(
+                {"error": "OCR service not available. Install pytesseract and Tesseract-OCR."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        uploaded_file = request.FILES.get("file")
+        if not uploaded_file:
+            return Response({"error": "No file provided."}, status=status.HTTP_400_BAD_REQUEST)
+
+        language = request.data.get("language", "eng")
+        preprocess = request.data.get("preprocess", "auto")
+
+        # Determine file type
+        filename = uploaded_file.name.lower()
+        ext = filename.rsplit(".", 1)[-1] if "." in filename else ""
+
+        try:
+            if ext in ("jpg", "jpeg", "png", "tiff", "tif", "bmp", "gif", "webp"):
+                result = OCRService.extract_text_from_image_bytes(
+                    uploaded_file.read(),
+                    filename=uploaded_file.name,
+                    language=language,
+                    preprocess=preprocess,
+                )
+            elif ext == "pdf":
+                # Save to temp file for PDF processing
+                import tempfile
+
+                with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+                    for chunk in uploaded_file.chunks():
+                        tmp.write(chunk)
+                    tmp_path = tmp.name
+
+                try:
+                    result = OCRService.extract_text_from_pdf(
+                        tmp_path, language=language, preprocess=preprocess
+                    )
+                finally:
+                    os.unlink(tmp_path)
+            else:
+                return Response(
+                    {"error": f"Unsupported file type for OCR: .{ext}"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            return Response({
+                "text": result.get("text", ""),
+                "confidence": result.get("confidence", 0),
+                "word_count": result.get("word_count", 0),
+                "language": language,
+                "method": result.get("method", "ocr"),
+                "pages_processed": result.get("pages_processed", 1),
+                "error": result.get("error"),
+            })
+
+        except Exception as e:
+            return Response(
+                {"error": f"OCR processing failed: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def get(self, request):
+        """Get OCR service status and supported formats."""
+        from .services.ocr_service import OCRService
+
+        return Response({
+            "available": OCRService.is_available(),
+            "supported_formats": OCRService.get_supported_formats(),
+        })

@@ -18,6 +18,7 @@ from .views import (
     NotificationListView,
     NotificationReadView,
     OfflineQueueViewSet,
+    OCRView,
     OverdueFilesView,
     ReindexSearchView,
     WorkflowAdvanceView,
@@ -54,4 +55,5 @@ urlpatterns = [
     path("workflow/<int:pk>/detail/", WorkflowDetailView.as_view(), name="workflow-detail"),
     path("overdue/", OverdueFilesView.as_view(), name="overdue-files"),
     path("reindex/", ReindexSearchView.as_view(), name="reindex-search"),
+    path("ocr/", OCRView.as_view(), name="ocr-extract"),
 ]

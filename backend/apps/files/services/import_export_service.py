@@ -145,7 +145,12 @@ class ImportExportService:
                 uploaded_file.seek(0)
                 try:
                     img_data = ImportExportService._import_image(uploaded_file, file_format)
-                    description = f"Image: {img_data.get('width', 0)}x{img_data.get('height', 0)}"
+                    # Use OCR-extracted text if available, otherwise use metadata
+                    if img_data.get("text"):
+                        description = img_data["text"]
+                        metadata["ocr_confidence"] = img_data.get("ocr_confidence", 0)
+                    else:
+                        description = f"Image: {img_data.get('width', 0)}x{img_data.get('height', 0)}"
                 except ImportError as e:
                     errors.append(f"Missing library for image processing: {str(e)}")
 
@@ -325,7 +330,27 @@ class ImportExportService:
             text = ""
             for page in reader.pages:
                 text += page.extract_text() or ""
-            return {"text": text, "page_count": len(reader.pages)}
+
+            # If little or no text extracted, try OCR (scanned PDF)
+            if len(text.strip()) < 50:
+                try:
+                    from apps.files.services.ocr_service import OCRService
+
+                    if OCRService.is_available():
+                        uploaded_file.seek(0)
+                        ocr_result = OCRService.extract_text_from_pdf(uploaded_file)
+                        if ocr_result.get("text"):
+                            text = ocr_result["text"]
+                            return {
+                                "text": text,
+                                "page_count": ocr_result.get("pages_processed", len(reader.pages)),
+                                "extraction_method": "ocr",
+                                "ocr_confidence": ocr_result.get("confidence", 0),
+                            }
+                except Exception as e:
+                    logger.warning(f"OCR fallback for scanned PDF failed: {e}")
+
+            return {"text": text, "page_count": len(reader.pages), "extraction_method": "digital"}
 
         return {"text": "", "page_count": 0}
 
@@ -392,16 +417,36 @@ class ImportExportService:
 
     @staticmethod
     def _import_image(uploaded_file, file_format) -> dict:
-        """Import image file. Returns metadata."""
+        """Import image file with OCR text extraction."""
         from PIL import Image
 
         img = Image.open(uploaded_file)
-        return {
+        result = {
             "width": img.width,
             "height": img.height,
             "format": img.format,
             "mode": img.mode,
+            "text": "",
+            "ocr_confidence": 0,
         }
+
+        # Try OCR text extraction
+        try:
+            from apps.files.services.ocr_service import OCRService
+
+            if OCRService.is_available():
+                uploaded_file.seek(0)
+                ocr_result = OCRService.extract_text_from_image_bytes(
+                    uploaded_file.read(),
+                    filename=getattr(uploaded_file, "name", "image.jpg"),
+                )
+                if ocr_result.get("text"):
+                    result["text"] = ocr_result["text"]
+                    result["ocr_confidence"] = ocr_result.get("confidence", 0)
+        except Exception as e:
+            logger.warning(f"OCR extraction from image failed: {e}")
+
+        return result
 
     @staticmethod
     def export_files(*, file_ids, export_format, exported_by) -> ContentFile:
