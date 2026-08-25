@@ -294,7 +294,11 @@ class Command(BaseCommand):
         )
 
     def _upsert_user(self, data, is_staff=False, is_superuser=False):
-        """Create or update a user. Always resets password and key fields."""
+        """Create or update a user. Only sets password for new users.
+
+        Password changes should go through the API change_password endpoint
+        or the reset_password management command — NOT through re-seeding.
+        """
         user, created = User.objects.get_or_create(
             email=data["email"],
             defaults={
@@ -304,20 +308,30 @@ class Command(BaseCommand):
                 "phone_number": data.get("phone_number", ""),
                 "is_staff": is_staff,
                 "is_superuser": is_superuser,
+                "is_active": True,
             },
         )
-        if not created:
+        if created:
+            user.set_password(data["password"])
+            user.save()
+        else:
+            changed = False
             for field in ("first_name", "last_name", "role", "phone_number"):
                 expected = data.get(field, "")
                 if expected and getattr(user, field, "") != expected:
                     setattr(user, field, expected)
+                    changed = True
             if user.is_staff != is_staff:
                 user.is_staff = is_staff
+                changed = True
             if user.is_superuser != is_superuser:
                 user.is_superuser = is_superuser
-        user.set_password(data["password"])
-        user.is_active = True
-        user.save()
+                changed = True
+            if not user.is_active:
+                user.is_active = True
+                changed = True
+            if changed:
+                user.save()
         return user, created
 
     def handle(self, *args, **options):

@@ -7,16 +7,34 @@ User = get_user_model()
 
 
 def _upsert(email, password, **kwargs):
+    """Create or update a user. Only sets password for new users.
+
+    Password changes should go through the API change_password endpoint
+    or the reset_password management command — NOT through re-seeding.
+    """
     user, created = User.objects.get_or_create(
         email=email,
-        defaults=kwargs,
+        defaults={**kwargs, "is_active": True},
     )
-    user.set_password(password)
-    user.is_active = True
-    for k, v in kwargs.items():
-        if k not in ("first_name", "last_name", "role", "phone_number"):
-            setattr(user, k, v)
-    user.save()
+    if created:
+        user.set_password(password)
+        user.save()
+    else:
+        changed = False
+        for k, v in kwargs.items():
+            if k not in ("first_name", "last_name", "role", "phone_number"):
+                if getattr(user, k, None) != v:
+                    setattr(user, k, v)
+                    changed = True
+        for k in ("first_name", "last_name", "role", "phone_number"):
+            if k in kwargs and getattr(user, k, "") != kwargs[k]:
+                setattr(user, k, kwargs[k])
+                changed = True
+        if not user.is_active:
+            user.is_active = True
+            changed = True
+        if changed:
+            user.save()
     return user, created
 
 
