@@ -39,10 +39,10 @@ def send_mail_assignment_notification(assignment_id):
     try:
         from apps.mail_workflow.models import MailAssignment
         assignment = MailAssignment.objects.select_related(
-            "incoming_mail", "assigned_to", "assigned_by"
+            "mail", "assigned_to", "assigned_by"
         ).get(id=assignment_id)
 
-        mail = assignment.incoming_mail
+        mail = assignment.mail
         user = assignment.assigned_to
 
         context = {
@@ -83,12 +83,12 @@ def send_mail_status_change_notification(mail_id, old_status, new_status, change
 
         # Notify all people involved in the mail workflow
         recipients = set()
-        if mail.created_by and mail.created_by.email:
-            recipients.add(mail.created_by.email)
+        if mail.received_by and mail.received_by.email:
+            recipients.add(mail.received_by.email)
 
         # Notify assigned staff
         from apps.mail_workflow.models import MailAssignment
-        assignments = MailAssignment.objects.filter(incoming_mail=mail).select_related("assigned_to")
+        assignments = MailAssignment.objects.filter(mail=mail).select_related("assigned_to")
         for a in assignments:
             if a.assigned_to and a.assigned_to.email:
                 recipients.add(a.assigned_to.email)
@@ -156,18 +156,18 @@ def check_overdue_mails():
         from apps.mail_workflow.models import MailAssignment
 
         overdue = MailAssignment.objects.filter(
-            deadline__lt=timezone.now(),
-            status__in=["PENDING", "IN_PROGRESS"],
-        ).select_related("incoming_mail", "assigned_to")
+            deadline__lt=timezone.now().date(),
+            status__in=["ASSIGNED", "IN_PROGRESS"],
+        ).select_related("mail", "assigned_to")
 
         for assignment in overdue:
             if assignment.assigned_to and assignment.assigned_to.email:
                 context = {
                     "user_name": assignment.assigned_to.get_full_name() or assignment.assigned_to.email,
                     "title": "Overdue Mail Reminder",
-                    "message": f"Mail {assignment.incoming_mail.mail_number} is overdue. Please take action immediately.",
-                    "mail_number": assignment.incoming_mail.mail_number,
-                    "mail_subject": assignment.incoming_mail.subject,
+                    "message": f"Mail {assignment.mail.mail_number} is overdue. Please take action immediately.",
+                    "mail_number": assignment.mail.mail_number,
+                    "mail_subject": assignment.mail.subject,
                     "deadline": assignment.deadline.strftime("%d %B %Y %H:%M"),
                     "action_url": f"{getattr(settings, 'FRONTEND_URL', 'https://ediv-portal.onrender.com')}/mail-workflow",
                     "year": timezone.now().year,
@@ -176,7 +176,7 @@ def check_overdue_mails():
                 html_content = render_to_string("emails/mail_notification.html", context)
 
                 send_email_notification.delay(
-                    subject=f"OVERDUE: Mail {assignment.incoming_mail.mail_number}",
+                    subject=f"OVERDUE: Mail {assignment.mail.mail_number}",
                     message=context["message"],
                     recipient_list=[assignment.assigned_to.email],
                     html_message=html_content,

@@ -34,4 +34,4 @@ RUN python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py ensure_admin && python manage.py seed_departments && python manage.py seed_schools && python manage.py seed_users ; gunicorn ediv_portal.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 120"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py ensure_admin && python manage.py seed_departments && python manage.py seed_schools && python manage.py seed_users && gunicorn ediv_portal.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 120"]

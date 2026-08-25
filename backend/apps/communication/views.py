@@ -2,6 +2,8 @@ from django.db import models
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, permissions, viewsets
 
+from config.permissions import IsAdminOrTGOrDeptHead
+
 from .models import Circular, Message, UserNotification
 from .serializers import CircularSerializer, MessageListSerializer, MessageSerializer, UserNotificationSerializer
 
@@ -23,6 +25,9 @@ class MessageViewSet(viewsets.ModelViewSet):
         user = self.request.user
         return Message.objects.filter(models.Q(sender=user) | models.Q(recipients=user)).distinct()
 
+    def perform_create(self, serializer):
+        serializer.save(sender=self.request.user)
+
 
 class UserNotificationViewSet(viewsets.ModelViewSet):
     queryset = UserNotification.objects.select_related("user").all()
@@ -39,7 +44,7 @@ class UserNotificationViewSet(viewsets.ModelViewSet):
 class CircularViewSet(viewsets.ModelViewSet):
     queryset = Circular.objects.select_related("issued_by").all()
     serializer_class = CircularSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrTGOrDeptHead]
     filterset_fields = ["priority", "is_active"]
     search_fields = ["title", "reference_number"]
     ordering_fields = ["effective_date", "created_at"]

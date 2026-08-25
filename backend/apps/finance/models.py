@@ -132,16 +132,26 @@ class Payment(models.Model):
         return f"{self.student_fee.student.user.get_full_name()} - {self.amount}"
 
     def save(self, *args, **kwargs):
-        from django.db.models import F
+        from django.db import transaction
         super().save(*args, **kwargs)
-        total_paid = (
-            self.student_fee.payments.filter(is_confirmed=True).aggregate(
-                total=models.Sum("amount")
-            )["total"]
-            or 0
-        )
-        StudentFee.objects.filter(pk=self.student_fee_id).update(amount_paid=total_paid)
-        self.student_fee.refresh_from_db()
+        # Atomic aggregation to prevent race conditions on concurrent payments
+        with transaction.atomic():
+            sf = StudentFee.objects.select_for_update().get(pk=self.student_fee_id)
+            total_paid = (
+                sf.payments.filter(is_confirmed=True).aggregate(
+                    total=models.Sum("amount")
+                )["total"]
+                or 0
+            )
+            sf.amount_paid = total_paid
+            sf.balance = sf.amount_due - sf.amount_paid
+            if sf.balance <= 0:
+                sf.status = "COMPLETED"
+            elif sf.amount_paid > 0:
+                sf.status = "PARTIAL"
+            else:
+                sf.status = "PENDING"
+            sf.save(update_fields=["amount_paid", "balance", "status", "updated_at"])
 
 
 class BudgetCategory(models.TextChoices):

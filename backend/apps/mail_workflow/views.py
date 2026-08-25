@@ -6,6 +6,7 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from config.permissions import IsMailStaff, CanApproveOutgoingMail
 from config.security import AuditLogger
 
 from .models import (
@@ -40,8 +41,34 @@ from .serializers import (
 User = get_user_model()
 
 
+def _next_sequence(prefix, year):
+    """Atomic sequence generation for reference numbers."""
+    from django.db.models import Max, Q
+    import re
+
+    pattern = f"{prefix}/{year}/%"
+    existing = (
+        IncomingMail.objects.filter(mail_number__startswith=f"{prefix}/{year}/")
+        .values_list("mail_number", flat=True)
+        .order_by("-mail_number")
+        .first()
+    )
+    if not existing:
+        existing = (
+            OutgoingMail.objects.filter(mail_number__startswith=f"{prefix}/{year}/")
+            .values_list("mail_number", flat=True)
+            .order_by("-mail_number")
+            .first()
+        )
+    if existing:
+        match = re.search(r"/(\d{4})$", existing)
+        if match:
+            return int(match.group(1)) + 1
+    return 1
+
+
 class IncomingMailViewSet(viewsets.ModelViewSet):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsMailStaff]
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -64,7 +91,7 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         year = datetime.date.today().year
-        seq = IncomingMail.objects.filter(mail_number__startswith=f"EDIV/MAIL/{year}").count() + 1
+        seq = _next_sequence("EDIV/MAIL", year)
         mail_number = f"EDIV/MAIL/{year}/{seq:04d}"
         mail_obj = serializer.save(mail_number=mail_number, received_by=self.request.user)
 
@@ -162,6 +189,14 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
             resource_id=mail_obj.id,
             description=f"Mail {mail_obj.mail_number} assigned to {assignee.get_full_name()}",
         )
+
+        # Wire email notification (Critical #2 fix)
+        try:
+            from apps.communication.tasks import send_mail_assignment_notification
+            send_mail_assignment_notification.delay(assignment.id)
+        except Exception:
+            pass  # Non-blocking: don't fail the request if Celery is unavailable
+
         return Response(MailAssignmentSerializer(assignment).data)
 
     @action(detail=True, methods=["post"], url_path="forward")
@@ -194,12 +229,24 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
             resource_id=mail_obj.id,
             description=f"Mail {mail_obj.mail_number} forwarded to {to_person.get_full_name()}",
         )
+
+        # Wire email notification for forward
+        try:
+            from apps.communication.tasks import send_mail_status_change_notification
+            send_mail_status_change_notification.delay(
+                mail_obj.id, mail_obj.status, mail_obj.status, request.user.id
+            )
+        except Exception:
+            pass
+
         return Response(MailMovementSerializer(movement).data)
 
     @action(detail=True, methods=["post"], url_path="respond")
     def respond_to_mail(self, request, pk=None):
         mail_obj = self.get_object()
         response_notes = request.data.get("response_notes", "")
+
+        old_status = mail_obj.status
 
         assignment = (
             MailAssignment.objects.filter(mail=mail_obj, assigned_to=request.user).order_by("-assignment_date").first()
@@ -221,6 +268,16 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
             resource_id=mail_obj.id,
             description=f"Mail {mail_obj.mail_number} response submitted",
         )
+
+        # Wire email notification for status change
+        try:
+            from apps.communication.tasks import send_mail_status_change_notification
+            send_mail_status_change_notification.delay(
+                mail_obj.id, old_status, "RESPONDED", request.user.id
+            )
+        except Exception:
+            pass
+
         return Response({"message": f"Mail {mail_obj.mail_number} response recorded."})
 
     @action(detail=True, methods=["post"], url_path="dispatch")
@@ -230,6 +287,7 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
             return Response(
                 {"error": f"Cannot dispatch mail in {mail_obj.status} status."}, status=status.HTTP_400_BAD_REQUEST
             )
+        old_status = mail_obj.status
         mail_obj.status = "DISPATCHED"
         mail_obj.save(update_fields=["status", "updated_at"])
 
@@ -240,11 +298,22 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
             resource_id=mail_obj.id,
             description=f"Mail {mail_obj.mail_number} dispatched",
         )
+
+        # Wire email notification for dispatch
+        try:
+            from apps.communication.tasks import send_mail_status_change_notification
+            send_mail_status_change_notification.delay(
+                mail_obj.id, old_status, "DISPATCHED", request.user.id
+            )
+        except Exception:
+            pass
+
         return Response({"message": f"Mail {mail_obj.mail_number} dispatched."})
 
     @action(detail=True, methods=["post"], url_path="archive")
     def archive_mail(self, request, pk=None):
         mail_obj = self.get_object()
+        old_status = mail_obj.status
         mail_obj.status = "ARCHIVED"
         mail_obj.save(update_fields=["status", "updated_at"])
 
@@ -260,7 +329,7 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
 
 class MailAssignmentViewSet(viewsets.ModelViewSet):
     serializer_class = MailAssignmentSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsMailStaff]
     filterset_fields = ["mail", "assigned_to", "status"]
 
     def get_queryset(self):
@@ -353,7 +422,7 @@ class MailCorrespondenceMovementViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class OutgoingMailViewSet(viewsets.ModelViewSet):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsMailStaff]
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -372,7 +441,7 @@ class OutgoingMailViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         year = datetime.date.today().year
-        seq = OutgoingMail.objects.filter(mail_number__startswith=f"EDIV/OUT/{year}").count() + 1
+        seq = _next_sequence("EDIV/OUT", year)
         mail_number = f"EDIV/OUT/{year}/{seq:04d}"
         mail_obj = serializer.save(mail_number=mail_number, created_by=self.request.user)
 
@@ -402,12 +471,9 @@ class OutgoingMailViewSet(viewsets.ModelViewSet):
         )
         return Response({"message": f"Mail {mail_obj.mail_number} submitted for approval."})
 
-    @action(detail=True, methods=["post"], url_path="approve")
+    @action(detail=True, methods=["post"], url_path="approve", permission_classes=[CanApproveOutgoingMail])
     def approve_mail(self, request, pk=None):
         mail_obj = self.get_object()
-        if request.user.role not in ("SYSADMIN", "TG_PS"):
-            return Response({"error": "Only Admin/TG/PS can approve."}, status=status.HTTP_403_FORBIDDEN)
-
         comments = request.data.get("comments", "")
         OutgoingMailApproval.objects.create(
             outgoing_mail=mail_obj,
@@ -428,12 +494,9 @@ class OutgoingMailViewSet(viewsets.ModelViewSet):
         )
         return Response({"message": f"Mail {mail_obj.mail_number} approved."})
 
-    @action(detail=True, methods=["post"], url_path="reject")
+    @action(detail=True, methods=["post"], url_path="reject", permission_classes=[CanApproveOutgoingMail])
     def reject_mail(self, request, pk=None):
         mail_obj = self.get_object()
-        if request.user.role not in ("SYSADMIN", "TG_PS"):
-            return Response({"error": "Only Admin/TG/PS can reject."}, status=status.HTTP_403_FORBIDDEN)
-
         comments = request.data.get("comments", "")
         OutgoingMailApproval.objects.create(
             outgoing_mail=mail_obj,
@@ -496,7 +559,7 @@ class OutgoingMailViewSet(viewsets.ModelViewSet):
 
 
 class SchoolHQCorrespondenceViewSet(viewsets.ModelViewSet):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsMailStaff]
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -517,7 +580,7 @@ class SchoolHQCorrespondenceViewSet(viewsets.ModelViewSet):
         year = datetime.date.today().year
         direction = serializer.validated_data.get("direction", "SCHOOL_TO_HQ")
         prefix = "S2H" if direction == "SCHOOL_TO_HQ" else "H2S"
-        seq = SchoolHQCorrespondence.objects.filter(reference_number__startswith=f"EDIV/{prefix}/{year}").count() + 1
+        seq = _next_sequence(f"EDIV/{prefix}", year)
         reference_number = f"EDIV/{prefix}/{year}/{seq:04d}"
         correspondence = serializer.save(reference_number=reference_number, sender=self.request.user)
 
@@ -586,7 +649,7 @@ class SchoolHQCorrespondenceViewSet(viewsets.ModelViewSet):
 
 
 class MailCorrespondenceViewSet(viewsets.ModelViewSet):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsMailStaff]
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -614,10 +677,7 @@ class MailCorrespondenceViewSet(viewsets.ModelViewSet):
             "HQ_SCHOOL": "H2S",
             "DEPARTMENT": "DEPT",
         }.get(corr_type, "INT")
-        seq = (
-            MailCorrespondence.objects.filter(reference_number__startswith=f"EDIV/CORR/{type_prefix}/{year}").count()
-            + 1
-        )
+        seq = _next_sequence(f"EDIV/CORR/{type_prefix}", year)
         reference_number = f"EDIV/CORR/{type_prefix}/{year}/{seq:04d}"
         correspondence = serializer.save(reference_number=reference_number, sender=self.request.user)
 

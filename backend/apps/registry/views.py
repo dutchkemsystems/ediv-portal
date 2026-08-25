@@ -1,4 +1,5 @@
 from datetime import date
+import re
 
 from django.contrib.auth import get_user_model
 from django.db import models as db_models
@@ -8,6 +9,7 @@ from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from config.permissions import IsAdminOrTGOrDeptHead
 from config.security import AuditLogger
 
 from .models import Correspondence, Document, DocumentVersion, Filing, MemoApproval, MemoCirculation, MemoWorkflow
@@ -27,7 +29,8 @@ User = get_user_model()
 
 class DocumentViewSet(viewsets.ModelViewSet):
     queryset = Document.objects.select_related("created_by", "department").all()
-    permission_classes = [permissions.IsAuthenticated]
+    from config.permissions import IsAdminOrTGOrDeptHead
+    permission_classes = [IsAdminOrTGOrDeptHead]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["document_type", "status", "classification", "department"]
     search_fields = ["reference_number", "title", "content"]
@@ -45,8 +48,20 @@ class DocumentViewSet(viewsets.ModelViewSet):
         if serializer.validated_data.get("department"):
             dept_code = serializer.validated_data["department"].code[:3]
 
-        seq = Document.objects.filter(reference_number__startswith=f"EDIV/{year}/{dept_code}").count() + 1
-        reference_number = f"EDIV/{year}/{dept_code}/{seq:04d}"
+        # Atomic sequence generation to prevent race conditions
+        prefix = f"EDIV/{year}/{dept_code}"
+        existing = (
+            Document.objects.filter(reference_number__startswith=prefix)
+            .order_by("-reference_number")
+            .values_list("reference_number", flat=True)
+            .first()
+        )
+        seq = 1
+        if existing:
+            match = re.search(r"/(\d{4})$", existing)
+            if match:
+                seq = int(match.group(1)) + 1
+        reference_number = f"{prefix}/{seq:04d}"
 
         doc = serializer.save(
             reference_number=reference_number,

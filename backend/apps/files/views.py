@@ -39,7 +39,8 @@ User = get_user_model()
 
 class FileViewSet(viewsets.ModelViewSet):
     queryset = File.objects.select_related("created_by", "current_holder", "department", "school").all()
-    permission_classes = [permissions.IsAuthenticated]
+    from config.permissions import IsAdminOrTGOrDeptHead
+    permission_classes = [IsAdminOrTGOrDeptHead]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["file_type", "status", "classification", "priority", "department", "school"]
     search_fields = ["file_number", "title", "description"]
@@ -60,6 +61,7 @@ class FileViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         import datetime
+        import re
 
         year = datetime.date.today().year
         dept_code = "GEN"
@@ -67,8 +69,21 @@ class FileViewSet(viewsets.ModelViewSet):
             dept_code = serializer.validated_data["department"].code[:3]
         elif serializer.validated_data.get("school"):
             dept_code = serializer.validated_data["school"].code[:3]
-        seq = File.objects.filter(file_number__startswith=f"EDIV-{year}-{dept_code}").count() + 1
-        file_number = f"EDIV-{year}-{dept_code}-{seq:04d}"
+
+        # Atomic sequence generation to prevent race conditions
+        prefix = f"EDIV-{year}-{dept_code}"
+        existing = (
+            File.objects.filter(file_number__startswith=prefix)
+            .order_by("-file_number")
+            .values_list("file_number", flat=True)
+            .first()
+        )
+        seq = 1
+        if existing:
+            match = re.search(r"-(\d{4})$", existing)
+            if match:
+                seq = int(match.group(1)) + 1
+        file_number = f"{prefix}-{seq:04d}"
 
         file_obj = serializer.save(
             file_number=file_number,

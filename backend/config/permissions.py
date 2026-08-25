@@ -1,0 +1,110 @@
+"""
+Role-Based Access Control (RBAC) permissions for Education District IV Portal.
+
+Enforces role-based access at the API view level.
+"""
+from rest_framework import permissions
+
+
+# Role constants
+SYSADMIN = "SYSADMIN"
+TG_PS = "TG_PS"
+DEPARTMENT_HEADS = ("HR", "FIN", "AUDIT", "QA", "CC", "EMIS", "PLAN", "PROC", "PA", "SA", "FRENCH", "REG", "SPD")
+SCHOOL_MANAGEMENT = ("PRI", "VP")
+SCHOOL_STAFF = ("TCH", "SA_OFF", "REG_OFF")
+END_USERS = ("STD", "PAR")
+
+ALL_ADMIN_ROLES = (SYSADMIN, TG_PS) + DEPARTMENT_HEADS
+ALL_SCHOOL_ROLES = SCHOOL_MANAGEMENT + SCHOOL_STAFF
+
+
+class IsAdminUser(permissions.BasePermission):
+    """Only SYSADMIN can access."""
+
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and request.user.role == SYSADMIN
+
+
+class IsAdminOrTG(permissions.BasePermission):
+    """SYSADMIN or TG_PS can access."""
+
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and request.user.role in (SYSADMIN, TG_PS)
+
+
+class IsAdminOrTGOrDeptHead(permissions.BasePermission):
+    """SYSADMIN, TG_PS, or department heads can access."""
+
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and request.user.role in ALL_ADMIN_ROLES
+
+
+class IsStaffReadOnly(permissions.BasePermission):
+    """Read-only for all authenticated, write only for admin/management."""
+
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return request.user and request.user.is_authenticated
+        return request.user and request.user.is_authenticated and request.user.role in (
+            SYSADMIN, TG_PS
+        ) + DEPARTMENT_HEADS + SCHOOL_MANAGEMENT
+
+
+class IsFinanceOrAdmin(permissions.BasePermission):
+    """Finance operations: only SYSADMIN, TG_PS, FIN."""
+
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and request.user.role in (
+            SYSADMIN, TG_PS, "FIN"
+        )
+
+
+class IsHROrAdmin(permissions.BasePermission):
+    """HR operations: only SYSADMIN, TG_PS, HR."""
+
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and request.user.role in (
+            SYSADMIN, TG_PS, "HR"
+        )
+
+
+class IsAcademicStaff(permissions.BasePermission):
+    """Academic operations: admin, dept heads, school management, teachers."""
+
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return request.user and request.user.is_authenticated
+        return request.user and request.user.is_authenticated and request.user.role in (
+            SYSADMIN, TG_PS
+        ) + DEPARTMENT_HEADS + ALL_SCHOOL_ROLES
+
+
+class IsSchoolStaffOrAdmin(permissions.BasePermission):
+    """School-level operations: admin, school management, school staff."""
+
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return request.user and request.user.is_authenticated
+        return request.user and request.user.is_authenticated and request.user.role in (
+            SYSADMIN, TG_PS
+        ) + ALL_SCHOOL_ROLES
+
+
+class IsMailStaff(permissions.BasePermission):
+    """Mail operations: admin, dept heads, registry, school management."""
+
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return request.user and request.user.is_authenticated
+        return request.user and request.user.is_authenticated and request.user.role in (
+            SYSADMIN, TG_PS
+        ) + DEPARTMENT_HEADS + SCHOOL_MANAGEMENT + ("REG_OFF",)
+
+
+class CanApproveOutgoingMail(permissions.BasePermission):
+    """Only SYSADMIN or TG_PS can approve/reject outgoing mail."""
+
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and request.user.role in (
+            SYSADMIN, TG_PS
+        )

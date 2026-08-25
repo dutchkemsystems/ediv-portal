@@ -1,5 +1,7 @@
 from rest_framework import permissions, viewsets
 
+from config.permissions import IsFinanceOrAdmin, IsAdminOrTGOrDeptHead
+
 from .models import Budget, FeeStructure, Grant, Payment, StudentFee
 from .serializers import (
     BudgetSerializer,
@@ -14,7 +16,7 @@ from .serializers import (
 class FeeStructureViewSet(viewsets.ModelViewSet):
     queryset = FeeStructure.objects.select_related("school").all()
     serializer_class = FeeStructureSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsFinanceOrAdmin]
     filterset_fields = ["school", "fee_type", "academic_year", "term", "is_active"]
     search_fields = ["name", "school__name"]
     ordering_fields = ["amount", "created_at"]
@@ -23,7 +25,7 @@ class FeeStructureViewSet(viewsets.ModelViewSet):
 class StudentFeeViewSet(viewsets.ModelViewSet):
     queryset = StudentFee.objects.select_related("student__user", "fee_structure").all()
     serializer_class = StudentFeeSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsFinanceOrAdmin]
     filterset_fields = ["student", "fee_structure", "status"]
     search_fields = ["student__user__first_name", "student__user__last_name"]
     ordering_fields = ["amount_due", "created_at"]
@@ -34,7 +36,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
         "student_fee__student__user", "student_fee__fee_structure", "received_by", "confirmed_by"
     ).all()
     serializer_class = PaymentSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsFinanceOrAdmin]
     filterset_fields = ["payment_method", "is_confirmed", "payment_date"]
     search_fields = ["reference_number", "student_fee__student__user__first_name"]
     ordering_fields = ["payment_date", "amount", "created_at"]
@@ -43,7 +45,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
 class BudgetViewSet(viewsets.ModelViewSet):
     queryset = Budget.objects.select_related("school", "approved_by").all()
     serializer_class = BudgetSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsFinanceOrAdmin]
     filterset_fields = ["school", "category", "academic_year", "term", "is_approved"]
     search_fields = ["description", "school__name"]
     ordering_fields = ["allocated_amount", "created_at"]
@@ -51,7 +53,7 @@ class BudgetViewSet(viewsets.ModelViewSet):
 
 class GrantViewSet(viewsets.ModelViewSet):
     queryset = Grant.objects.select_related("school", "department", "approved_by", "created_by").all()
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsFinanceOrAdmin]
     filterset_fields = ["status", "school", "department", "academic_year", "is_active"]
     search_fields = ["name", "funding_source", "purpose"]
     ordering_fields = ["amount", "created_at", "status"]
