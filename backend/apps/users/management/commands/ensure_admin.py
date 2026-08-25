@@ -45,6 +45,7 @@ class Command(BaseCommand):
         admin_pw = os.environ.get("ADMIN_PASSWORD") or "Admin@12345678"
         tg_pw = os.environ.get("TG_PASSWORD") or "TutorGen@12345"
         head_pw = os.environ.get("HEAD_OFFICE_PASSWORD") or "HeadOffice@123"
+        school_staff_pw = os.environ.get("SCHOOL_STAFF_PASSWORD") or "SchoolStaff@12345"
 
         essential_users = [
             ("admin@ediv.gov.ng", admin_pw, "System", "Administrator", "SYSADMIN", "+2348010000001", True, True),

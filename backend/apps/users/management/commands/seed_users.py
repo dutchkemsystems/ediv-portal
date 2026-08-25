@@ -10,7 +10,7 @@ DEFAULT_PASSWORDS = {
     "ADMIN_PASSWORD": "Admin@12345678",
     "TG_PASSWORD": "TutorGen@12345",
     "HEAD_OFFICE_PASSWORD": "HeadOffice@123",
-    "SCHOOL_STAFF_PASSWORD": "SchoolStaff@123",
+    "SCHOOL_STAFF_PASSWORD": "SchoolStaff@12345",
     "TEACHER_PASSWORD": "Teacher@12345",
     "STUDENT_PASSWORD": "Student@12345",
 }
