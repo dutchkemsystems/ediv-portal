@@ -89,6 +89,9 @@ if CLOUDINARY_URL:
     DATA_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024   # 50MB
 else:
     STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    # Set upload size limits even without Cloudinary (Django defaults are only 2.5MB)
+    FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+    DATA_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024   # 50MB
     logging.getLogger(__name__).warning(
         "CLOUDINARY_URL not set — uploads use local filesystem and will be lost on restart."
     )

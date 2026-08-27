@@ -2,6 +2,8 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from config.permissions import IsAcademicStaff
+
 from .models import GeneratedReportCard, ReportCardShareLog, ReportCardTemplate
 from .serializers import (
     GeneratedReportCardSerializer,
@@ -20,7 +22,7 @@ class ReportCardTemplateViewSet(viewsets.ModelViewSet):
 
 class GeneratedReportCardViewSet(viewsets.ModelViewSet):
     serializer_class = GeneratedReportCardSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAcademicStaff]
 
     def get_queryset(self):
         if self.request.user.is_staff:

@@ -7,6 +7,8 @@ from .views import (
     ClassViewSet,
     ExamResultViewSet,
     ExamViewSet,
+    GradeBoundaryViewSet,
+    GradingScaleViewSet,
     ReportCardViewSet,
     StudentEnrollmentViewSet,
     SubjectViewSet,
@@ -21,6 +23,8 @@ router.register("exam-results", ExamResultViewSet)
 router.register("report-cards", ReportCardViewSet)
 router.register("calendar", AcademicCalendarViewSet)
 router.register("enrollments", StudentEnrollmentViewSet)
+router.register("grading-scales", GradingScaleViewSet)
+router.register("grade-boundaries", GradeBoundaryViewSet)
 
 urlpatterns = [
     path("", include(router.urls)),

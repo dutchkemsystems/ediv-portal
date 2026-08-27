@@ -2,7 +2,7 @@ from django.db import models
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, permissions, viewsets
 
-from config.permissions import IsAdminOrTGOrDeptHead
+from config.permissions import IsAdminOrTGOrDeptHead, IsStaffReadOnly
 
 from .models import Circular, Message, UserNotification
 from .serializers import CircularSerializer, MessageListSerializer, MessageSerializer, UserNotificationSerializer
@@ -10,7 +10,7 @@ from .serializers import CircularSerializer, MessageListSerializer, MessageSeria
 
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.select_related("sender").prefetch_related("recipients").all()
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsStaffReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["message_type", "priority", "is_read"]
     search_fields = ["subject", "body", "sender__first_name", "sender__last_name"]

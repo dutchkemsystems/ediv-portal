@@ -119,6 +119,59 @@ def send_mail_status_change_notification(mail_id, old_status, new_status, change
 
 
 @shared_task
+def send_outgoing_mail_notification(outgoing_mail_id, event_type, changed_by_id):
+    """Send email notifications for outgoing mail workflow events."""
+    try:
+        from apps.mail_workflow.models import OutgoingMail, OutgoingMailApproval
+        from apps.users.models import User
+
+        mail = OutgoingMail.objects.get(id=outgoing_mail_id)
+        changed_by = User.objects.get(id=changed_by_id)
+
+        recipients = set()
+
+        # Notify the mail creator about approvals/rejections/dispatches
+        if mail.created_by and mail.created_by.email:
+            recipients.add(mail.created_by.email)
+
+        # Notify approvers when submitted
+        if event_type == "SUBMITTED":
+            approvers = User.objects.filter(
+                role__in=["SYSADMIN", "TG_PS"], is_active=True
+            ).exclude(id=changed_by_id)
+            for u in approvers:
+                if u.email:
+                    recipients.add(u.email)
+
+        # Remove the person who triggered the event
+        recipients.discard(changed_by.email)
+
+        if not recipients:
+            return
+
+        context = {
+            "user_name": "Team Member",
+            "title": f"Outgoing Mail {event_type}",
+            "message": f"Outgoing mail {mail.mail_number} has been {event_type.lower()} by {changed_by.get_full_name()}.",
+            "mail_number": mail.mail_number,
+            "mail_subject": mail.subject,
+            "action_url": f"{getattr(settings, 'FRONTEND_URL', 'https://ediv-portal.onrender.com')}/mail-workflow",
+            "year": timezone.now().year,
+        }
+
+        html_content = render_to_string("emails/mail_notification.html", context)
+
+        send_email_notification.delay(
+            subject=f"Outgoing Mail {event_type}: {mail.mail_number}",
+            message=context["message"],
+            recipient_list=list(recipients),
+            html_message=html_content,
+        )
+    except Exception as exc:
+        logger.error(f"Outgoing mail notification failed: {exc}")
+
+
+@shared_task
 def send_file_movement_notification(file_id, to_holder_id, action, remarks=""):
     """Send email when a file is moved to a new holder."""
     try:

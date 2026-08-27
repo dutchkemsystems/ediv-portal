@@ -118,7 +118,7 @@ DEPARTMENT_HEADS = [
         "email": "spd.head@ediv.gov.ng",
         "first_name": "Ibrahim",
         "last_name": "Abubakar",
-        "role": "SA",
+        "role": "SPD",
         "password": HEAD_OFFICE_PASSWORD,
         "phone_number": "+2348010000009",
         "department_code": "SPD",
@@ -131,6 +131,7 @@ DEPARTMENT_HEADS = [
         "password": HEAD_OFFICE_PASSWORD,
         "phone_number": "+2348010000010",
         "department_code": "SSS",
+        "note": "SSS shares QA role - no dedicated SSS role in system",
     },
     {
         "email": "french.head@ediv.gov.ng",

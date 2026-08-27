@@ -23,6 +23,8 @@ services:
         value: "ediv-portal.onrender.com,localhost,127.0.0.1"
       - key: REDIS_URL
         sync: false
+      - key: CELERY_BROKER_URL
+        sync: false
       - key: KORA_PAY_PUBLIC_KEY
         sync: false
       - key: KORA_PAY_SECRET_KEY
@@ -57,6 +59,44 @@ services:
         sync: false
     healthCheckPath: /health/
     autoDeploy: true
+
+  # Celery worker — runs periodic tasks (overdue mail checks, file escalations, weekly digest)
+  # Requires REDIS_URL to be set. If REDIS_URL is not set, tasks run synchronously in the web process.
+  - type: worker
+    name: ediv-celery-worker
+    runtime: python
+    plan: free
+    buildCommand: cd /opt/render/project/src && pip install --no-cache-dir -r requirements.txt
+    startCommand: cd /opt/render/project/src/backend && celery -A config worker -l info --concurrency=2
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.production
+      - key: PYTHONPATH
+        value: /opt/render/project/src/backend
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ediv-db
+          property: connectionString
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: REDIS_URL
+        sync: false
+      - key: CELERY_BROKER_URL
+        sync: false
+      - key: EMAIL_HOST
+        value: "smtp.gmail.com"
+      - key: EMAIL_PORT
+        value: "587"
+      - key: EMAIL_USE_TLS
+        value: "True"
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        value: "EDIV Portal <noreply@ediv.gov.ng>"
+      - key: CLOUDINARY_URL
+        sync: false
 
   - type: static
     name: ediv-frontend-static

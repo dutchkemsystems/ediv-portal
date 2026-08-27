@@ -1,5 +1,7 @@
 from rest_framework import permissions, viewsets
 
+from config.permissions import IsAdminOrTGOrDeptHead
+
 from .models import NotificationLog, NotificationTemplate
 from .serializers import NotificationLogSerializer, NotificationTemplateSerializer
 
@@ -7,7 +9,7 @@ from .serializers import NotificationLogSerializer, NotificationTemplateSerializ
 class NotificationTemplateViewSet(viewsets.ModelViewSet):
     queryset = NotificationTemplate.objects.all()
     serializer_class = NotificationTemplateSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrTGOrDeptHead]
     filterset_fields = ["channel", "is_active"]
     search_fields = ["name", "subject"]
 

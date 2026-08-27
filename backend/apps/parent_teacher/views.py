@@ -1,5 +1,7 @@
 from rest_framework import permissions, viewsets
 
+from config.permissions import IsSchoolStaffOrAdmin
+
 from .models import ParentTeacherMessage, PTAMeeting, StudentReportShare
 from .serializers import (
     ParentTeacherMessageListSerializer,
@@ -13,7 +15,7 @@ from .serializers import (
 
 class PTAMeetingViewSet(viewsets.ModelViewSet):
     queryset = PTAMeeting.objects.select_related("school", "organized_by").all()
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsSchoolStaffOrAdmin]
     filterset_fields = ["school", "meeting_type", "status", "scheduled_date"]
     search_fields = ["title", "description", "venue"]
     ordering_fields = ["scheduled_date", "created_at"]

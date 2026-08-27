@@ -6,6 +6,8 @@ from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 
+from config.permissions import IsAdminOrTGOrDeptHead
+
 from .exporters import ExcelExporter, JPEGExporter, PDFExporter, WordExporter
 from .importers import CSVImporter, DataValidator, ExcelImporter, PDFImporter, WordImporter
 from .models import Dashboard, Report, Widget
@@ -15,7 +17,7 @@ from .serializers import DashboardListSerializer, DashboardSerializer, ReportSer
 class ReportViewSet(viewsets.ModelViewSet):
     queryset = Report.objects.select_related("generated_by").all()
     serializer_class = ReportSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrTGOrDeptHead]
     filterset_fields = ["report_type", "is_scheduled"]
     search_fields = ["title", "description"]
     ordering_fields = ["created_at", "last_generated"]

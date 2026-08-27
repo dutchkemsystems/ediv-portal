@@ -1,6 +1,8 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, permissions, viewsets
 
+from config.permissions import IsSchoolStaffOrAdmin
+
 from .models import Student, StudentMedicalRecord, StudentParent
 from .serializers import (
     StudentListSerializer,
@@ -12,7 +14,7 @@ from .serializers import (
 
 class StudentViewSet(viewsets.ModelViewSet):
     queryset = Student.objects.select_related("user", "school", "class_name").all()
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsSchoolStaffOrAdmin]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["school", "class_name", "status", "gender", "is_boarding"]
     search_fields = ["user__first_name", "user__last_name", "admission_number"]
@@ -27,14 +29,15 @@ class StudentViewSet(viewsets.ModelViewSet):
 class StudentParentViewSet(viewsets.ModelViewSet):
     queryset = StudentParent.objects.select_related("student__user", "user").all()
     serializer_class = StudentParentSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsSchoolStaffOrAdmin]
     filterset_fields = ["student", "relation", "is_primary"]
 
 
 class StudentMedicalRecordViewSet(viewsets.ModelViewSet):
     queryset = StudentMedicalRecord.objects.select_related("student__user").all()
     serializer_class = StudentMedicalRecordSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    from config.permissions import IsAdminOrTGOrDeptHead
+    permission_classes = [IsAdminOrTGOrDeptHead]
     filterset_fields = ["student"]
     search_fields = ["condition", "student__user__first_name", "student__user__last_name"]
     ordering_fields = ["record_date", "created_at"]

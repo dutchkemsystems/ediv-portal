@@ -1,6 +1,8 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, permissions, viewsets
 
+from config.permissions import IsAcademicStaff
+
 from .models import Course, CourseModule, Enrollment, Lesson, Quiz, QuizAttempt, QuizQuestion
 from .serializers import (
     CourseListSerializer,
@@ -16,7 +18,7 @@ from .serializers import (
 
 class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.select_related("school", "subject", "instructor").all()
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAcademicStaff]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["school", "subject", "status"]
     search_fields = ["title", "code", "description"]

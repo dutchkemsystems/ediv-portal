@@ -1,13 +1,15 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, permissions, viewsets
 
+from config.permissions import IsAdminOrTGOrDeptHead
+
 from .models import Asset, AssetMaintenance, AssetTransfer
 from .serializers import AssetListSerializer, AssetMaintenanceSerializer, AssetSerializer, AssetTransferSerializer
 
 
 class AssetViewSet(viewsets.ModelViewSet):
     queryset = Asset.objects.select_related("school", "assigned_to").all()
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrTGOrDeptHead]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["school", "category", "condition", "is_active"]
     search_fields = ["asset_code", "name", "description"]

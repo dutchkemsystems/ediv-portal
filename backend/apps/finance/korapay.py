@@ -57,7 +57,7 @@ class KoraPayService:
         if not signature_header:
             return False
 
-        expected = hmac.new(
+        expected = hmac.HMAC(
             self.webhook_secret.encode("utf-8"),
             payload_body,
             hashlib.sha512,

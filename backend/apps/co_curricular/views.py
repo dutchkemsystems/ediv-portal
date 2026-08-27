@@ -1,6 +1,8 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, permissions, viewsets
 
+from config.permissions import IsAcademicStaff
+
 from .models import Activity, ActivityParticipant, Competition, CompetitionEntry
 from .serializers import (
     ActivityListSerializer,
@@ -14,7 +16,7 @@ from .serializers import (
 
 class ActivityViewSet(viewsets.ModelViewSet):
     queryset = Activity.objects.select_related("school", "coordinator").all()
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAcademicStaff]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["school", "activity_type", "is_active"]
     search_fields = ["name", "description"]

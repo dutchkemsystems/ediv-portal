@@ -145,7 +145,7 @@ class ExamResult(models.Model):
     exam = models.ForeignKey(Exam, on_delete=models.CASCADE, related_name="results")
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="exam_results")
     marks_obtained = models.DecimalField(max_digits=5, decimal_places=2)
-    grade = models.CharField(max_length=5)
+    grade = models.CharField(max_length=5, blank=True)
     remark = models.CharField(max_length=100, blank=True)
     entered_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="entered_results"
@@ -164,6 +164,45 @@ class ExamResult(models.Model):
 
     def __str__(self):
         return f"{self.student.user.get_full_name()} - {self.subject.name} ({self.marks_obtained})"
+
+    def save(self, *args, **kwargs):
+        # Auto-grade if grade is empty and marks are provided
+        if not self.grade and self.marks_obtained is not None and self.exam:
+            self.grade = self._compute_grade()
+        super().save(*args, **kwargs)
+
+    def _compute_grade(self):
+        """Compute grade from the school's active grading scale."""
+        from decimal import Decimal
+
+        if not self.exam or self.exam.total_marks <= 0:
+            return ""
+        percentage = (self.marks_obtained / Decimal(str(self.exam.total_marks))) * Decimal("100")
+
+        # Find active grading scale for the school
+        scale = GradingScale.objects.filter(
+            school=self.exam.school,
+            academic_year=self.exam.academic_year,
+            is_active=True,
+        ).first()
+        if not scale:
+            # Fallback: standard Nigerian grading
+            if percentage >= 75:
+                return "A"
+            elif percentage >= 65:
+                return "B"
+            elif percentage >= 50:
+                return "C"
+            elif percentage >= 40:
+                return "D"
+            else:
+                return "F"
+
+        boundary = scale.boundaries.filter(
+            min_percentage__lte=percentage,
+            max_percentage__gte=percentage,
+        ).first()
+        return boundary.grade if boundary else "F"
 
     @property
     def percentage(self):
@@ -284,3 +323,50 @@ class StudentEnrollment(models.Model):
 
     def __str__(self):
         return f"{self.student.user.get_full_name()} - {self.class_obj.name}"
+
+
+class GradingScale(models.Model):
+    """School-level grading scale that defines grade boundaries."""
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="grading_scales")
+    name = models.CharField(max_length=100)
+    academic_year = models.CharField(max_length=9)
+    term = models.CharField(
+        max_length=20,
+        choices=[
+            ("FIRST", "First Term"),
+            ("SECOND", "Second Term"),
+            ("THIRD", "Third Term"),
+            ("ALL", "All Terms"),
+        ],
+        default="ALL",
+    )
+    is_default = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ["school", "name", "academic_year"]
+        ordering = ["school", "-academic_year"]
+
+    def __str__(self):
+        return f"{self.school.name} - {self.name} ({self.academic_year})"
+
+
+class GradeBoundary(models.Model):
+    """Individual grade boundary within a grading scale."""
+    grading_scale = models.ForeignKey(GradingScale, on_delete=models.CASCADE, related_name="boundaries")
+    grade = models.CharField(max_length=5)
+    min_percentage = models.DecimalField(max_digits=5, decimal_places=2)
+    max_percentage = models.DecimalField(max_digits=5, decimal_places=2)
+    remark = models.CharField(max_length=50, blank=True)
+
+    class Meta:
+        unique_together = ["grading_scale", "grade"]
+        ordering = ["grading_scale", "-min_percentage"]
+
+    def __str__(self):
+        return f"{self.grading_scale.name}: {self.grade} ({self.min_percentage}%-{self.max_percentage}%)"
+
+    def matches_percentage(self, percentage):
+        return self.min_percentage <= percentage <= self.max_percentage

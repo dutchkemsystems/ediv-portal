@@ -1,6 +1,17 @@
 from rest_framework import serializers
 
-from .models import AcademicCalendar, Class, ClassSubject, Exam, ExamResult, ReportCard, StudentEnrollment, Subject
+from .models import (
+    AcademicCalendar,
+    Class,
+    ClassSubject,
+    Exam,
+    ExamResult,
+    GradeBoundary,
+    GradingScale,
+    ReportCard,
+    StudentEnrollment,
+    Subject,
+)
 
 
 class SubjectSerializer(serializers.ModelSerializer):
@@ -241,3 +252,55 @@ class StudentEnrollmentSerializer(serializers.ModelSerializer):
 
     def get_school_name(self, obj):
         return obj.class_obj.school.name
+
+
+class GradeBoundarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GradeBoundary
+        fields = ["id", "grade", "min_percentage", "max_percentage", "remark"]
+        read_only_fields = ["id"]
+
+
+class GradingScaleSerializer(serializers.ModelSerializer):
+    boundaries = GradeBoundarySerializer(many=True, read_only=True)
+    school_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = GradingScale
+        fields = [
+            "id",
+            "school",
+            "school_name",
+            "name",
+            "academic_year",
+            "term",
+            "is_default",
+            "is_active",
+            "boundaries",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+    def get_school_name(self, obj):
+        return obj.school.name
+
+
+class BulkMarkEntrySerializer(serializers.Serializer):
+    """Serializer for bulk mark entry."""
+    exam_id = serializers.IntegerField()
+    subject_id = serializers.IntegerField()
+    marks = serializers.ListField(
+        child=serializers.DictField(
+            child=serializers.Field()
+        ),
+        help_text="List of {student_id: int, marks_obtained: decimal, remark: str}"
+    )
+
+    def validate_marks(self, value):
+        if not value:
+            raise serializers.ValidationError("Marks list cannot be empty.")
+        for entry in value:
+            if "student_id" not in entry or "marks_obtained" not in entry:
+                raise serializers.ValidationError("Each entry must have student_id and marks_obtained.")
+        return value

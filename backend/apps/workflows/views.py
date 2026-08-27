@@ -5,6 +5,8 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from config.permissions import IsAdminOrTGOrDeptHead
+
 from .models import Task, Workflow, WorkflowInstance, WorkflowStep
 from .serializers import TaskSerializer, WorkflowInstanceSerializer, WorkflowSerializer, WorkflowStepSerializer
 from .services.workflow_service import WorkflowService
@@ -13,7 +15,7 @@ from .services.workflow_service import WorkflowService
 class WorkflowViewSet(viewsets.ModelViewSet):
     queryset = Workflow.objects.select_related("created_by").all()
     serializer_class = WorkflowSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrTGOrDeptHead]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["status", "trigger_type", "is_template"]
     search_fields = ["name", "description"]

@@ -1,6 +1,8 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, permissions, viewsets
 
+from config.permissions import IsAdminOrTGOrDeptHead
+
 from .models import Inspection, InspectionAction, InspectionChecklist
 from .serializers import (
     InspectionActionSerializer,
@@ -12,7 +14,7 @@ from .serializers import (
 
 class InspectionViewSet(viewsets.ModelViewSet):
     queryset = Inspection.objects.select_related("school", "lead_inspector").prefetch_related("team_members").all()
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrTGOrDeptHead]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["school", "inspection_type", "status"]
     search_fields = ["title", "school__name"]

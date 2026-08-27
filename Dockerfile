@@ -1,37 +1,47 @@
-FROM python:3.11-slim
+# Stage 1: Build frontend
+FROM node:18-alpine AS frontend-builder
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
 
-ENV PYTHONDONTWRITEBYTECODE=1
+# Stage 2: Python backend
+FROM python:3.11-slim AS backend
+
+ENV PYTHONDICTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV DJANGO_SETTINGS_MODULE=ediv_portal.settings
 ENV PYTHONPATH=/app/backend
-
-# Build-time secret so collectstatic can run; runtime env must override with a real key.
-ARG DJANGO_SECRET_KEY=django-insecure-build-time-only
-ENV DJANGO_SECRET_KEY=$DJANGO_SECRET_KEY
 
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies (cached layer)
+COPY backend/requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# Copy entire project
-COPY . .
+# Copy backend code
+COPY backend/ /app/backend/
 
-# Install and build frontend if present
-RUN if [ -d "frontend" ]; then \
-    cd frontend && npm install && npm run build && cd ..; \
-    fi
+# Copy built frontend into backend static serve path
+RUN mkdir -p /app/backend/staticfiles/frontend
+COPY --from=frontend-builder /app/frontend/dist/ /app/backend/staticfiles/frontend/
 
 # Collect static files
-RUN python manage.py collectstatic --noinput
+RUN DJANGO_SETTINGS_MODULE=config.settings.production \
+    DJANGO_SECRET_KEY=build-time-only \
+    python backend/manage.py collectstatic --noinput --no-default-ignore
+
+# Create non-root user
+RUN adduser --disabled-password --gecos '' appuser && \
+    chown -R appuser:appuser /app
+USER appuser
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py ensure_admin && python manage.py seed_departments && python manage.py seed_schools && python manage.py seed_users && gunicorn ediv_portal.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 120"]
+CMD ["sh", "-c", "cd /app/backend && python manage.py migrate --noinput && python manage.py ensure_admin && python manage.py seed_departments && python manage.py seed_schools && python manage.py seed_users && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 120"]

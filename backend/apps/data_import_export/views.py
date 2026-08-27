@@ -16,6 +16,7 @@ from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
+from config.permissions import IsAdminOrTGOrDeptHead
 from config.security import AuditLogger
 
 from .access_mapping import ACCESS_TABLE_MAPPINGS, find_mapping_for_table
@@ -178,7 +179,7 @@ def _has_admin_permission(user, database):
 
 
 class ImportJobViewSet(viewsets.ModelViewSet):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrTGOrDeptHead]
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -582,7 +583,7 @@ class ImportJobViewSet(viewsets.ModelViewSet):
 
 
 class AccessDatabaseViewSet(viewsets.ModelViewSet):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrTGOrDeptHead]
     pagination_class = None
 
     def get_serializer_class(self):

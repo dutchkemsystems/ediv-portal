@@ -1,4 +1,5 @@
 import datetime
+import logging
 
 from django.contrib.auth import get_user_model
 from django.db import models as db_models
@@ -8,6 +9,8 @@ from rest_framework.response import Response
 
 from config.permissions import IsMailStaff, CanApproveOutgoingMail
 from config.security import AuditLogger
+
+logger = logging.getLogger(__name__)
 
 from .models import (
     IncomingMail,
@@ -42,29 +45,36 @@ User = get_user_model()
 
 
 def _next_sequence(prefix, year):
-    """Atomic sequence generation for reference numbers."""
-    from django.db.models import Max, Q
+    """Atomic sequence generation for reference numbers using DB-level locking."""
     import re
 
-    pattern = f"{prefix}/{year}/%"
-    existing = (
-        IncomingMail.objects.filter(mail_number__startswith=f"{prefix}/{year}/")
-        .values_list("mail_number", flat=True)
-        .order_by("-mail_number")
-        .first()
-    )
-    if not existing:
+    from django.db import connection, transaction
+
+    with transaction.atomic():
+        # Use PostgreSQL advisory lock for atomic sequence generation
+        lock_key = hash(f"{prefix}/{year}") % (2**31)
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT pg_advisory_xact_lock(%s)", [lock_key])
+
+        # Check across both IncomingMail and OutgoingMail for existing sequences
         existing = (
-            OutgoingMail.objects.filter(mail_number__startswith=f"{prefix}/{year}/")
+            IncomingMail.objects.filter(mail_number__startswith=f"{prefix}/{year}/")
             .values_list("mail_number", flat=True)
             .order_by("-mail_number")
             .first()
         )
-    if existing:
-        match = re.search(r"/(\d{4})$", existing)
-        if match:
-            return int(match.group(1)) + 1
-    return 1
+        if not existing:
+            existing = (
+                OutgoingMail.objects.filter(mail_number__startswith=f"{prefix}/{year}/")
+                .values_list("mail_number", flat=True)
+                .order_by("-mail_number")
+                .first()
+            )
+        if existing:
+            match = re.search(r"/(\d{4})$", existing)
+            if match:
+                return int(match.group(1)) + 1
+        return 1
 
 
 class IncomingMailViewSet(viewsets.ModelViewSet):
@@ -194,8 +204,8 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
         try:
             from apps.communication.tasks import send_mail_assignment_notification
             send_mail_assignment_notification.delay(assignment.id)
-        except Exception:
-            pass  # Non-blocking: don't fail the request if Celery is unavailable
+        except Exception as e:
+            logger.warning("Failed to send mail assignment notification for %s: %s", assignment.id, e)
 
         return Response(MailAssignmentSerializer(assignment).data)
 
@@ -236,8 +246,8 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
             send_mail_status_change_notification.delay(
                 mail_obj.id, mail_obj.status, mail_obj.status, request.user.id
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Failed to send mail forward notification for %s: %s", mail_obj.mail_number, e)
 
         return Response(MailMovementSerializer(movement).data)
 
@@ -275,8 +285,8 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
             send_mail_status_change_notification.delay(
                 mail_obj.id, old_status, "RESPONDED", request.user.id
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Failed to send mail respond notification for %s: %s", mail_obj.mail_number, e)
 
         return Response({"message": f"Mail {mail_obj.mail_number} response recorded."})
 
@@ -305,8 +315,8 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
             send_mail_status_change_notification.delay(
                 mail_obj.id, old_status, "DISPATCHED", request.user.id
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Failed to send mail dispatch notification for %s: %s", mail_obj.mail_number, e)
 
         return Response({"message": f"Mail {mail_obj.mail_number} dispatched."})
 
@@ -469,6 +479,14 @@ class OutgoingMailViewSet(viewsets.ModelViewSet):
             resource_id=mail_obj.id,
             description=f"Outgoing mail {mail_obj.mail_number} submitted for approval",
         )
+
+        # Wire notification: notify approvers
+        try:
+            from apps.communication.tasks import send_outgoing_mail_notification
+            send_outgoing_mail_notification.delay(mail_obj.id, "SUBMITTED", request.user.id)
+        except Exception as e:
+            logger.warning("Failed to send outgoing mail submit notification for %s: %s", mail_obj.mail_number, e)
+
         return Response({"message": f"Mail {mail_obj.mail_number} submitted for approval."})
 
     @action(detail=True, methods=["post"], url_path="approve", permission_classes=[CanApproveOutgoingMail])
@@ -492,6 +510,14 @@ class OutgoingMailViewSet(viewsets.ModelViewSet):
             resource_id=mail_obj.id,
             description=f"Outgoing mail {mail_obj.mail_number} approved",
         )
+
+        # Wire notification: notify creator of approval
+        try:
+            from apps.communication.tasks import send_outgoing_mail_notification
+            send_outgoing_mail_notification.delay(mail_obj.id, "APPROVED", request.user.id)
+        except Exception as e:
+            logger.warning("Failed to send outgoing mail approve notification for %s: %s", mail_obj.mail_number, e)
+
         return Response({"message": f"Mail {mail_obj.mail_number} approved."})
 
     @action(detail=True, methods=["post"], url_path="reject", permission_classes=[CanApproveOutgoingMail])
@@ -515,6 +541,14 @@ class OutgoingMailViewSet(viewsets.ModelViewSet):
             resource_id=mail_obj.id,
             description=f"Outgoing mail {mail_obj.mail_number} rejected",
         )
+
+        # Wire notification: notify creator of rejection
+        try:
+            from apps.communication.tasks import send_outgoing_mail_notification
+            send_outgoing_mail_notification.delay(mail_obj.id, "REJECTED", request.user.id)
+        except Exception as e:
+            logger.warning("Failed to send outgoing mail reject notification for %s: %s", mail_obj.mail_number, e)
+
         return Response({"message": f"Mail {mail_obj.mail_number} rejected."})
 
     @action(detail=True, methods=["post"], url_path="dispatch")
@@ -534,6 +568,14 @@ class OutgoingMailViewSet(viewsets.ModelViewSet):
             resource_id=mail_obj.id,
             description=f"Outgoing mail {mail_obj.mail_number} dispatched",
         )
+
+        # Wire notification: notify creator of dispatch
+        try:
+            from apps.communication.tasks import send_outgoing_mail_notification
+            send_outgoing_mail_notification.delay(mail_obj.id, "DISPATCHED", request.user.id)
+        except Exception as e:
+            logger.warning("Failed to send outgoing mail dispatch notification for %s: %s", mail_obj.mail_number, e)
+
         return Response({"message": f"Mail {mail_obj.mail_number} dispatched."})
 
     @action(detail=True, methods=["post"], url_path="deliver")
@@ -555,6 +597,14 @@ class OutgoingMailViewSet(viewsets.ModelViewSet):
             resource_id=mail_obj.id,
             description=f"Outgoing mail {mail_obj.mail_number} delivered",
         )
+
+        # Wire notification: notify creator of delivery
+        try:
+            from apps.communication.tasks import send_outgoing_mail_notification
+            send_outgoing_mail_notification.delay(mail_obj.id, "DELIVERED", request.user.id)
+        except Exception as e:
+            logger.warning("Failed to send outgoing mail deliver notification for %s: %s", mail_obj.mail_number, e)
+
         return Response({"message": f"Mail {mail_obj.mail_number} marked as delivered."})
 
 

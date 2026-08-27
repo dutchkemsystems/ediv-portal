@@ -1,16 +1,21 @@
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, permissions, viewsets
+from rest_framework import filters, permissions, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from config.permissions import IsAcademicStaff
 
-from .models import AcademicCalendar, Class, ClassSubject, Exam, ExamResult, ReportCard, StudentEnrollment, Subject
+from .models import AcademicCalendar, Class, ClassSubject, Exam, ExamResult, GradeBoundary, GradingScale, ReportCard, StudentEnrollment, Subject
 from .serializers import (
     AcademicCalendarSerializer,
+    BulkMarkEntrySerializer,
     ClassListSerializer,
     ClassSerializer,
     ClassSubjectSerializer,
     ExamResultSerializer,
     ExamSerializer,
+    GradeBoundarySerializer,
+    GradingScaleSerializer,
     ReportCardSerializer,
     StudentEnrollmentSerializer,
     SubjectSerializer,
@@ -64,6 +69,53 @@ class ExamResultViewSet(viewsets.ModelViewSet):
     search_fields = ["student__user__first_name", "student__user__last_name"]
     ordering_fields = ["marks_obtained", "entered_at"]
 
+    @action(detail=False, methods=["post"], url_path="bulk-enter")
+    def bulk_enter_marks(self, request):
+        """Bulk enter marks for multiple students at once."""
+        serializer = BulkMarkEntrySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        from decimal import Decimal
+        from .models import Exam as ExamModel, Subject as SubjectModel
+
+        try:
+            exam = ExamModel.objects.get(id=serializer.validated_data["exam_id"])
+        except ExamModel.DoesNotExist:
+            return Response({"error": "Exam not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            subject = SubjectModel.objects.get(id=serializer.validated_data["subject_id"])
+        except SubjectModel.DoesNotExist:
+            return Response({"error": "Subject not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        results = []
+        for entry in serializer.validated_data["marks"]:
+            student_id = entry["student_id"]
+            marks = Decimal(str(entry["marks_obtained"]))
+            remark = entry.get("remark", "")
+
+            result, created = ExamResult.objects.update_or_create(
+                student_id=student_id,
+                exam=exam,
+                subject=subject,
+                defaults={
+                    "marks_obtained": marks,
+                    "remark": remark,
+                    "entered_by": request.user,
+                },
+            )
+            results.append({
+                "student_id": student_id,
+                "result_id": result.id,
+                "grade": result.grade,
+                "created": created,
+            })
+
+        return Response({
+            "message": f"Processed {len(results)} results.",
+            "results": results,
+        })
+
 
 class ReportCardViewSet(viewsets.ModelViewSet):
     queryset = ReportCard.objects.select_related("student__user").all()
@@ -92,3 +144,19 @@ class StudentEnrollmentViewSet(viewsets.ModelViewSet):
     filterset_fields = ["class_obj", "academic_year", "term", "status"]
     search_fields = ["student__user__first_name", "student__user__last_name"]
     ordering_fields = ["enrollment_date", "created_at"]
+
+
+class GradingScaleViewSet(viewsets.ModelViewSet):
+    queryset = GradingScale.objects.select_related("school").prefetch_related("boundaries").all()
+    serializer_class = GradingScaleSerializer
+    permission_classes = [IsAcademicStaff]
+    filterset_fields = ["school", "academic_year", "term", "is_active"]
+    search_fields = ["name", "school__name"]
+    ordering_fields = ["academic_year", "created_at"]
+
+
+class GradeBoundaryViewSet(viewsets.ModelViewSet):
+    queryset = GradeBoundary.objects.select_related("grading_scale").all()
+    serializer_class = GradeBoundarySerializer
+    permission_classes = [IsAcademicStaff]
+    filterset_fields = ["grading_scale", "grade"]

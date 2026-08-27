@@ -49,19 +49,25 @@ class DocumentViewSet(viewsets.ModelViewSet):
             dept_code = serializer.validated_data["department"].code[:3]
 
         # Atomic sequence generation to prevent race conditions
+        from django.db import connection, transaction
+
         prefix = f"EDIV/{year}/{dept_code}"
-        existing = (
-            Document.objects.filter(reference_number__startswith=prefix)
-            .order_by("-reference_number")
-            .values_list("reference_number", flat=True)
-            .first()
-        )
-        seq = 1
-        if existing:
-            match = re.search(r"/(\d{4})$", existing)
-            if match:
-                seq = int(match.group(1)) + 1
-        reference_number = f"{prefix}/{seq:04d}"
+        lock_key = hash(prefix) % (2**31)
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT pg_advisory_xact_lock(%s)", [lock_key])
+            existing = (
+                Document.objects.filter(reference_number__startswith=prefix)
+                .order_by("-reference_number")
+                .values_list("reference_number", flat=True)
+                .first()
+            )
+            seq = 1
+            if existing:
+                match = re.search(r"/(\d{4})$", existing)
+                if match:
+                    seq = int(match.group(1)) + 1
+            reference_number = f"{prefix}/{seq:04d}"
 
         doc = serializer.save(
             reference_number=reference_number,
@@ -136,7 +142,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
 class CorrespondenceViewSet(viewsets.ModelViewSet):
     queryset = Correspondence.objects.select_related("document").all()
     serializer_class = CorrespondenceSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrTGOrDeptHead]
     filterset_fields = ["direction", "is_urgent", "requires_response"]
     search_fields = ["subject", "sender", "recipient"]
     ordering_fields = ["date_received", "created_at"]
@@ -145,7 +151,7 @@ class CorrespondenceViewSet(viewsets.ModelViewSet):
 class FilingViewSet(viewsets.ModelViewSet):
     queryset = Filing.objects.select_related("document", "filed_by").all()
     serializer_class = FilingSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrTGOrDeptHead]
     filterset_fields = ["document"]
     search_fields = ["file_code", "box_number"]
     ordering_fields = ["filed_date"]
@@ -157,7 +163,7 @@ class FilingViewSet(viewsets.ModelViewSet):
 class DocumentVersionViewSet(viewsets.ModelViewSet):
     queryset = DocumentVersion.objects.select_related("document", "created_by").all()
     serializer_class = DocumentVersionSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrTGOrDeptHead]
     filterset_fields = ["document", "version_number"]
     ordering_fields = ["version_number", "created_at"]
 

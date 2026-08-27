@@ -1,5 +1,7 @@
 from rest_framework import permissions, viewsets
 
+from config.permissions import IsAdminOrTGOrDeptHead
+
 from .models import FrenchClub, FrenchClubMember, FrenchCompetition, FrenchProgram
 from .serializers import (
     FrenchClubMemberSerializer,
@@ -12,7 +14,7 @@ from .serializers import (
 class FrenchProgramViewSet(viewsets.ModelViewSet):
     queryset = FrenchProgram.objects.all()
     serializer_class = FrenchProgramSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrTGOrDeptHead]
     filterset_fields = ["level", "is_active"]
     search_fields = ["name", "description"]
 

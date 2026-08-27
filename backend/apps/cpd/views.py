@@ -1,5 +1,7 @@
 from rest_framework import permissions, viewsets
 
+from config.permissions import IsHROrAdmin
+
 from .models import CPDActivity, CPDEnrollment, CPDRecord
 from .serializers import CPDActivitySerializer, CPDEnrollmentSerializer, CPDRecordSerializer
 
@@ -7,7 +9,7 @@ from .serializers import CPDActivitySerializer, CPDEnrollmentSerializer, CPDReco
 class CPDActivityViewSet(viewsets.ModelViewSet):
     queryset = CPDActivity.objects.all()
     serializer_class = CPDActivitySerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsHROrAdmin]
     filterset_fields = ["training_type", "status", "is_mandatory"]
     search_fields = ["title", "description", "provider"]
     ordering_fields = ["start_date", "created_at"]

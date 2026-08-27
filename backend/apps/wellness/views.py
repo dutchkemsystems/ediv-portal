@@ -1,5 +1,7 @@
 from rest_framework import permissions, viewsets
 
+from config.permissions import IsSchoolStaffOrAdmin
+
 from .models import CounselingSession, WellnessCheckIn, WellnessResource
 from .serializers import CounselingSessionSerializer, WellnessCheckInSerializer, WellnessResourceSerializer
 
@@ -7,7 +9,7 @@ from .serializers import CounselingSessionSerializer, WellnessCheckInSerializer,
 class CounselingSessionViewSet(viewsets.ModelViewSet):
     queryset = CounselingSession.objects.select_related("student__user", "counselor").all()
     serializer_class = CounselingSessionSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsSchoolStaffOrAdmin]
     filterset_fields = ["student", "counselor", "counseling_type", "session_date"]
     search_fields = ["student__user__first_name", "student__user__last_name"]
     ordering_fields = ["session_date", "created_at"]

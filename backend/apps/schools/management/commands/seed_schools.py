@@ -3,7 +3,7 @@ from datetime import date
 
 from django.core.management.base import BaseCommand
 
-from apps.schools.models import School
+from apps.schools.models import School, SchoolAcademicYear
 
 # School data: realistic Lagos school names across Apapa, Mainland, Surulere
 
@@ -12,7 +12,7 @@ APAPA_SCHOOLS = [
     ("Apapa GRA Secondary School", "APU002", "SENIOR", "APAPA"),
     ("Apapa Junior Secondary School", "APU003", "JUNIOR", "APAPA"),
     ("Apapa Senior Secondary School", "APU004", "SENIOR", "APAPA"),
-    ("Apapa Senior Junior Secondary School", "APU005", "JUNIOR", "APAPA"),
+    ("Apapa Junior Secondary School II", "APU005", "JUNIOR", "APAPA"),
     ("Apapa-Ajeromi Ifelodun Junior Secondary School", "APU006", "JUNIOR", "APAPA"),
     ("Apapa-Ajeromi Ifelodun Senior Secondary School", "APU007", "SENIOR", "APAPA"),
     ("Babatunde Oluwatoki Memorial Secondary School", "APU008", "SENIOR", "APAPA"),
@@ -55,8 +55,8 @@ MAINLAND_SCHOOLS = [
     ("Jibowu Senior Secondary School", "MLA012", "SENIOR", "MAINLAND"),
     ("Lawanson Junior Secondary School", "MLA013", "JUNIOR", "MAINLAND"),
     ("Lawanson Senior Secondary School", "MLA014", "SENIOR", "MAINLAND"),
-    ("Lagos Island Junior Secondary School", "MLA015", "JUNIOR", "MAINLAND"),
-    ("Lagos Island Senior Secondary School", "MLA016", "SENIOR", "MAINLAND"),
+    ("Ebute Metta Junior Secondary School II", "MLA015", "JUNIOR", "MAINLAND"),
+    ("Ebute Metta Senior Secondary School II", "MLA016", "SENIOR", "MAINLAND"),
     ("Maroko Junior Secondary School", "MLA017", "JUNIOR", "MAINLAND"),
     ("Maroko Senior Secondary School", "MLA018", "SENIOR", "MAINLAND"),
     ("Oyingbo Junior Secondary School", "MLA019", "JUNIOR", "MAINLAND"),
@@ -76,6 +76,7 @@ MAINLAND_SCHOOLS = [
     ("Tejuosho Junior Secondary School", "MLA033", "JUNIOR", "MAINLAND"),
     ("Tejuosho Senior Secondary School", "MLA034", "SENIOR", "MAINLAND"),
     ("Ojuelegba Junior Secondary School", "MLA035", "JUNIOR", "MAINLAND"),
+    ("Ojuelegba Senior Secondary School", "MLA036", "SENIOR", "MAINLAND"),
 ]
 
 SURULERE_SCHOOLS = [
@@ -89,8 +90,8 @@ SURULERE_SCHOOLS = [
     ("Ijesha Senior Secondary School", "SUR008", "SENIOR", "SURULERE"),
     ("Itire Junior Secondary School", "SUR009", "JUNIOR", "SURULERE"),
     ("Itire Senior Secondary School", "SUR010", "SENIOR", "SURULERE"),
-    ("Lawanson Junior Secondary School", "SUR011", "JUNIOR", "SURULERE"),
-    ("Lawanson Senior Secondary School", "SUR012", "SENIOR", "SURULERE"),
+    ("Babs Animashaun Junior Secondary School", "SUR011", "JUNIOR", "SURULERE"),
+    ("Babs Animashaun Senior Secondary School", "SUR012", "SENIOR", "SURULERE"),
     ("Ogunlana Drive Junior Secondary School", "SUR013", "JUNIOR", "SURULERE"),
     ("Ogunlana Drive Senior Secondary School", "SUR014", "SENIOR", "SURULERE"),
     ("Ojuelegba Junior Secondary School", "SUR015", "JUNIOR", "SURULERE"),
@@ -183,4 +184,24 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(f"\nDone! {created_count} schools created, {skipped_count} already existed.")
+        )
+
+        # Seed SchoolAcademicYear for all schools
+        self.stdout.write(self.style.NOTICE("Seeding academic years..."))
+        ay_created = 0
+        current_year = "2025/2026"
+        for school in School.objects.all():
+            _, created = SchoolAcademicYear.objects.get_or_create(
+                school=school,
+                year=current_year,
+                defaults={
+                    "start_date": date(2025, 9, 15),
+                    "end_date": date(2026, 7, 11),
+                    "is_current": True,
+                },
+            )
+            if created:
+                ay_created += 1
+        self.stdout.write(
+            self.style.SUCCESS(f"Done! {ay_created} academic years created for {current_year}.")
         )

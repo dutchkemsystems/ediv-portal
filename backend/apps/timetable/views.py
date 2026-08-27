@@ -1,5 +1,7 @@
 from rest_framework import permissions, viewsets
 
+from config.permissions import IsAcademicStaff
+
 from .models import Period, TeacherTimetable, Timetable, TimetableEntry
 from .serializers import PeriodSerializer, TeacherTimetableSerializer, TimetableEntrySerializer, TimetableSerializer
 
@@ -7,7 +9,7 @@ from .serializers import PeriodSerializer, TeacherTimetableSerializer, Timetable
 class PeriodViewSet(viewsets.ModelViewSet):
     queryset = Period.objects.select_related("school").all()
     serializer_class = PeriodSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAcademicStaff]
     filterset_fields = ["school", "is_break", "is_active"]
     ordering_fields = ["period_number"]
 

@@ -1,5 +1,7 @@
 from rest_framework import permissions, viewsets
 
+from config.permissions import IsAdminOrTGOrDeptHead
+
 from .models import BusRoute, StudentTransport, Vehicle
 from .serializers import BusRouteSerializer, StudentTransportSerializer, VehicleSerializer
 
@@ -7,7 +9,7 @@ from .serializers import BusRouteSerializer, StudentTransportSerializer, Vehicle
 class VehicleViewSet(viewsets.ModelViewSet):
     queryset = Vehicle.objects.select_related("school", "driver").all()
     serializer_class = VehicleSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrTGOrDeptHead]
     filterset_fields = ["school", "vehicle_type", "is_active"]
     search_fields = ["registration_number"]
     ordering_fields = ["registration_number", "created_at"]

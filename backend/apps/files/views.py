@@ -1,3 +1,5 @@
+import os
+
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.http import HttpResponse
@@ -63,6 +65,8 @@ class FileViewSet(viewsets.ModelViewSet):
         import datetime
         import re
 
+        from django.db import connection, transaction
+
         year = datetime.date.today().year
         dept_code = "GEN"
         if serializer.validated_data.get("department"):
@@ -72,18 +76,22 @@ class FileViewSet(viewsets.ModelViewSet):
 
         # Atomic sequence generation to prevent race conditions
         prefix = f"EDIV-{year}-{dept_code}"
-        existing = (
-            File.objects.filter(file_number__startswith=prefix)
-            .order_by("-file_number")
-            .values_list("file_number", flat=True)
-            .first()
-        )
-        seq = 1
-        if existing:
-            match = re.search(r"-(\d{4})$", existing)
-            if match:
-                seq = int(match.group(1)) + 1
-        file_number = f"{prefix}-{seq:04d}"
+        lock_key = hash(prefix) % (2**31)
+        with transaction.atomic():
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT pg_advisory_xact_lock(%s)", [lock_key])
+            existing = (
+                File.objects.filter(file_number__startswith=prefix)
+                .order_by("-file_number")
+                .values_list("file_number", flat=True)
+                .first()
+            )
+            seq = 1
+            if existing:
+                match = re.search(r"-(\d{4})$", existing)
+                if match:
+                    seq = int(match.group(1)) + 1
+            file_number = f"{prefix}-{seq:04d}"
 
         file_obj = serializer.save(
             file_number=file_number,
@@ -807,7 +815,7 @@ class FileImportView(APIView):
             ext = os.path.splitext(filename)[1]
             file_format = ext_map.get(ext, "txt")
 
-        from departments.models import Department
+        from apps.departments.models import Department
 
         from .services.import_export_service import ImportExportService
 

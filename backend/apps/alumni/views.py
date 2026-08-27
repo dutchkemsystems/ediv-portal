@@ -1,5 +1,7 @@
 from rest_framework import permissions, viewsets
 
+from config.permissions import IsAdminOrTGOrDeptHead
+
 from .models import AlumniDonation, AlumniEvent, AlumniMember
 from .serializers import AlumniDonationSerializer, AlumniEventSerializer, AlumniMemberSerializer
 
@@ -7,7 +9,7 @@ from .serializers import AlumniDonationSerializer, AlumniEventSerializer, Alumni
 class AlumniMemberViewSet(viewsets.ModelViewSet):
     queryset = AlumniMember.objects.select_related("user", "school").all()
     serializer_class = AlumniMemberSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrTGOrDeptHead]
     filterset_fields = ["school", "graduation_year", "is_active_alumni", "is_donor"]
     search_fields = ["user__first_name", "user__last_name", "current_occupation"]
     ordering_fields = ["graduation_year", "created_at"]

@@ -2,6 +2,8 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from config.permissions import IsAdminOrTGOrDeptHead
+
 from .models import BenchmarkComparison, BenchmarkMetric, SchoolBenchmark
 from .serializers import BenchmarkComparisonSerializer, BenchmarkMetricSerializer, SchoolBenchmarkSerializer
 from .services.benchmarking_service import BenchmarkingService
@@ -16,7 +18,7 @@ class BenchmarkMetricViewSet(viewsets.ModelViewSet):
 class SchoolBenchmarkViewSet(viewsets.ModelViewSet):
     queryset = SchoolBenchmark.objects.all()
     serializer_class = SchoolBenchmarkSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrTGOrDeptHead]
     filterset_fields = ["school", "metric", "period"]
 
     @action(detail=False, methods=["post"], url_path="calculate")
@@ -54,7 +56,7 @@ class SchoolBenchmarkViewSet(viewsets.ModelViewSet):
 class BenchmarkComparisonViewSet(viewsets.ModelViewSet):
     queryset = BenchmarkComparison.objects.all()
     serializer_class = BenchmarkComparisonSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrTGOrDeptHead]
     http_method_names = ["get", "post"]
 
     @action(detail=False, methods=["post"], url_path="compare")

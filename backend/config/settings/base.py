@@ -231,6 +231,12 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "UTC"
 CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "")
 
+# If no broker URL is set, run tasks synchronously (Render free tier has no Redis)
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "")
+if not CELERY_BROKER_URL:
+    CELERY_TASK_ALWAYS_EAGER = True
+    CELERY_TASK_EAGER_PROPAGATES = True
+
 # Wire django_celery_beat only when installed (absent on Render-free tier)
 if importlib.util.find_spec("django_celery_beat"):
     INSTALLED_APPS += ["django_celery_beat", "django_celery_results"]

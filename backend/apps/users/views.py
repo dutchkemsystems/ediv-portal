@@ -6,6 +6,7 @@ from django.conf import settings
 from django.contrib.auth import authenticate
 from django.core.cache import cache
 from django.core.mail import send_mail
+from django.utils import timezone
 from rest_framework import generics, permissions, status, throttling, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -315,6 +316,7 @@ class AuthViewSet(viewsets.ViewSet):
             # simplejwt's TokenBackend rejects tokens decoded as the wrong type.
             temp_token = AccessToken()
             temp_token["user_id"] = user.id
+            temp_token["purpose"] = "mfa_verify"
             temp_token.set_exp(lifetime=timedelta(minutes=5))
             return Response(
                 {
@@ -381,7 +383,7 @@ class AuthViewSet(viewsets.ViewSet):
         token = secrets.token_urlsafe(32)
         cache_key = f"ediv:password_reset:{token}"
         cache.set(
-            cache_key, {"user_id": user.id, "created_at": str(__import__("datetime").datetime.now())}, timeout=3600
+            cache_key, {"user_id": user.id, "created_at": str(timezone.now())}, timeout=3600
         )
 
         # Build reset URL
@@ -523,6 +525,8 @@ class AuthViewSet(viewsets.ViewSet):
 
             token = AccessToken(temp_token)
             user_id = token["user_id"]
+            if token.get("purpose") != "mfa_verify":
+                return Response({"error": "Invalid token type."}, status=status.HTTP_401_UNAUTHORIZED)
         except Exception:
             return Response({"error": "Invalid or expired temp token."}, status=status.HTTP_401_UNAUTHORIZED)
 

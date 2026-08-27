@@ -7,6 +7,8 @@ from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from config.permissions import IsAdminOrTGOrDeptHead
+
 from .models import KPI, AnalyticsReport
 from .serializers import AnalyticsReportSerializer, KPISerializer
 
@@ -14,7 +16,7 @@ from .serializers import AnalyticsReportSerializer, KPISerializer
 class AnalyticsReportViewSet(viewsets.ModelViewSet):
     queryset = AnalyticsReport.objects.select_related("generated_by").all()
     serializer_class = AnalyticsReportSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrTGOrDeptHead]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["report_type", "is_scheduled", "is_active"]
     search_fields = ["title", "description"]

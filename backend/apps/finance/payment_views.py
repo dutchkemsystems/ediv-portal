@@ -3,6 +3,7 @@ import logging
 from datetime import date
 from decimal import Decimal
 
+from django.db import transaction
 from django.db.models import Sum
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
@@ -121,12 +122,23 @@ class KoraPayWebhookView(views.APIView):
                 payment.transaction_id = data.get("reference", "")
                 payment.save()
 
-                # Update student fee
-                student_fee = payment.student_fee
-                student_fee.amount_paid = (
-                    student_fee.payments.filter(is_confirmed=True).aggregate(total=Sum("amount"))["total"] or 0
-                )
-                student_fee.save()
+                # Atomic update with row-level lock to prevent race conditions
+                with transaction.atomic():
+                    student_fee = StudentFee.objects.select_for_update().get(
+                        pk=payment.student_fee_id
+                    )
+                    total_paid = (
+                        student_fee.payments.filter(is_confirmed=True).aggregate(total=Sum("amount"))["total"] or 0
+                    )
+                    student_fee.amount_paid = total_paid
+                    student_fee.balance = student_fee.amount_due - student_fee.amount_paid
+                    if student_fee.balance <= 0:
+                        student_fee.status = "COMPLETED"
+                    elif student_fee.amount_paid > 0:
+                        student_fee.status = "PARTIAL"
+                    else:
+                        student_fee.status = "PENDING"
+                    student_fee.save(update_fields=["amount_paid", "balance", "status", "updated_at"])
 
                 logger.info(f"Payment confirmed: {reference} - {amount_paid} NGN")
             elif transaction_status in ("underpaid", "overpaid"):

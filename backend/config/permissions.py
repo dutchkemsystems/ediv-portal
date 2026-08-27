@@ -39,6 +39,15 @@ class IsAdminOrTGOrDeptHead(permissions.BasePermission):
         return request.user and request.user.is_authenticated and request.user.role in ALL_ADMIN_ROLES
 
 
+class IsSchoolManagementOrAbove(permissions.BasePermission):
+    """School management (PRI, VP) and above can access."""
+
+    def has_permission(self, request, view):
+        return request.user and request.user.is_authenticated and request.user.role in (
+            SYSADMIN, TG_PS
+        ) + DEPARTMENT_HEADS + SCHOOL_MANAGEMENT
+
+
 class IsStaffReadOnly(permissions.BasePermission):
     """Read-only for all authenticated, write only for admin/management."""
 

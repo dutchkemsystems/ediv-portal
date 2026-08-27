@@ -1,5 +1,7 @@
 from rest_framework import permissions, viewsets
 
+from config.permissions import IsAdminOrTGOrDeptHead
+
 from .models import Facility, MaintenanceRequest, Project
 from .serializers import FacilitySerializer, MaintenanceRequestSerializer, ProjectSerializer
 
@@ -7,7 +9,7 @@ from .serializers import FacilitySerializer, MaintenanceRequestSerializer, Proje
 class FacilityViewSet(viewsets.ModelViewSet):
     queryset = Facility.objects.select_related("school").all()
     serializer_class = FacilitySerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrTGOrDeptHead]
     filterset_fields = ["school", "facility_type", "condition", "is_active"]
     search_fields = ["name", "description"]
     ordering_fields = ["name", "created_at"]
