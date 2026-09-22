@@ -75,8 +75,8 @@ MAINLAND_SCHOOLS = [
     ("Onike Senior Secondary School", "MLA032", "SENIOR", "MAINLAND"),
     ("Tejuosho Junior Secondary School", "MLA033", "JUNIOR", "MAINLAND"),
     ("Tejuosho Senior Secondary School", "MLA034", "SENIOR", "MAINLAND"),
-    ("Ojuelegba Junior Secondary School", "MLA035", "JUNIOR", "MAINLAND"),
-    ("Ojuelegba Senior Secondary School", "MLA036", "SENIOR", "MAINLAND"),
+    ("Mainland Ojuelegba Junior Secondary School", "MLA035", "JUNIOR", "MAINLAND"),
+    ("Mainland Ojuelegba Senior Secondary School", "MLA036", "SENIOR", "MAINLAND"),
 ]
 
 SURULERE_SCHOOLS = [
@@ -94,8 +94,8 @@ SURULERE_SCHOOLS = [
     ("Babs Animashaun Senior Secondary School", "SUR012", "SENIOR", "SURULERE"),
     ("Ogunlana Drive Junior Secondary School", "SUR013", "JUNIOR", "SURULERE"),
     ("Ogunlana Drive Senior Secondary School", "SUR014", "SENIOR", "SURULERE"),
-    ("Ojuelegba Junior Secondary School", "SUR015", "JUNIOR", "SURULERE"),
-    ("Ojuelegba Senior Secondary School", "SUR016", "SENIOR", "SURULERE"),
+    ("Surulere Ojuelegba Junior Secondary School", "SUR015", "JUNIOR", "SURULERE"),
+    ("Surulere Ojuelegba Senior Secondary School", "SUR016", "SENIOR", "SURULERE"),
     ("Orile Junior Secondary School", "SUR017", "JUNIOR", "SURULERE"),
     ("Orile Senior Secondary School", "SUR018", "SENIOR", "SURULERE"),
     ("Shomolu Junior Secondary School", "SUR019", "JUNIOR", "SURULERE"),
@@ -129,6 +129,7 @@ ADDRESSES = {
         "14 Murtala Muhammed Way, Yaba, Lagos",
         "7 Anthony Village Road, Anthony, Lagos",
         "18 Jibowu Street, Yaba, Lagos",
+        "3 Ebute Metta Street, Ebute Metta, Mainland, Lagos",
     ],
     "SURULERE": [
         "3 Bode Thomas Avenue, Surulere, Lagos",

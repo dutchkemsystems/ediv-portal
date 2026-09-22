@@ -1,5 +1,4 @@
 from datetime import date
-import re
 
 from django.contrib.auth import get_user_model
 from django.db import models as db_models
@@ -48,26 +47,13 @@ class DocumentViewSet(viewsets.ModelViewSet):
         if serializer.validated_data.get("department"):
             dept_code = serializer.validated_data["department"].code[:3]
 
-        # Atomic sequence generation to prevent race conditions
-        from django.db import connection, transaction
+        # Atomic sequence generation using shared utility
+        prefix = f"EDIV/{year}/{dept_code}/"
 
-        prefix = f"EDIV/{year}/{dept_code}"
-        lock_key = hash(prefix) % (2**31)
-        with transaction.atomic():
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT pg_advisory_xact_lock(%s)", [lock_key])
-            existing = (
-                Document.objects.filter(reference_number__startswith=prefix)
-                .order_by("-reference_number")
-                .values_list("reference_number", flat=True)
-                .first()
-            )
-            seq = 1
-            if existing:
-                match = re.search(r"/(\d{4})$", existing)
-                if match:
-                    seq = int(match.group(1)) + 1
-            reference_number = f"{prefix}/{seq:04d}"
+        from config.sequence_utils import next_sequence_number
+
+        seq = next_sequence_number(Document, prefix, field_name="reference_number")
+        reference_number = f"EDIV/{year}/{dept_code}/{seq:04d}"
 
         doc = serializer.save(
             reference_number=reference_number,

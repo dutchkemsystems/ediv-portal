@@ -1,7 +1,8 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, permissions, viewsets
 
-from config.permissions import IsSchoolStaffOrAdmin
+from config.permissions import IsSchoolStaffOrAdmin, IsAdminOrTGOrDeptHead
+from config.rbac import RoleBasedPermission, SchoolScopedQuerysetMixin
 
 from .models import Student, StudentMedicalRecord, StudentParent
 from .serializers import (
@@ -12,9 +13,10 @@ from .serializers import (
 )
 
 
-class StudentViewSet(viewsets.ModelViewSet):
+class StudentViewSet(SchoolScopedQuerysetMixin, viewsets.ModelViewSet):
     queryset = Student.objects.select_related("user", "school", "class_name").all()
-    permission_classes = [IsSchoolStaffOrAdmin]
+    rbac_app = "students"
+    permission_classes = [RoleBasedPermission]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["school", "class_name", "status", "gender", "is_boarding"]
     search_fields = ["user__first_name", "user__last_name", "admission_number"]
@@ -29,7 +31,8 @@ class StudentViewSet(viewsets.ModelViewSet):
 class StudentParentViewSet(viewsets.ModelViewSet):
     queryset = StudentParent.objects.select_related("student__user", "user").all()
     serializer_class = StudentParentSerializer
-    permission_classes = [IsSchoolStaffOrAdmin]
+    rbac_app = "students"
+    permission_classes = [RoleBasedPermission]
     filterset_fields = ["student", "relation", "is_primary"]
 
 

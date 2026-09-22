@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from config.permissions import IsFinanceOrAdmin, IsAdminOrTGOrDeptHead
+from config.rbac import RoleBasedPermission, SchoolScopedQuerysetMixin
 
 from .models import Budget, FeeStructure, Grant, Payment, StudentFee
 from .serializers import (
@@ -18,47 +19,54 @@ from .serializers import (
 )
 
 
-class FeeStructureViewSet(viewsets.ModelViewSet):
+class FeeStructureViewSet(SchoolScopedQuerysetMixin, viewsets.ModelViewSet):
     queryset = FeeStructure.objects.select_related("school").all()
     serializer_class = FeeStructureSerializer
-    permission_classes = [IsFinanceOrAdmin]
+    rbac_app = "finance"
+    permission_classes = [RoleBasedPermission]
     filterset_fields = ["school", "fee_type", "academic_year", "term", "is_active"]
     search_fields = ["name", "school__name"]
     ordering_fields = ["amount", "created_at"]
 
 
-class StudentFeeViewSet(viewsets.ModelViewSet):
+class StudentFeeViewSet(SchoolScopedQuerysetMixin, viewsets.ModelViewSet):
     queryset = StudentFee.objects.select_related("student__user", "fee_structure").all()
     serializer_class = StudentFeeSerializer
-    permission_classes = [IsFinanceOrAdmin]
+    rbac_app = "finance"
+    permission_classes = [RoleBasedPermission]
+    school_filter_field = "fee_structure__school"
     filterset_fields = ["student", "fee_structure", "status"]
     search_fields = ["student__user__first_name", "student__user__last_name"]
     ordering_fields = ["amount_due", "created_at"]
 
 
-class PaymentViewSet(viewsets.ModelViewSet):
+class PaymentViewSet(SchoolScopedQuerysetMixin, viewsets.ModelViewSet):
     queryset = Payment.objects.select_related(
         "student_fee__student__user", "student_fee__fee_structure", "received_by", "confirmed_by"
     ).all()
     serializer_class = PaymentSerializer
-    permission_classes = [IsFinanceOrAdmin]
+    rbac_app = "finance"
+    permission_classes = [RoleBasedPermission]
+    school_filter_field = "student_fee__fee_structure__school"
     filterset_fields = ["payment_method", "is_confirmed", "payment_date"]
     search_fields = ["reference_number", "student_fee__student__user__first_name"]
     ordering_fields = ["payment_date", "amount", "created_at"]
 
 
-class BudgetViewSet(viewsets.ModelViewSet):
+class BudgetViewSet(SchoolScopedQuerysetMixin, viewsets.ModelViewSet):
     queryset = Budget.objects.select_related("school", "approved_by").all()
     serializer_class = BudgetSerializer
-    permission_classes = [IsFinanceOrAdmin]
+    rbac_app = "finance"
+    permission_classes = [RoleBasedPermission]
     filterset_fields = ["school", "category", "academic_year", "term", "is_approved"]
     search_fields = ["description", "school__name"]
     ordering_fields = ["allocated_amount", "created_at"]
 
 
-class GrantViewSet(viewsets.ModelViewSet):
+class GrantViewSet(SchoolScopedQuerysetMixin, viewsets.ModelViewSet):
     queryset = Grant.objects.select_related("school", "department", "approved_by", "created_by").all()
-    permission_classes = [IsFinanceOrAdmin]
+    rbac_app = "finance"
+    permission_classes = [RoleBasedPermission]
     filterset_fields = ["status", "school", "department", "academic_year", "is_active"]
     search_fields = ["name", "funding_source", "purpose"]
     ordering_fields = ["amount", "created_at", "status"]
@@ -74,7 +82,8 @@ class GrantViewSet(viewsets.ModelViewSet):
 
 class FinancialReportView(APIView):
     """Financial summary report endpoint."""
-    permission_classes = [IsFinanceOrAdmin]
+    rbac_app = "finance"
+    permission_classes = [RoleBasedPermission]
 
     def get(self, request):
         school_id = request.query_params.get("school_id")
@@ -134,7 +143,8 @@ class FinancialReportView(APIView):
 
 class RevenueBySchoolView(APIView):
     """Revenue breakdown by school."""
-    permission_classes = [IsFinanceOrAdmin]
+    rbac_app = "finance"
+    permission_classes = [RoleBasedPermission]
 
     def get(self, request):
         academic_year = request.query_params.get("academic_year")
@@ -161,7 +171,8 @@ class RevenueBySchoolView(APIView):
 
 class OutstandingBalanceView(APIView):
     """Outstanding balances by student."""
-    permission_classes = [IsFinanceOrAdmin]
+    rbac_app = "finance"
+    permission_classes = [RoleBasedPermission]
 
     def get(self, request):
         school_id = request.query_params.get("school_id")

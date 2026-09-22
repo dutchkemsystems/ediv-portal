@@ -42,18 +42,30 @@ const PrincipalDashboard = lazy(() => import('../components/dashboard/PrincipalD
 const TeacherDashboard = lazy(() => import('../components/dashboard/TeacherDashboard'))
 const RegistryDashboard = lazy(() => import('../components/dashboard/RegistryDashboard'))
 const ParentDashboard = lazy(() => import('../components/dashboard/ParentDashboard'))
+const StaffEnterpriseDashboard = lazy(() => import('../components/dashboard/StaffEnterpriseDashboard'))
 
 const roleDashboards = {
   SYSADMIN: SysAdminDashboard,
   TG_PS: SysAdminDashboard,
-  HR: HRDashboard,
+  HR: StaffEnterpriseDashboard,
   FIN: FinanceDashboard,
   PRI: PrincipalDashboard,
   VP: PrincipalDashboard,
-  TCH: TeacherDashboard,
-  REG: RegistryDashboard,
-  REG_OFF: RegistryDashboard,
+  TCH: StaffEnterpriseDashboard,
+  REG: StaffEnterpriseDashboard,
+  REG_OFF: StaffEnterpriseDashboard,
   PAR: ParentDashboard,
+  SA: StaffEnterpriseDashboard,
+  SA_OFF: StaffEnterpriseDashboard,
+  AUDIT: StaffEnterpriseDashboard,
+  QA: StaffEnterpriseDashboard,
+  CC: StaffEnterpriseDashboard,
+  EMIS: StaffEnterpriseDashboard,
+  PLAN: StaffEnterpriseDashboard,
+  PROC: StaffEnterpriseDashboard,
+  PA: StaffEnterpriseDashboard,
+  FRENCH: StaffEnterpriseDashboard,
+  STD: StaffEnterpriseDashboard,
 }
 
 const lagosRed = '#C8102E'
@@ -162,6 +174,16 @@ function Dashboard() {
       { label: 'My Classes', route: '/academics', icon: <SchoolIcon /> },
       { label: 'Attendance', route: '/attendance', icon: <AssignmentIcon /> },
       { label: 'My Tasks', route: '/workflows', icon: <TaskIcon /> },
+    ],
+    STD: [
+      { label: 'My Courses', route: '/academics', icon: <EducationIcon /> },
+      { label: 'Attendance', route: '/attendance', icon: <AssignmentIcon /> },
+      { label: 'My Results', route: '/reports', icon: <AssignmentIcon /> },
+    ],
+    PAR: [
+      { label: 'My Children', route: '/students', icon: <PeopleIcon /> },
+      { label: 'Attendance', route: '/attendance', icon: <AssignmentIcon /> },
+      { label: 'Messages', route: '/communication', icon: <FileIcon /> },
     ],
   }
 

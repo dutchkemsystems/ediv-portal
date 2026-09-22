@@ -1,5 +1,6 @@
 import os
 import random
+from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
@@ -283,6 +284,29 @@ LAST_NAMES = [
 MALE_NAMES = FIRST_NAMES_M
 FEMALE_NAMES = FIRST_NAMES_F
 
+# Reference data for Staff/Student profile fields
+LAGOS_STATES = ["Lagos", "Ogun", "Oyo", "Ondo", "Osun", "Ekiti", "Kano", "Abuja"]
+LAGOS_LGAS = [
+    "Agege", "Ajeromi-Ifelodun", "Alimosho", "Amuwo-Odofin", "Badagry",
+    "Epe", "Eti-Osa", "Ibeju-Lekki", "Ikeja", "Ikorodu",
+    "Lagos Island", "Lagos Mainland", "Mushin", "Ojo", "Oshodi-Isolo",
+    "Shomolu", "Surulere",
+]
+BANK_NAMES = [
+    "First Bank of Nigeria", "Guaranty Trust Bank", "United Bank for Africa",
+    "Access Bank", "Zenith Bank", "Stanbic IBTC Bank", "First City Monument Bank",
+    "Union Bank", "Wema Bank", "Sterling Bank",
+]
+STATES_OF_ORIGIN = [
+    "Lagos", "Ogun", "Oyo", "Ondo", "Osun", "Ekiti", "Kano", "Kaduna",
+    "Abia", "Anambra", "Enugu", "Imo", "Ebonyi", "Delta", "Edo", "Rivers",
+]
+BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"]
+OCCUPATIONS = [
+    "Teacher", "Engineer", "Trader", "Civil Servant", "Doctor", "Lawyer",
+    "Banker", "Accountant", "Nurse", "Mechanic", "Driver", "Farmer",
+]
+
 
 class Command(BaseCommand):
     help = "Seed Education District IV admin users, sample school staff, and students"
@@ -298,7 +322,7 @@ class Command(BaseCommand):
         """Create or update a user. Only sets password for new users.
 
         Password changes should go through the API change_password endpoint
-        or the reset_password management command — NOT through re-seeding.
+        or the reset_password management command -- NOT through re-seeding.
         """
         user, created = User.objects.get_or_create(
             email=data["email"],
@@ -334,6 +358,80 @@ class Command(BaseCommand):
             if changed:
                 user.save()
         return user, created
+
+    def _create_staff_profile(self, user, school, designation, gender, staff_counter):
+        """Create a Staff record for a school staff user."""
+        from apps.staff.models import Staff
+
+        staff_id = f"STF-{school.code}-{staff_counter:04d}"
+        employee_number = f"EDIV-{staff_counter:05d}"
+
+        _, created = Staff.objects.get_or_create(
+            user=user,
+            defaults={
+                "staff_id": staff_id,
+                "employee_number": employee_number,
+                "school": school,
+                "category": "TEACHING",
+                "designation": designation,
+                "employment_type": random.choice(["PERMANENT", "PERMANENT", "CONTRACT"]),
+                "qualification": random.choice(["Bachelors", "Masters", "NCE", "HND"]),
+                "date_of_birth": date(random.randint(1970, 1995), random.randint(1, 12), random.randint(1, 28)),
+                "gender": gender,
+                "marital_status": random.choice(["SINGLE", "MARRIED", "MARRIED", "MARRIED"]),
+                "state_of_origin": random.choice(STATES_OF_ORIGIN),
+                "lga_of_origin": random.choice(LAGOS_LGAS),
+                "residential_address": f"{random.randint(1, 200)} {random.choice(['Street', 'Road', 'Avenue', 'Close'])}, Lagos",
+                "emergency_contact_name": f"{random.choice(FIRST_NAMES_M + FIRST_NAMES_F)} {random.choice(LAST_NAMES)}",
+                "emergency_contact_phone": f"+23480{random.randint(10000000, 99999999)}",
+                "bank_name": random.choice(BANK_NAMES),
+                "bank_account_number": f"{random.randint(1000000000, 9999999999)}",
+                "bank_account_name": user.get_full_name(),
+                "pension_pin": f"PIN{random.randint(100000, 999999)}",
+                "tax_id": f"TIN{random.randint(100000, 999999)}",
+                "date_joined": date(random.randint(2010, 2024), random.randint(1, 12), random.randint(1, 28)),
+                "date_of_first_appointment": date(
+                    random.randint(2005, 2020), random.randint(1, 12), random.randint(1, 28)
+                ),
+                "grade_level": random.choice(["GL08", "GL09", "GL10", "GL12", "GL14", "GL15", "GL16", "GL17"]),
+                "step": random.randint(1, 12),
+                "salary": round(random.uniform(150000, 650000), 2),
+                "is_active": True,
+            },
+        )
+        return created
+
+    def _create_student_profile(self, user, school, gender, student_idx):
+        """Create a Student record for a student user."""
+        from apps.students.models import Student
+
+        admission_number = f"EDV/{school.code}/{date.today().year}/{student_idx:04d}"
+        year_of_birth = random.randint(2008, 2014)
+
+        _, created = Student.objects.get_or_create(
+            user=user,
+            defaults={
+                "admission_number": admission_number,
+                "school": school,
+                "date_of_birth": date(year_of_birth, random.randint(1, 12), random.randint(1, 28)),
+                "gender": gender,
+                "blood_group": random.choice(BLOOD_GROUPS),
+                "nationality": "Nigerian",
+                "state_of_origin": random.choice(STATES_OF_ORIGIN),
+                "lga_of_origin": random.choice(LAGOS_LGAS),
+                "residential_address": f"{random.randint(1, 200)} {random.choice(['Street', 'Road', 'Avenue', 'Close'])}, Lagos",
+                "parent_name": f"{random.choice(FIRST_NAMES_M + FIRST_NAMES_F)} {random.choice(LAST_NAMES)}",
+                "parent_phone": f"+23480{random.randint(10000000, 99999999)}",
+                "parent_email": "",
+                "parent_occupation": random.choice(OCCUPATIONS),
+                "emergency_contact_name": f"{random.choice(FIRST_NAMES_M + FIRST_NAMES_F)} {random.choice(LAST_NAMES)}",
+                "emergency_contact_phone": f"+23480{random.randint(10000000, 99999999)}",
+                "admission_date": date(date.today().year, random.choice([9, 1]), random.randint(1, 15)),
+                "status": "ACTIVE",
+                "is_boarding": random.choice([True, False, False]),
+            },
+        )
+        return created
 
     def handle(self, *args, **options):
         random.seed(42)
@@ -420,10 +518,11 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(f"  Unit heads: {unit_head_created} created, {unit_head_updated} updated"))
 
-        # --- Sample School Staff (Principals, VPs, Teachers) ---
+        # --- Sample School Staff (Principals, VPs, Teachers) + Staff profiles ---
         self.stdout.write(self.style.NOTICE("\n--- Seeding school staff ---"))
-        staff_created = 0
-        staff_updated = 0
+        user_created = 0
+        user_updated = 0
+        profile_created = 0
 
         from apps.schools.models import School
 
@@ -434,13 +533,15 @@ class Command(BaseCommand):
             )
             return
 
+        staff_counter = 0
         teacher_idx = 0
         for school in schools:
-            # Create Principal
+            # Create Principal + Staff profile
             is_male = random.choice([True, False])
             first_name = random.choice(MALE_NAMES if is_male else FEMALE_NAMES)
             last_name = random.choice(LAST_NAMES)
             email = f"principal_{school.code.lower()}@ediv.gov.ng"
+            gender_p = "M" if is_male else "F"
 
             try:
                 user, created = self._upsert_user(
@@ -454,20 +555,26 @@ class Command(BaseCommand):
                     }
                 )
                 if created:
-                    staff_created += 1
+                    user_created += 1
                 else:
-                    staff_updated += 1
+                    user_updated += 1
                 if school.principal_id != user.id:
                     school.principal = user
                     school.save(update_fields=["principal"])
+
+                # Create Staff record for Principal
+                staff_counter += 1
+                if self._create_staff_profile(user, school, "PRINCIPAL", gender_p, staff_counter):
+                    profile_created += 1
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"  ! Principal failed for {school.code}: {e}"))
 
-            # Create Vice Principal
+            # Create Vice Principal + Staff profile
             is_male2 = not is_male
             first_name2 = random.choice(MALE_NAMES if is_male2 else FEMALE_NAMES)
             last_name2 = random.choice(LAST_NAMES)
             email2 = f"vp_{school.code.lower()}@ediv.gov.ng"
+            gender_v = "M" if is_male2 else "F"
 
             try:
                 user2, created2 = self._upsert_user(
@@ -481,16 +588,21 @@ class Command(BaseCommand):
                     }
                 )
                 if created2:
-                    staff_created += 1
+                    user_created += 1
                 else:
-                    staff_updated += 1
+                    user_updated += 1
                 if school.vice_principal_id != user2.id:
                     school.vice_principal = user2
                     school.save(update_fields=["vice_principal"])
+
+                # Create Staff record for VP
+                staff_counter += 1
+                if self._create_staff_profile(user2, school, "VICE_PRINCIPAL", gender_v, staff_counter):
+                    profile_created += 1
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"  ! VP failed for {school.code}: {e}"))
 
-            # Create 3-5 teachers per school
+            # Create 3-5 teachers per school + Staff profiles
             num_teachers = random.randint(3, 5)
             for i in range(num_teachers):
                 teacher_idx += 1
@@ -498,9 +610,10 @@ class Command(BaseCommand):
                 first_t = random.choice(MALE_NAMES if is_male_t else FEMALE_NAMES)
                 last_t = random.choice(LAST_NAMES)
                 email_t = f"teacher_{teacher_idx:04d}@ediv.gov.ng"
+                gender_t = "M" if is_male_t else "F"
 
                 try:
-                    _, created_t = self._upsert_user(
+                    user_t, created_t = self._upsert_user(
                         {
                             "email": email_t,
                             "first_name": first_t,
@@ -511,19 +624,32 @@ class Command(BaseCommand):
                         }
                     )
                     if created_t:
-                        staff_created += 1
+                        user_created += 1
                     else:
-                        staff_updated += 1
+                        user_updated += 1
+
+                    # Create Staff record for Teacher
+                    staff_counter += 1
+                    if self._create_staff_profile(user_t, school, "TEACHER", gender_t, staff_counter):
+                        profile_created += 1
                 except Exception as e:
                     self.stdout.write(self.style.ERROR(f"  ! Teacher {email_t} failed: {e}"))
 
-        self.stdout.write(self.style.SUCCESS(f"  School staff: {staff_created} created, {staff_updated} updated"))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"  School staff users: {user_created} created, {user_updated} updated"
+            )
+        )
+        self.stdout.write(
+            self.style.SUCCESS(f"  Staff profiles: {profile_created} created")
+        )
 
-        # --- Sample Students ---
+        # --- Sample Students + Student profiles ---
         if options["with_students"]:
             self.stdout.write(self.style.NOTICE("\n--- Seeding sample students ---"))
             student_created = 0
             student_skipped = 0
+            student_profile_created = 0
             student_idx = 0
 
             for school in schools:
@@ -535,6 +661,7 @@ class Command(BaseCommand):
                     first_s = random.choice(MALE_NAMES if is_male_s else FEMALE_NAMES)
                     last_s = random.choice(LAST_NAMES)
                     email_s = f"student_{student_idx:04d}@student.ediv.gov.ng"
+                    gender_s = "M" if is_male_s else "F"
 
                     user_s, created_s = User.objects.get_or_create(
                         email=email_s,
@@ -549,9 +676,20 @@ class Command(BaseCommand):
                         user_s.set_password(STUDENT_PASSWORD)
                         user_s.save()
                         student_created += 1
+
+                        # Create Student profile
+                        if self._create_student_profile(user_s, school, gender_s, student_idx):
+                            student_profile_created += 1
                     else:
                         student_skipped += 1
 
-            self.stdout.write(self.style.SUCCESS(f"  Students: {student_created} created, {student_skipped} skipped"))
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"  Students: {student_created} created, {student_skipped} skipped"
+                )
+            )
+            self.stdout.write(
+                self.style.SUCCESS(f"  Student profiles: {student_profile_created} created")
+            )
 
         self.stdout.write(self.style.SUCCESS("\nAll seeding complete!"))

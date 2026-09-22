@@ -62,6 +62,7 @@ import {
   Translate as MultilingualIcon,
 } from '@mui/icons-material'
 import { logout, fetchCurrentUser } from '../../store/authSlice'
+import NotificationBell from './NotificationBell'
 
 const drawerWidth = 260
 
@@ -235,7 +236,8 @@ function Layout({ children }) {
           <Typography variant="h6" noWrap sx={{ flexGrow: 1, fontWeight: 600 }}>
             Education District IV Portal
           </Typography>
-          <IconButton onClick={handleMenuOpen} sx={{ ml: 2 }}>
+          <NotificationBell />
+          <IconButton onClick={handleMenuOpen} sx={{ ml: 1 }}>
             <Badge color="error" variant="dot">
               <Avatar sx={{ bgcolor: 'white', color: lagosRed, width: 36, height: 36, fontWeight: 600 }}>
                 {user?.first_name?.[0] || 'U'}

@@ -28,7 +28,7 @@ def api_health(request):
 
 
 def debug_files(request):
-    """Debug endpoint - only available when DEBUG=True"""
+    """Debug endpoint - only available when DEBUG=True. Returns existence checks only."""
     if not settings.DEBUG:
         return JsonResponse({"error": "Not Found"}, status=404)
     base = settings.BASE_DIR
@@ -40,14 +40,7 @@ def debug_files(request):
         ("staticfiles", os.path.join(base, "staticfiles")),
         ("static", os.path.join(base, "static")),
     ]:
-        if os.path.exists(dir_path):
-            try:
-                files = os.listdir(dir_path)[:20]
-                results[name] = {"exists": True, "files": files}
-            except Exception:
-                results[name] = {"exists": True, "error": "cannot list"}
-        else:
-            results[name] = {"exists": False}
+        results[name] = {"exists": os.path.isdir(dir_path)}
     return JsonResponse(results)
 
 
@@ -87,7 +80,9 @@ def serve_frontend(request, path=""):
         if os.path.isfile(index_path):
             return FileResponse(open(index_path, "rb"), content_type="text/html")
 
-    return JsonResponse({"error": "Frontend not built", "checked": possible_dirs}, status=404)
+    return JsonResponse(
+        {"error": "Frontend not built", "checked": possible_dirs}, status=404
+    )
 
 
 urlpatterns = [
@@ -140,7 +135,8 @@ urlpatterns = [
     path("api/v1/iot/", include("apps.iot_dashboard.urls")),
     path("api/v1/benchmarking/", include("apps.benchmarking.urls")),
     path("api/v1/report-card-gen/", include("apps.report_card_gen.urls")),
-    # Unversioned (backward compatible — all existing /api/ routes still work)
+    # Unversioned (backward compatible — DEPRECATED, will be removed in v2)
+    # All existing /api/ routes still work but /api/v1/ is preferred.
     path("api/users/", include("apps.users.urls")),
     path("api/schools/", include("apps.schools.urls")),
     path("api/staff/", include("apps.staff.urls")),

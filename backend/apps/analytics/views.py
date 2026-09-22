@@ -7,16 +7,17 @@ from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from config.permissions import IsAdminOrTGOrDeptHead
+from config.rbac import RoleBasedPermission
 
 from .models import KPI, AnalyticsReport
 from .serializers import AnalyticsReportSerializer, KPISerializer
 
 
 class AnalyticsReportViewSet(viewsets.ModelViewSet):
+    rbac_app = "analytics"
     queryset = AnalyticsReport.objects.select_related("generated_by").all()
     serializer_class = AnalyticsReportSerializer
-    permission_classes = [IsAdminOrTGOrDeptHead]
+    permission_classes = [RoleBasedPermission]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["report_type", "is_scheduled", "is_active"]
     search_fields = ["title", "description"]
@@ -343,6 +344,62 @@ class DashboardStatsViewSet(viewsets.ViewSet):
         )
 
     @action(detail=False, methods=["get"])
+    def financial_reports(self, request):
+        from datetime import timedelta
+
+        from django.db.models import Sum, Count
+        from django.utils import timezone
+        from apps.finance.models import Budget, Payment, StudentFee
+
+        # Revenue by school
+        revenue_by_school = list(
+            Payment.objects.filter(is_confirmed=True)
+            .values('student_fee__fee_structure__school__name')
+            .annotate(total_collected=Sum('amount'), count=Count('id'))
+            .order_by('-total_collected')[:10]
+        )
+
+        # Budget utilization
+        budget_utilization = list(
+            Budget.objects.values('category')
+            .annotate(allocated=Sum('allocated_amount'), spent=Sum('spent_amount'))
+            .order_by('-allocated')[:10]
+        )
+
+        # Fee collection trend (last 6 months)
+        six_months_ago = timezone.now() - timedelta(days=180)
+        fee_collection_trend = list(
+            Payment.objects.filter(is_confirmed=True, payment_date__gte=six_months_ago.date())
+            .values('payment_date__year', 'payment_date__month')
+            .annotate(total=Sum('amount'), count=Count('id'))
+            .order_by('payment_date__year', 'payment_date__month')
+        )
+
+        # Outstanding balances
+        outstanding = list(
+            StudentFee.objects.filter(status__in=['PENDING', 'PARTIAL'])
+            .values('student__school__name')
+            .annotate(total_due=Sum('balance'), count=Count('id'))
+            .order_by('-total_due')[:10]
+        )
+
+        # Payment method breakdown
+        payment_methods = list(
+            Payment.objects.filter(is_confirmed=True)
+            .values('payment_method')
+            .annotate(total=Sum('amount'), count=Count('id'))
+            .order_by('-total')
+        )
+
+        return Response({
+            'revenue_by_school': revenue_by_school,
+            'budget_utilization': budget_utilization,
+            'fee_collection_trend': fee_collection_trend,
+            'outstanding_balances': outstanding,
+            'payment_methods': payment_methods,
+        })
+
+    @action(detail=False, methods=["get"])
     def principal_dashboard(self, request):
         from datetime import date, timedelta
 
@@ -596,3 +653,141 @@ class DashboardStatsViewSet(viewsets.ViewSet):
                 "total_children": len(children_data),
             }
         )
+
+    @action(detail=False, methods=["get"], url_path="staff-profile/(?P<user_id>[^/.]+)")
+    def staff_profile(self, request, user_id=None):
+        from datetime import date
+
+        from apps.staff.models import Staff, StaffLeave, StaffPerformance
+        from apps.users.models import User
+
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=404)
+
+        try:
+            staff = Staff.objects.select_related("school", "department", "user").get(user=user)
+        except Staff.DoesNotExist:
+            return Response({"error": "Staff profile not found"}, status=404)
+
+        today = date.today()
+
+        # --- Personal Info ---
+        current_age = (
+            today.year - staff.date_of_birth.year
+            - ((today.month, today.day) < (staff.date_of_birth.month, staff.date_of_birth.day))
+        )
+
+        profile_photo_url = None
+        if staff.profile_photo:
+            profile_photo_url = request.build_absolute_uri(staff.profile_photo.url)
+
+        personal_info = {
+            "full_name": user.get_full_name(),
+            "email": user.email,
+            "phone": user.phone_number,
+            "profile_photo": profile_photo_url,
+            "gender": staff.get_gender_display(),
+            "date_of_birth": staff.date_of_birth.isoformat(),
+            "current_age": current_age,
+            "marital_status": staff.get_marital_status_display(),
+            "state_of_origin": staff.state_of_origin,
+            "lga_of_origin": staff.lga_of_origin,
+        }
+
+        # --- Employment Info ---
+        employment_info = {
+            "staff_id": staff.staff_id,
+            "employee_number": staff.employee_number,
+            "designation": staff.get_designation_display(),
+            "category": staff.get_category_display(),
+            "employment_type": staff.get_employment_type_display(),
+            "qualification": staff.get_qualification_display(),
+            "grade_level": staff.grade_level,
+            "step": staff.step,
+        }
+
+        # --- Service Timeline ---
+        years_of_service = staff.years_of_service
+
+        # Retirement: 35 years of service OR age 60, whichever comes first
+        retirement_by_service = staff.date_joined.year + 35
+        retirement_by_age = staff.date_of_birth.year + 60
+        year_of_retirement = min(retirement_by_service, retirement_by_age)
+
+        # Calculate years remaining
+        retirement_date = date(year_of_retirement, staff.date_of_birth.month, staff.date_of_birth.day)
+        if retirement_date > today:
+            years_remaining = (
+                retirement_date.year - today.year
+                - ((retirement_date.month, retirement_date.day) < (today.month, today.day))
+            )
+        else:
+            years_remaining = 0
+
+        service_timeline = {
+            "date_of_first_appointment": staff.date_of_first_appointment.isoformat() if staff.date_of_first_appointment else None,
+            "date_joined": staff.date_joined.isoformat(),
+            "date_of_retirement": staff.date_of_retirement.isoformat() if staff.date_of_retirement else None,
+            "years_of_service": years_of_service,
+            "years_remaining": years_remaining,
+            "year_of_retirement": year_of_retirement,
+        }
+
+        # --- School History ---
+        school_history = {
+            "current_school": staff.school.name if staff.school else None,
+            "current_school_code": staff.school.code if staff.school else None,
+            "department": staff.department.name if staff.department else None,
+        }
+
+        # --- Financial ---
+        financial = {
+            "salary": float(staff.salary),
+            "pension_pin": staff.pension_pin,
+            "tax_id": staff.tax_id,
+            "bank_name": staff.bank_name,
+            "bank_account_number": staff.bank_account_number,
+        }
+
+        # --- Performance ---
+        latest_performance = (
+            StaffPerformance.objects.filter(staff=staff)
+            .order_by("-academic_year", "-term")
+            .first()
+        )
+        performance = None
+        if latest_performance:
+            performance = {
+                "rating": latest_performance.get_rating_display(),
+                "academic_year": latest_performance.academic_year,
+                "term": latest_performance.get_term_display(),
+                "punctuality_score": latest_performance.punctuality_score,
+                "dedication_score": latest_performance.dedication_score,
+                "teaching_quality_score": latest_performance.teaching_quality_score,
+                "student_performance_score": latest_performance.student_performance_score,
+                "average_score": round(latest_performance.average_score, 1),
+                "comments": latest_performance.comments,
+            }
+
+        # --- Leave Summary ---
+        leaves_taken = StaffLeave.objects.filter(staff=staff, status="APPROVED").count()
+        leaves_pending = StaffLeave.objects.filter(staff=staff, status="PENDING").count()
+        leaves_approved = StaffLeave.objects.filter(staff=staff, status="APPROVED").count()
+
+        leave_summary = {
+            "total_leaves_taken": leaves_taken,
+            "pending_leaves": leaves_pending,
+            "approved_leaves": leaves_approved,
+        }
+
+        return Response({
+            "personal_info": personal_info,
+            "employment_info": employment_info,
+            "service_timeline": service_timeline,
+            "school_history": school_history,
+            "financial": financial,
+            "performance": performance,
+            "leave_summary": leave_summary,
+        })

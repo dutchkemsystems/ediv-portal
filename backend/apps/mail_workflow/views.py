@@ -7,8 +7,9 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from config.permissions import IsMailStaff, CanApproveOutgoingMail
+from config.rbac import RoleBasedPermission
 from config.security import AuditLogger
+from config.sequence_utils import next_cross_table_sequence
 
 logger = logging.getLogger(__name__)
 
@@ -41,44 +42,24 @@ from .serializers import (
     SchoolHQCorrespondenceSerializer,
 )
 
+from .services.mail_communication_integration import notify_mail_status_change, notify_mail_assigned
+
 User = get_user_model()
 
 
 def _next_sequence(prefix, year):
-    """Atomic sequence generation for reference numbers using DB-level locking."""
-    import re
-
-    from django.db import connection, transaction
-
-    with transaction.atomic():
-        # Use PostgreSQL advisory lock for atomic sequence generation
-        lock_key = hash(f"{prefix}/{year}") % (2**31)
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT pg_advisory_xact_lock(%s)", [lock_key])
-
-        # Check across both IncomingMail and OutgoingMail for existing sequences
-        existing = (
-            IncomingMail.objects.filter(mail_number__startswith=f"{prefix}/{year}/")
-            .values_list("mail_number", flat=True)
-            .order_by("-mail_number")
-            .first()
-        )
-        if not existing:
-            existing = (
-                OutgoingMail.objects.filter(mail_number__startswith=f"{prefix}/{year}/")
-                .values_list("mail_number", flat=True)
-                .order_by("-mail_number")
-                .first()
-            )
-        if existing:
-            match = re.search(r"/(\d{4})$", existing)
-            if match:
-                return int(match.group(1)) + 1
-        return 1
+    """Atomic sequence generation for reference numbers using shared utility."""
+    full_prefix = f"{prefix}/{year}/"
+    return next_cross_table_sequence(
+        [IncomingMail, OutgoingMail],
+        full_prefix,
+        field_name="mail_number",
+    )
 
 
 class IncomingMailViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsMailStaff]
+    rbac_app = "mail_workflow"
+    permission_classes = [RoleBasedPermission]
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -135,6 +116,19 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
             resource_id=mail_obj.id,
             description=f"Mail {mail_obj.mail_number} scanned",
         )
+
+        # Wire email notification for scan
+        try:
+            from apps.communication.tasks import send_mail_status_change_notification
+            send_mail_status_change_notification.delay(
+                mail_obj.id, "RECEIVED", "SCANNED", request.user.id
+            )
+        except Exception as e:
+            logger.warning("Failed to send mail scan notification for %s: %s", mail_obj.mail_number, e)
+
+        # Wire in-app notification
+        notify_mail_status_change(mail_obj, "RECEIVED", "SCANNED", changed_by=request.user)
+
         return Response({"message": f"Mail {mail_obj.mail_number} marked as scanned."})
 
     @action(detail=True, methods=["post"], url_path="classify")
@@ -164,6 +158,19 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
             resource_id=mail_obj.id,
             description=f"Mail {mail_obj.mail_number} classified as {classification}",
         )
+
+        # Wire email notification for classification
+        try:
+            from apps.communication.tasks import send_mail_status_change_notification
+            send_mail_status_change_notification.delay(
+                mail_obj.id, "SCANNED", "CLASSIFIED", request.user.id
+            )
+        except Exception as e:
+            logger.warning("Failed to send mail classify notification for %s: %s", mail_obj.mail_number, e)
+
+        # Wire in-app notification
+        notify_mail_status_change(mail_obj, "SCANNED", "CLASSIFIED", changed_by=request.user)
+
         return Response({"message": f"Mail {mail_obj.mail_number} classified."})
 
     @action(detail=True, methods=["post"], url_path="assign")
@@ -189,6 +196,7 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
             deadline=deadline if deadline else None,
         )
 
+        old_status = mail_obj.status
         mail_obj.status = "ASSIGNED"
         mail_obj.save(update_fields=["status", "updated_at"])
 
@@ -206,6 +214,10 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
             send_mail_assignment_notification.delay(assignment.id)
         except Exception as e:
             logger.warning("Failed to send mail assignment notification for %s: %s", assignment.id, e)
+
+        # Wire in-app notifications
+        notify_mail_status_change(mail_obj, old_status, "ASSIGNED", changed_by=request.user)
+        notify_mail_assigned(mail_obj, assignee, assigned_by=request.user)
 
         return Response(MailAssignmentSerializer(assignment).data)
 
@@ -249,6 +261,9 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.warning("Failed to send mail forward notification for %s: %s", mail_obj.mail_number, e)
 
+        # Wire in-app notification
+        notify_mail_status_change(mail_obj, mail_obj.status, mail_obj.status, changed_by=request.user)
+
         return Response(MailMovementSerializer(movement).data)
 
     @action(detail=True, methods=["post"], url_path="respond")
@@ -288,6 +303,9 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.warning("Failed to send mail respond notification for %s: %s", mail_obj.mail_number, e)
 
+        # Wire in-app notification
+        notify_mail_status_change(mail_obj, old_status, "RESPONDED", changed_by=request.user)
+
         return Response({"message": f"Mail {mail_obj.mail_number} response recorded."})
 
     @action(detail=True, methods=["post"], url_path="dispatch")
@@ -318,6 +336,9 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.warning("Failed to send mail dispatch notification for %s: %s", mail_obj.mail_number, e)
 
+        # Wire in-app notification
+        notify_mail_status_change(mail_obj, old_status, "DISPATCHED", changed_by=request.user)
+
         return Response({"message": f"Mail {mail_obj.mail_number} dispatched."})
 
     @action(detail=True, methods=["post"], url_path="archive")
@@ -334,12 +355,26 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
             resource_id=mail_obj.id,
             description=f"Mail {mail_obj.mail_number} archived",
         )
+
+        # Wire email notification for archive
+        try:
+            from apps.communication.tasks import send_mail_status_change_notification
+            send_mail_status_change_notification.delay(
+                mail_obj.id, old_status, "ARCHIVED", request.user.id
+            )
+        except Exception as e:
+            logger.warning("Failed to send mail archive notification for %s: %s", mail_obj.mail_number, e)
+
+        # Wire in-app notification
+        notify_mail_status_change(mail_obj, old_status, "ARCHIVED", changed_by=request.user)
+
         return Response({"message": f"Mail {mail_obj.mail_number} archived."})
 
 
 class MailAssignmentViewSet(viewsets.ModelViewSet):
     serializer_class = MailAssignmentSerializer
-    permission_classes = [IsMailStaff]
+    rbac_app = "mail_workflow"
+    permission_classes = [RoleBasedPermission]
     filterset_fields = ["mail", "assigned_to", "status"]
 
     def get_queryset(self):
@@ -353,7 +388,8 @@ class MailAssignmentViewSet(viewsets.ModelViewSet):
 
 class MailMovementViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = MailMovementSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    rbac_app = "mail_workflow"
+    permission_classes = [RoleBasedPermission]
     filterset_fields = ["mail", "from_person", "to_person", "action"]
 
     def get_queryset(self):
@@ -369,7 +405,8 @@ class MailMovementViewSet(viewsets.ReadOnlyModelViewSet):
 
 class OutgoingMailMovementViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = OutgoingMailMovementSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    rbac_app = "mail_workflow"
+    permission_classes = [RoleBasedPermission]
     filterset_fields = ["outgoing_mail", "from_person", "to_person", "action"]
 
     def get_queryset(self):
@@ -389,7 +426,8 @@ class OutgoingMailMovementViewSet(viewsets.ReadOnlyModelViewSet):
 
 class SchoolHQCorrespondenceMovementViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = SchoolHQCorrespondenceMovementSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    rbac_app = "mail_workflow"
+    permission_classes = [RoleBasedPermission]
     filterset_fields = ["correspondence", "from_person", "to_person", "action"]
 
     def get_queryset(self):
@@ -412,7 +450,8 @@ class SchoolHQCorrespondenceMovementViewSet(viewsets.ReadOnlyModelViewSet):
 
 class MailCorrespondenceMovementViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = MailCorrespondenceMovementSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    rbac_app = "mail_workflow"
+    permission_classes = [RoleBasedPermission]
     filterset_fields = ["correspondence", "from_person", "to_person", "action"]
 
     def get_queryset(self):
@@ -432,7 +471,8 @@ class MailCorrespondenceMovementViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class OutgoingMailViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsMailStaff]
+    rbac_app = "mail_workflow"
+    permission_classes = [RoleBasedPermission]
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -487,9 +527,12 @@ class OutgoingMailViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.warning("Failed to send outgoing mail submit notification for %s: %s", mail_obj.mail_number, e)
 
+        # Wire in-app notification
+        notify_mail_status_change(mail_obj, "DRAFT", "PENDING_APPROVAL", changed_by=request.user)
+
         return Response({"message": f"Mail {mail_obj.mail_number} submitted for approval."})
 
-    @action(detail=True, methods=["post"], url_path="approve", permission_classes=[CanApproveOutgoingMail])
+    @action(detail=True, methods=["post"], url_path="approve")
     def approve_mail(self, request, pk=None):
         mail_obj = self.get_object()
         comments = request.data.get("comments", "")
@@ -518,9 +561,12 @@ class OutgoingMailViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.warning("Failed to send outgoing mail approve notification for %s: %s", mail_obj.mail_number, e)
 
+        # Wire in-app notification
+        notify_mail_status_change(mail_obj, "PENDING_APPROVAL", "APPROVED", changed_by=request.user)
+
         return Response({"message": f"Mail {mail_obj.mail_number} approved."})
 
-    @action(detail=True, methods=["post"], url_path="reject", permission_classes=[CanApproveOutgoingMail])
+    @action(detail=True, methods=["post"], url_path="reject")
     def reject_mail(self, request, pk=None):
         mail_obj = self.get_object()
         comments = request.data.get("comments", "")
@@ -549,6 +595,9 @@ class OutgoingMailViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.warning("Failed to send outgoing mail reject notification for %s: %s", mail_obj.mail_number, e)
 
+        # Wire in-app notification
+        notify_mail_status_change(mail_obj, "PENDING_APPROVAL", "REJECTED", changed_by=request.user)
+
         return Response({"message": f"Mail {mail_obj.mail_number} rejected."})
 
     @action(detail=True, methods=["post"], url_path="dispatch")
@@ -575,6 +624,9 @@ class OutgoingMailViewSet(viewsets.ModelViewSet):
             send_outgoing_mail_notification.delay(mail_obj.id, "DISPATCHED", request.user.id)
         except Exception as e:
             logger.warning("Failed to send outgoing mail dispatch notification for %s: %s", mail_obj.mail_number, e)
+
+        # Wire in-app notification
+        notify_mail_status_change(mail_obj, "APPROVED", "DISPATCHED", changed_by=request.user)
 
         return Response({"message": f"Mail {mail_obj.mail_number} dispatched."})
 
@@ -605,11 +657,15 @@ class OutgoingMailViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.warning("Failed to send outgoing mail deliver notification for %s: %s", mail_obj.mail_number, e)
 
+        # Wire in-app notification
+        notify_mail_status_change(mail_obj, "DISPATCHED", "DELIVERED", changed_by=request.user)
+
         return Response({"message": f"Mail {mail_obj.mail_number} marked as delivered."})
 
 
 class SchoolHQCorrespondenceViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsMailStaff]
+    rbac_app = "mail_workflow"
+    permission_classes = [RoleBasedPermission]
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -661,6 +717,10 @@ class SchoolHQCorrespondenceViewSet(viewsets.ModelViewSet):
             resource_id=correspondence.id,
             description=f"Correspondence {correspondence.reference_number} submitted",
         )
+
+        # Wire in-app notification
+        notify_mail_status_change(correspondence, "DRAFT", "SUBMITTED", changed_by=request.user)
+
         return Response({"message": f"Correspondence {correspondence.reference_number} submitted."})
 
     @action(detail=True, methods=["post"], url_path="receive")
@@ -677,6 +737,10 @@ class SchoolHQCorrespondenceViewSet(viewsets.ModelViewSet):
             resource_id=correspondence.id,
             description=f"Correspondence {correspondence.reference_number} received",
         )
+
+        # Wire in-app notification
+        notify_mail_status_change(correspondence, "SUBMITTED", "RECEIVED_AT_HQ", changed_by=request.user)
+
         return Response({"message": f"Correspondence {correspondence.reference_number} marked as received."})
 
     @action(detail=True, methods=["post"], url_path="respond")
@@ -695,11 +759,16 @@ class SchoolHQCorrespondenceViewSet(viewsets.ModelViewSet):
             resource_id=correspondence.id,
             description=f"Correspondence {correspondence.reference_number} responded to",
         )
+
+        # Wire in-app notification
+        notify_mail_status_change(correspondence, "RECEIVED_AT_HQ", "COMPLETED", changed_by=request.user)
+
         return Response({"message": f"Correspondence {correspondence.reference_number} responded to."})
 
 
 class MailCorrespondenceViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsMailStaff]
+    rbac_app = "mail_workflow"
+    permission_classes = [RoleBasedPermission]
 
     def get_serializer_class(self):
         if self.action == "list":
