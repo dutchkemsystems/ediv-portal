@@ -80,9 +80,7 @@ def serve_frontend(request, path=""):
         if os.path.isfile(index_path):
             return FileResponse(open(index_path, "rb"), content_type="text/html")
 
-    return JsonResponse(
-        {"error": "Frontend not built", "checked": possible_dirs}, status=404
-    )
+    return JsonResponse({"error": "Frontend not built", "checked": possible_dirs}, status=404)
 
 
 urlpatterns = [

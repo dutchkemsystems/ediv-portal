@@ -287,24 +287,68 @@ FEMALE_NAMES = FIRST_NAMES_F
 # Reference data for Staff/Student profile fields
 LAGOS_STATES = ["Lagos", "Ogun", "Oyo", "Ondo", "Osun", "Ekiti", "Kano", "Abuja"]
 LAGOS_LGAS = [
-    "Agege", "Ajeromi-Ifelodun", "Alimosho", "Amuwo-Odofin", "Badagry",
-    "Epe", "Eti-Osa", "Ibeju-Lekki", "Ikeja", "Ikorodu",
-    "Lagos Island", "Lagos Mainland", "Mushin", "Ojo", "Oshodi-Isolo",
-    "Shomolu", "Surulere",
+    "Agege",
+    "Ajeromi-Ifelodun",
+    "Alimosho",
+    "Amuwo-Odofin",
+    "Badagry",
+    "Epe",
+    "Eti-Osa",
+    "Ibeju-Lekki",
+    "Ikeja",
+    "Ikorodu",
+    "Lagos Island",
+    "Lagos Mainland",
+    "Mushin",
+    "Ojo",
+    "Oshodi-Isolo",
+    "Shomolu",
+    "Surulere",
 ]
 BANK_NAMES = [
-    "First Bank of Nigeria", "Guaranty Trust Bank", "United Bank for Africa",
-    "Access Bank", "Zenith Bank", "Stanbic IBTC Bank", "First City Monument Bank",
-    "Union Bank", "Wema Bank", "Sterling Bank",
+    "First Bank of Nigeria",
+    "Guaranty Trust Bank",
+    "United Bank for Africa",
+    "Access Bank",
+    "Zenith Bank",
+    "Stanbic IBTC Bank",
+    "First City Monument Bank",
+    "Union Bank",
+    "Wema Bank",
+    "Sterling Bank",
 ]
 STATES_OF_ORIGIN = [
-    "Lagos", "Ogun", "Oyo", "Ondo", "Osun", "Ekiti", "Kano", "Kaduna",
-    "Abia", "Anambra", "Enugu", "Imo", "Ebonyi", "Delta", "Edo", "Rivers",
+    "Lagos",
+    "Ogun",
+    "Oyo",
+    "Ondo",
+    "Osun",
+    "Ekiti",
+    "Kano",
+    "Kaduna",
+    "Abia",
+    "Anambra",
+    "Enugu",
+    "Imo",
+    "Ebonyi",
+    "Delta",
+    "Edo",
+    "Rivers",
 ]
 BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"]
 OCCUPATIONS = [
-    "Teacher", "Engineer", "Trader", "Civil Servant", "Doctor", "Lawyer",
-    "Banker", "Accountant", "Nurse", "Mechanic", "Driver", "Farmer",
+    "Teacher",
+    "Engineer",
+    "Trader",
+    "Civil Servant",
+    "Doctor",
+    "Lawyer",
+    "Banker",
+    "Accountant",
+    "Nurse",
+    "Mechanic",
+    "Driver",
+    "Farmer",
 ]
 
 
@@ -635,14 +679,8 @@ class Command(BaseCommand):
                 except Exception as e:
                     self.stdout.write(self.style.ERROR(f"  ! Teacher {email_t} failed: {e}"))
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"  School staff users: {user_created} created, {user_updated} updated"
-            )
-        )
-        self.stdout.write(
-            self.style.SUCCESS(f"  Staff profiles: {profile_created} created")
-        )
+        self.stdout.write(self.style.SUCCESS(f"  School staff users: {user_created} created, {user_updated} updated"))
+        self.stdout.write(self.style.SUCCESS(f"  Staff profiles: {profile_created} created"))
 
         # --- Sample Students + Student profiles ---
         if options["with_students"]:
@@ -683,13 +721,7 @@ class Command(BaseCommand):
                     else:
                         student_skipped += 1
 
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f"  Students: {student_created} created, {student_skipped} skipped"
-                )
-            )
-            self.stdout.write(
-                self.style.SUCCESS(f"  Student profiles: {student_profile_created} created")
-            )
+            self.stdout.write(self.style.SUCCESS(f"  Students: {student_created} created, {student_skipped} skipped"))
+            self.stdout.write(self.style.SUCCESS(f"  Student profiles: {student_profile_created} created"))
 
         self.stdout.write(self.style.SUCCESS("\nAll seeding complete!"))

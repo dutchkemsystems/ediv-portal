@@ -41,8 +41,7 @@ from .serializers import (
     SchoolHQCorrespondenceMovementSerializer,
     SchoolHQCorrespondenceSerializer,
 )
-
-from .services.mail_communication_integration import notify_mail_status_change, notify_mail_assigned
+from .services.mail_communication_integration import notify_mail_assigned, notify_mail_status_change
 
 User = get_user_model()
 
@@ -120,9 +119,8 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
         # Wire email notification for scan
         try:
             from apps.communication.tasks import send_mail_status_change_notification
-            send_mail_status_change_notification.delay(
-                mail_obj.id, "RECEIVED", "SCANNED", request.user.id
-            )
+
+            send_mail_status_change_notification.delay(mail_obj.id, "RECEIVED", "SCANNED", request.user.id)
         except Exception as e:
             logger.warning("Failed to send mail scan notification for %s: %s", mail_obj.mail_number, e)
 
@@ -162,9 +160,8 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
         # Wire email notification for classification
         try:
             from apps.communication.tasks import send_mail_status_change_notification
-            send_mail_status_change_notification.delay(
-                mail_obj.id, "SCANNED", "CLASSIFIED", request.user.id
-            )
+
+            send_mail_status_change_notification.delay(mail_obj.id, "SCANNED", "CLASSIFIED", request.user.id)
         except Exception as e:
             logger.warning("Failed to send mail classify notification for %s: %s", mail_obj.mail_number, e)
 
@@ -211,6 +208,7 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
         # Wire email notification (Critical #2 fix)
         try:
             from apps.communication.tasks import send_mail_assignment_notification
+
             send_mail_assignment_notification.delay(assignment.id)
         except Exception as e:
             logger.warning("Failed to send mail assignment notification for %s: %s", assignment.id, e)
@@ -255,9 +253,8 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
         # Wire email notification for forward
         try:
             from apps.communication.tasks import send_mail_status_change_notification
-            send_mail_status_change_notification.delay(
-                mail_obj.id, mail_obj.status, mail_obj.status, request.user.id
-            )
+
+            send_mail_status_change_notification.delay(mail_obj.id, mail_obj.status, mail_obj.status, request.user.id)
         except Exception as e:
             logger.warning("Failed to send mail forward notification for %s: %s", mail_obj.mail_number, e)
 
@@ -297,9 +294,8 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
         # Wire email notification for status change
         try:
             from apps.communication.tasks import send_mail_status_change_notification
-            send_mail_status_change_notification.delay(
-                mail_obj.id, old_status, "RESPONDED", request.user.id
-            )
+
+            send_mail_status_change_notification.delay(mail_obj.id, old_status, "RESPONDED", request.user.id)
         except Exception as e:
             logger.warning("Failed to send mail respond notification for %s: %s", mail_obj.mail_number, e)
 
@@ -330,9 +326,8 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
         # Wire email notification for dispatch
         try:
             from apps.communication.tasks import send_mail_status_change_notification
-            send_mail_status_change_notification.delay(
-                mail_obj.id, old_status, "DISPATCHED", request.user.id
-            )
+
+            send_mail_status_change_notification.delay(mail_obj.id, old_status, "DISPATCHED", request.user.id)
         except Exception as e:
             logger.warning("Failed to send mail dispatch notification for %s: %s", mail_obj.mail_number, e)
 
@@ -359,9 +354,8 @@ class IncomingMailViewSet(viewsets.ModelViewSet):
         # Wire email notification for archive
         try:
             from apps.communication.tasks import send_mail_status_change_notification
-            send_mail_status_change_notification.delay(
-                mail_obj.id, old_status, "ARCHIVED", request.user.id
-            )
+
+            send_mail_status_change_notification.delay(mail_obj.id, old_status, "ARCHIVED", request.user.id)
         except Exception as e:
             logger.warning("Failed to send mail archive notification for %s: %s", mail_obj.mail_number, e)
 
@@ -523,6 +517,7 @@ class OutgoingMailViewSet(viewsets.ModelViewSet):
         # Wire notification: notify approvers
         try:
             from apps.communication.tasks import send_outgoing_mail_notification
+
             send_outgoing_mail_notification.delay(mail_obj.id, "SUBMITTED", request.user.id)
         except Exception as e:
             logger.warning("Failed to send outgoing mail submit notification for %s: %s", mail_obj.mail_number, e)
@@ -557,6 +552,7 @@ class OutgoingMailViewSet(viewsets.ModelViewSet):
         # Wire notification: notify creator of approval
         try:
             from apps.communication.tasks import send_outgoing_mail_notification
+
             send_outgoing_mail_notification.delay(mail_obj.id, "APPROVED", request.user.id)
         except Exception as e:
             logger.warning("Failed to send outgoing mail approve notification for %s: %s", mail_obj.mail_number, e)
@@ -591,6 +587,7 @@ class OutgoingMailViewSet(viewsets.ModelViewSet):
         # Wire notification: notify creator of rejection
         try:
             from apps.communication.tasks import send_outgoing_mail_notification
+
             send_outgoing_mail_notification.delay(mail_obj.id, "REJECTED", request.user.id)
         except Exception as e:
             logger.warning("Failed to send outgoing mail reject notification for %s: %s", mail_obj.mail_number, e)
@@ -621,6 +618,7 @@ class OutgoingMailViewSet(viewsets.ModelViewSet):
         # Wire notification: notify creator of dispatch
         try:
             from apps.communication.tasks import send_outgoing_mail_notification
+
             send_outgoing_mail_notification.delay(mail_obj.id, "DISPATCHED", request.user.id)
         except Exception as e:
             logger.warning("Failed to send outgoing mail dispatch notification for %s: %s", mail_obj.mail_number, e)
@@ -653,6 +651,7 @@ class OutgoingMailViewSet(viewsets.ModelViewSet):
         # Wire notification: notify creator of delivery
         try:
             from apps.communication.tasks import send_outgoing_mail_notification
+
             send_outgoing_mail_notification.delay(mail_obj.id, "DELIVERED", request.user.id)
         except Exception as e:
             logger.warning("Failed to send outgoing mail deliver notification for %s: %s", mail_obj.mail_number, e)

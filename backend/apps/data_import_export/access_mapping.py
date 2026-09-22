@@ -19,8 +19,14 @@ ACCESS_TABLE_MAPPINGS = {
         "model_path": "apps.students.models",
         "model_name": "Student",
         "table_aliases": [
-            "students", "student", "tblstudents", "tbl_students",
-            "student_info", "studentinfo", " pupils", "pupil",
+            "students",
+            "student",
+            "tblstudents",
+            "tbl_students",
+            "student_info",
+            "studentinfo",
+            " pupils",
+            "pupil",
         ],
         "field_map": {
             "admission_number": "admission_number",
@@ -74,10 +80,18 @@ ACCESS_TABLE_MAPPINGS = {
             "class_name": {"lookup_field": "name", "model_path": "apps.academics.models", "model_name": "Class"},
         },
         "transforms": {
-            "gender": lambda v: {"M": "M", "F": "F", "Male": "M", "Female": "F", "male": "M", "female": "F"}.get(str(v).strip(), "M"),
-            "status": lambda v: {"Active": "ACTIVE", "active": "ACTIVE", "Inactive": "INACTIVE",
-                                  "Graduated": "GRADUATED", "Transferred": "TRANSFERRED",
-                                  "Expelled": "EXPELLED", "Withdrawn": "WITHDRAWN"}.get(str(v).strip(), "ACTIVE"),
+            "gender": lambda v: {"M": "M", "F": "F", "Male": "M", "Female": "F", "male": "M", "female": "F"}.get(
+                str(v).strip(), "M"
+            ),
+            "status": lambda v: {
+                "Active": "ACTIVE",
+                "active": "ACTIVE",
+                "Inactive": "INACTIVE",
+                "Graduated": "GRADUATED",
+                "Transferred": "TRANSFERRED",
+                "Expelled": "EXPELLED",
+                "Withdrawn": "WITHDRAWN",
+            }.get(str(v).strip(), "ACTIVE"),
             "is_boarding": lambda v: str(v).strip().lower() in ("yes", "true", "1", "boarding"),
             "date_of_birth": lambda v: str(v).strip() if v else None,
             "admission_date": lambda v: str(v).strip() if v else None,
@@ -91,8 +105,15 @@ ACCESS_TABLE_MAPPINGS = {
         "model_path": "apps.staff.models",
         "model_name": "Staff",
         "table_aliases": [
-            "staff", "staffs", "employees", "employee", "tblstaff",
-            "tbl_staff", "teachers", "teacher", "non_teaching",
+            "staff",
+            "staffs",
+            "employees",
+            "employee",
+            "tblstaff",
+            "tbl_staff",
+            "teachers",
+            "teacher",
+            "non_teaching",
         ],
         "field_map": {
             "staff_id": "staff_id",
@@ -145,20 +166,37 @@ ACCESS_TABLE_MAPPINGS = {
         },
         "transforms": {
             "gender": lambda v: {"M": "M", "F": "F", "Male": "M", "Female": "F"}.get(str(v).strip(), "M"),
-            "category": lambda v: {"Teaching": "TEACHING", "Non-Teaching": "NON_TEACHING",
-                                    "Administrative": "ADMINISTRATIVE"}.get(str(v).strip(), "TEACHING"),
-            "employment_type": lambda v: {"Permanent": "PERMANENT", "Contract": "CONTRACT",
-                                           "Temporary": "TEMPORARY", "Volunteer": "VOLUNTEER"
-                                           }.get(str(v).strip(), "PERMANENT"),
-            "qualification": lambda v: {"PhD": "PhD", "Masters": "Masters", "Bachelor": "Bachelors",
-                                         "Bachelors": "Bachelors", "HND": "HND", "OND": "OND",
-                                         "NCE": "NCE", "SSCE": "SSCE"}.get(str(v).strip(), "Bachelors"),
+            "category": lambda v: {
+                "Teaching": "TEACHING",
+                "Non-Teaching": "NON_TEACHING",
+                "Administrative": "ADMINISTRATIVE",
+            }.get(str(v).strip(), "TEACHING"),
+            "employment_type": lambda v: {
+                "Permanent": "PERMANENT",
+                "Contract": "CONTRACT",
+                "Temporary": "TEMPORARY",
+                "Volunteer": "VOLUNTEER",
+            }.get(str(v).strip(), "PERMANENT"),
+            "qualification": lambda v: {
+                "PhD": "PhD",
+                "Masters": "Masters",
+                "Bachelor": "Bachelors",
+                "Bachelors": "Bachelors",
+                "HND": "HND",
+                "OND": "OND",
+                "NCE": "NCE",
+                "SSCE": "SSCE",
+            }.get(str(v).strip(), "Bachelors"),
             "is_active": lambda v: str(v).strip().lower() not in ("no", "false", "0", "inactive", "terminated"),
             "date_of_birth": lambda v: str(v).strip() if v else None,
             "date_joined": lambda v: str(v).strip() if v else None,
             "date_of_first_appointment": lambda v: str(v).strip() if v else None,
             "step": lambda v: int(float(str(v).strip())) if v and str(v).strip().replace(".", "").isdigit() else 1,
-            "salary": lambda v: float(str(v).strip().replace(",", "")) if v and str(v).strip().replace(",", "").replace(".", "").isdigit() else 0,
+            "salary": lambda v: (
+                float(str(v).strip().replace(",", ""))
+                if v and str(v).strip().replace(",", "").replace(".", "").isdigit()
+                else 0
+            ),
         },
         "name_fields": {
             "first_name": ["first_name", "first", "fname"],
@@ -169,7 +207,10 @@ ACCESS_TABLE_MAPPINGS = {
         "model_path": "apps.schools.models",
         "model_name": "School",
         "table_aliases": [
-            "schools", "school", "tblschools", "tbl_schools",
+            "schools",
+            "school",
+            "tblschools",
+            "tbl_schools",
         ],
         "field_map": {
             "name": "name",
@@ -198,9 +239,12 @@ ACCESS_TABLE_MAPPINGS = {
         },
         "foreign_keys": {},
         "transforms": {
-            "school_type": lambda v: {"Junior": "JUNIOR", "Senior": "SENIOR",
-                                       "Junior Secondary": "JUNIOR", "Senior Secondary": "SENIOR"
-                                       }.get(str(v).strip(), "JUNIOR"),
+            "school_type": lambda v: {
+                "Junior": "JUNIOR",
+                "Senior": "SENIOR",
+                "Junior Secondary": "JUNIOR",
+                "Senior Secondary": "SENIOR",
+            }.get(str(v).strip(), "JUNIOR"),
             "has_science_lab": lambda v: str(v).strip().lower() in ("yes", "true", "1"),
             "has_computer_lab": lambda v: str(v).strip().lower() in ("yes", "true", "1"),
             "has_library": lambda v: str(v).strip().lower() in ("yes", "true", "1"),
@@ -212,8 +256,13 @@ ACCESS_TABLE_MAPPINGS = {
         "model_path": "apps.finance.models",
         "model_name": "StudentFee",
         "table_aliases": [
-            "fees", "fee", "student_fees", "school_fees",
-            "tblfees", "tbl_fees", "fee_payments",
+            "fees",
+            "fee",
+            "student_fees",
+            "school_fees",
+            "tblfees",
+            "tbl_fees",
+            "fee_payments",
         ],
         "field_map": {
             "amount_due": "amount_due",
@@ -222,8 +271,16 @@ ACCESS_TABLE_MAPPINGS = {
             "status": "status",
         },
         "foreign_keys": {
-            "student": {"lookup_field": "admission_number", "model_path": "apps.students.models", "model_name": "Student"},
-            "fee_structure": {"lookup_field": "name", "model_path": "apps.finance.models", "model_name": "FeeStructure"},
+            "student": {
+                "lookup_field": "admission_number",
+                "model_path": "apps.students.models",
+                "model_name": "Student",
+            },
+            "fee_structure": {
+                "lookup_field": "name",
+                "model_path": "apps.finance.models",
+                "model_name": "FeeStructure",
+            },
         },
         "transforms": {
             "amount_due": lambda v: float(str(v).replace(",", "")) if v else 0,
@@ -236,8 +293,12 @@ ACCESS_TABLE_MAPPINGS = {
         "model_path": "apps.finance.models",
         "model_name": "Payment",
         "table_aliases": [
-            "payments", "payment", "fee_payment", "fee_payments",
-            "tblpayments", "tbl_payments",
+            "payments",
+            "payment",
+            "fee_payment",
+            "fee_payments",
+            "tblpayments",
+            "tbl_payments",
         ],
         "field_map": {
             "amount": "amount",
@@ -258,10 +319,15 @@ ACCESS_TABLE_MAPPINGS = {
         },
         "transforms": {
             "amount": lambda v: float(str(v).replace(",", "")) if v else 0,
-            "payment_method": lambda v: {"Cash": "CASH", "cash": "CASH",
-                                          "Bank Transfer": "BANK_TRANSFER", "Transfer": "BANK_TRANSFER",
-                                          "Online": "ONLINE", "POS": "POS", "Cheque": "CHEQUE"
-                                          }.get(str(v).strip(), "CASH"),
+            "payment_method": lambda v: {
+                "Cash": "CASH",
+                "cash": "CASH",
+                "Bank Transfer": "BANK_TRANSFER",
+                "Transfer": "BANK_TRANSFER",
+                "Online": "ONLINE",
+                "POS": "POS",
+                "Cheque": "CHEQUE",
+            }.get(str(v).strip(), "CASH"),
         },
         "name_fields": {},
     },
@@ -269,8 +335,11 @@ ACCESS_TABLE_MAPPINGS = {
         "model_path": "apps.attendance.models",
         "model_name": "StudentAttendance",
         "table_aliases": [
-            "attendance", "student_attendance", "tblattendance",
-            "tbl_attendance", "daily_attendance",
+            "attendance",
+            "student_attendance",
+            "tblattendance",
+            "tbl_attendance",
+            "daily_attendance",
         ],
         "field_map": {
             "date": "date",
@@ -283,15 +352,28 @@ ACCESS_TABLE_MAPPINGS = {
             "remarks": "remark",
         },
         "foreign_keys": {
-            "student": {"lookup_field": "admission_number", "model_path": "apps.students.models", "model_name": "Student"},
+            "student": {
+                "lookup_field": "admission_number",
+                "model_path": "apps.students.models",
+                "model_name": "Student",
+            },
         },
         "transforms": {
-            "status": lambda v: {"Present": "PRESENT", "present": "PRESENT", "P": "PRESENT",
-                                  "Absent": "ABSENT", "absent": "ABSENT", "A": "ABSENT",
-                                  "Late": "LATE", "late": "LATE", "L": "LATE",
-                                  "Excused": "EXCUSED", "excused": "EXCUSED",
-                                  "On Leave": "ON_LEAVE", "leave": "ON_LEAVE"
-                                  }.get(str(v).strip(), "PRESENT"),
+            "status": lambda v: {
+                "Present": "PRESENT",
+                "present": "PRESENT",
+                "P": "PRESENT",
+                "Absent": "ABSENT",
+                "absent": "ABSENT",
+                "A": "ABSENT",
+                "Late": "LATE",
+                "late": "LATE",
+                "L": "LATE",
+                "Excused": "EXCUSED",
+                "excused": "EXCUSED",
+                "On Leave": "ON_LEAVE",
+                "leave": "ON_LEAVE",
+            }.get(str(v).strip(), "PRESENT"),
             "date": lambda v: str(v).strip() if v else None,
         },
         "name_fields": {},
@@ -300,8 +382,12 @@ ACCESS_TABLE_MAPPINGS = {
         "model_path": "apps.academics.models",
         "model_name": "Class",
         "table_aliases": [
-            "classes", "class", "class_list", "classess",
-            "tblclasses", "tbl_classes",
+            "classes",
+            "class",
+            "class_list",
+            "classess",
+            "tblclasses",
+            "tbl_classes",
         ],
         "field_map": {
             "name": "name",
@@ -323,7 +409,10 @@ ACCESS_TABLE_MAPPINGS = {
         "model_path": "apps.academics.models",
         "model_name": "Subject",
         "table_aliases": [
-            "subjects", "subject", "tblsubjects", "tbl_subjects",
+            "subjects",
+            "subject",
+            "tblsubjects",
+            "tbl_subjects",
         ],
         "field_map": {
             "name": "name",
@@ -336,9 +425,12 @@ ACCESS_TABLE_MAPPINGS = {
         },
         "foreign_keys": {},
         "transforms": {
-            "category": lambda v: {"Science": "SCIENCE", "Arts": "ARTS",
-                                    "Commercial": "COMMERCIAL", "General": "GENERAL"
-                                    }.get(str(v).strip(), "GENERAL"),
+            "category": lambda v: {
+                "Science": "SCIENCE",
+                "Arts": "ARTS",
+                "Commercial": "COMMERCIAL",
+                "General": "GENERAL",
+            }.get(str(v).strip(), "GENERAL"),
             "is_compulsory": lambda v: str(v).strip().lower() in ("yes", "true", "1"),
         },
         "name_fields": {},
@@ -347,8 +439,13 @@ ACCESS_TABLE_MAPPINGS = {
         "model_path": "apps.academics.models",
         "model_name": "ExamResult",
         "table_aliases": [
-            "exam_results", "examresults", "results", "scores",
-            "tblexamresults", "exam_scores", "student_results",
+            "exam_results",
+            "examresults",
+            "results",
+            "scores",
+            "tblexamresults",
+            "exam_scores",
+            "student_results",
         ],
         "field_map": {
             "marks_obtained": "marks_obtained",
@@ -359,7 +456,11 @@ ACCESS_TABLE_MAPPINGS = {
             "remarks": "remark",
         },
         "foreign_keys": {
-            "student": {"lookup_field": "admission_number", "model_path": "apps.students.models", "model_name": "Student"},
+            "student": {
+                "lookup_field": "admission_number",
+                "model_path": "apps.students.models",
+                "model_name": "Student",
+            },
             "exam": {"lookup_field": "name", "model_path": "apps.academics.models", "model_name": "Exam"},
             "subject": {"lookup_field": "code", "model_path": "apps.academics.models", "model_name": "Subject"},
         },
@@ -372,8 +473,12 @@ ACCESS_TABLE_MAPPINGS = {
         "model_path": "apps.departments.models",
         "model_name": "Department",
         "table_aliases": [
-            "departments", "department", "depts", "dept",
-            "tbldepartments", "tbl_departments",
+            "departments",
+            "department",
+            "depts",
+            "dept",
+            "tbldepartments",
+            "tbl_departments",
         ],
         "field_map": {
             "name": "name",

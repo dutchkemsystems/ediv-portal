@@ -29,6 +29,7 @@ User = get_user_model()
 class DocumentViewSet(viewsets.ModelViewSet):
     queryset = Document.objects.select_related("created_by", "department").all()
     from config.permissions import IsAdminOrTGOrDeptHead
+
     permission_classes = [IsAdminOrTGOrDeptHead]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["document_type", "status", "classification", "department"]

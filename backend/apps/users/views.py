@@ -382,9 +382,7 @@ class AuthViewSet(viewsets.ViewSet):
         # Generate secure token
         token = secrets.token_urlsafe(32)
         cache_key = f"ediv:password_reset:{token}"
-        cache.set(
-            cache_key, {"user_id": user.id, "created_at": str(timezone.now())}, timeout=3600
-        )
+        cache.set(cache_key, {"user_id": user.id, "created_at": str(timezone.now())}, timeout=3600)
 
         # Build reset URL
         frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:3000")
@@ -559,6 +557,7 @@ class AuthViewSet(viewsets.ViewSet):
         if not django_settings.DEBUG:
             return Response({"error": "Not available in production"}, status=403)
         import io
+
         from django.core.management import call_command
 
         results = {}

@@ -24,7 +24,9 @@ from .models import (
     AccessDatabase,
     AccessPrivilege,
     AccessTableData,
-    ImportError as ImportErrorModel,
+)
+from .models import ImportError as ImportErrorModel
+from .models import (
     ImportJob,
 )
 from .serializers import (
@@ -102,6 +104,7 @@ def _import_rows(rows, target_model, job):
 def _detect_access_driver():
     try:
         import pyodbc
+
         drivers = [d for d in pyodbc.drivers() if "Access" in d]
         if drivers:
             return "pyodbc"
@@ -120,9 +123,7 @@ def _parse_access_tables(tmp_path, driver):
     tables = {}
     if driver == "mdbtools":
         try:
-            result = subprocess.run(
-                ["mdb-tables", "-1", tmp_path], capture_output=True, text=True, timeout=30
-            )
+            result = subprocess.run(["mdb-tables", "-1", tmp_path], capture_output=True, text=True, timeout=30)
             table_names = [t.strip() for t in result.stdout.strip().split("\n") if t.strip()]
         except (FileNotFoundError, subprocess.TimeoutExpired):
             return {}
@@ -130,7 +131,10 @@ def _parse_access_tables(tmp_path, driver):
             try:
                 result = subprocess.run(
                     ["mdb-export", "-1", tmp_path, tbl],
-                    capture_output=True, text=True, timeout=60, encoding="utf-8-sig",
+                    capture_output=True,
+                    text=True,
+                    timeout=60,
+                    encoding="utf-8-sig",
                 )
                 reader = csv.DictReader(io.StringIO(result.stdout))
                 rows = list(reader)
@@ -141,6 +145,7 @@ def _parse_access_tables(tmp_path, driver):
     elif driver == "pyodbc":
         try:
             import pyodbc
+
             conn_str = f"DRIVER={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={tmp_path};"
             conn = pyodbc.connect(conn_str)
             cursor = conn.cursor()
@@ -240,7 +245,10 @@ class ImportJobViewSet(viewsets.ModelViewSet):
         try:
             result = subprocess.run(
                 ["mdb-export", db_path, target_table],
-                capture_output=True, text=True, timeout=60, encoding="utf-8-sig",
+                capture_output=True,
+                text=True,
+                timeout=60,
+                encoding="utf-8-sig",
             )
             reader = csv.DictReader(io.StringIO(result.stdout))
             rows = list(reader)
@@ -253,6 +261,7 @@ class ImportJobViewSet(viewsets.ModelViewSet):
     def _parse_with_pyodbc(self, db_path, table_aliases, mapping):
         try:
             import pyodbc
+
             conn_str = f"DRIVER={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={db_path};"
             conn = pyodbc.connect(conn_str)
             cursor = conn.cursor()
@@ -351,8 +360,16 @@ class ImportJobViewSet(viewsets.ModelViewSet):
         file_name = uploaded_file.name
         ext = file_name.rsplit(".", 1)[-1].lower() if "." in file_name else ""
 
-        type_map = {"csv": "CSV", "xlsx": "EXCEL", "xls": "EXCEL", "pdf": "PDF", "docx": "WORD", "json": "JSON",
-                     "accdb": "ACCESS", "mdb": "ACCESS"}
+        type_map = {
+            "csv": "CSV",
+            "xlsx": "EXCEL",
+            "xls": "EXCEL",
+            "pdf": "PDF",
+            "docx": "WORD",
+            "json": "JSON",
+            "accdb": "ACCESS",
+            "mdb": "ACCESS",
+        }
         file_type = type_map.get(ext, "CSV")
 
         job = ImportJob.objects.create(
@@ -793,9 +810,9 @@ class AccessDatabaseViewSet(viewsets.ModelViewSet):
         deleted_index = row.row_index
         row.delete()
 
-        AccessTableData.objects.filter(
-            database=db, table_name=table_name, row_index__gt=deleted_index
-        ).update(row_index=models.F("row_index") - 1)
+        AccessTableData.objects.filter(database=db, table_name=table_name, row_index__gt=deleted_index).update(
+            row_index=models.F("row_index") - 1
+        )
 
         db.total_records = AccessTableData.objects.filter(database=db).count()
         db.save()
@@ -817,9 +834,7 @@ class AccessDatabaseViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        AccessTableData.objects.filter(
-            database=db, table_name=table_name, row_index__in=row_indices
-        ).delete()
+        AccessTableData.objects.filter(database=db, table_name=table_name, row_index__in=row_indices).delete()
 
         remaining = AccessTableData.objects.filter(database=db, table_name=table_name).order_by("row_index")
         for idx, row in enumerate(remaining):
@@ -848,24 +863,22 @@ class AccessDatabaseViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        rows = AccessTableData.objects.filter(
-            database=db, table_name=table_name, row_index__in=row_indices
-        ).order_by("row_index")
+        rows = AccessTableData.objects.filter(database=db, table_name=table_name, row_index__in=row_indices).order_by(
+            "row_index"
+        )
 
         merged_data = {}
         for row in rows:
             if isinstance(row.data, dict):
                 merged_data.update(row.data)
 
-        target_row = get_object_or_404(
-            AccessTableData, database=db, table_name=table_name, row_index=target_index
-        )
+        target_row = get_object_or_404(AccessTableData, database=db, table_name=table_name, row_index=target_index)
         target_row.data = merged_data
         target_row.save()
 
-        AccessTableData.objects.filter(
-            database=db, table_name=table_name, row_index__in=row_indices
-        ).exclude(row_index=target_index).delete()
+        AccessTableData.objects.filter(database=db, table_name=table_name, row_index__in=row_indices).exclude(
+            row_index=target_index
+        ).delete()
 
         remaining = AccessTableData.objects.filter(database=db, table_name=table_name).order_by("row_index")
         for idx, row in enumerate(remaining):
@@ -965,6 +978,7 @@ class AccessDatabaseViewSet(viewsets.ModelViewSet):
             return Response({"error": "user_id is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         from django.contrib.auth import get_user_model
+
         User = get_user_model()
         target_user = get_object_or_404(User, pk=user_id)
 
@@ -1002,11 +1016,7 @@ class AccessDatabaseViewSet(viewsets.ModelViewSet):
         config = ACCESS_TABLE_MAPPINGS.get(target_key, {})
         sync_config = ACCESS_SYNC_MODELS[target_key]
 
-        all_tables = (
-            AccessTableData.objects.filter(database=db)
-            .values_list("table_name", flat=True)
-            .distinct()
-        )
+        all_tables = AccessTableData.objects.filter(database=db).values_list("table_name", flat=True).distinct()
 
         matched_table = None
         for alias in config.get("table_aliases", []):
@@ -1023,9 +1033,7 @@ class AccessDatabaseViewSet(viewsets.ModelViewSet):
         if not matched_table:
             return Response({"error": "No matching table found."}, status=status.HTTP_400_BAD_REQUEST)
 
-        rows = AccessTableData.objects.filter(
-            database=db, table_name=matched_table
-        ).order_by("row_index")
+        rows = AccessTableData.objects.filter(database=db, table_name=matched_table).order_by("row_index")
 
         mapped_rows = []
         for row in rows:
@@ -1103,13 +1111,15 @@ class AccessDatabaseViewSet(viewsets.ModelViewSet):
             description=f"Synced {synced}/{len(mapped_rows)} rows from {matched_table} to {target_key}",
         )
 
-        return Response({
-            "synced": synced,
-            "total": len(mapped_rows),
-            "errors": errors,
-            "table_used": matched_table,
-            "target_model": target_key,
-        })
+        return Response(
+            {
+                "synced": synced,
+                "total": len(mapped_rows),
+                "errors": errors,
+                "table_used": matched_table,
+                "target_model": target_key,
+            }
+        )
 
     @action(detail=True, methods=["get"], url_path="export")
     def export(self, request, pk=None):
@@ -1120,9 +1130,7 @@ class AccessDatabaseViewSet(viewsets.ModelViewSet):
         if not table_name:
             return Response({"error": "table parameter required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        rows = AccessTableData.objects.filter(
-            database=db, table_name=table_name
-        ).order_by("row_index")
+        rows = AccessTableData.objects.filter(database=db, table_name=table_name).order_by("row_index")
 
         if not rows.exists():
             return Response({"error": "Table has no data."}, status=status.HTTP_400_BAD_REQUEST)
@@ -1228,7 +1236,9 @@ class AccessDatabaseViewSet(viewsets.ModelViewSet):
 
         else:
             return Response(
-                {"error": f"Unknown operation: {operation}. Use sort, filter, find_replace, fill_down, or copy_column."},
+                {
+                    "error": f"Unknown operation: {operation}. Use sort, filter, find_replace, fill_down, or copy_column."
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

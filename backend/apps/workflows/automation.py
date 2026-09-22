@@ -26,6 +26,7 @@ from apps.registry.models import (
     MemoWorkflow,
 )
 from apps.workflows.models import Task, WorkflowInstance
+from apps.workflows.services.workflow_service import WorkflowService
 from apps.workflows.workflow_definitions import (
     ALL_WORKFLOWS,
     DEPARTMENT_CODES,
@@ -38,91 +39,266 @@ logger = logging.getLogger(__name__)
 
 DEPARTMENT_KEYWORDS = {
     "HR": [
-        "human resource", "staff", "employee", "recruitment", "appointment",
-        "promotion", "discipline", "leave", "training", "capacity building",
-        "staff welfare", "human resource management", "personnel", "staffing",
-        "orientation", "induction", "performance appraisal", "staff record",
-        "human capital", "labour", "workforce", "deployment", "transfer",
+        "human resource",
+        "staff",
+        "employee",
+        "recruitment",
+        "appointment",
+        "promotion",
+        "discipline",
+        "leave",
+        "training",
+        "capacity building",
+        "staff welfare",
+        "human resource management",
+        "personnel",
+        "staffing",
+        "orientation",
+        "induction",
+        "performance appraisal",
+        "staff record",
+        "human capital",
+        "labour",
+        "workforce",
+        "deployment",
+        "transfer",
     ],
     "FIN": [
-        "finance", "budget", "expenditure", "revenue", "accounting",
-        "financial", "payment", "invoice", "procurement fund", "audit query",
-        "financial report", "treasury", "cash flow", "appropriation",
-        "fiscal", "grant disbursement", "fund allocation", "disbursement",
-        "reimbursement", "virement", "financial statement",
+        "finance",
+        "budget",
+        "expenditure",
+        "revenue",
+        "accounting",
+        "financial",
+        "payment",
+        "invoice",
+        "procurement fund",
+        "audit query",
+        "financial report",
+        "treasury",
+        "cash flow",
+        "appropriation",
+        "fiscal",
+        "grant disbursement",
+        "fund allocation",
+        "disbursement",
+        "reimbursement",
+        "virement",
+        "financial statement",
     ],
     "AUD": [
-        "audit", "internal control", "compliance", "fraud", "forensic",
-        "risk assessment", "audit report", "audit finding", "audit recommendation",
-        "financial audit", "operational audit", "management audit",
-        "audit trail", "reconciliation", "verification",
+        "audit",
+        "internal control",
+        "compliance",
+        "fraud",
+        "forensic",
+        "risk assessment",
+        "audit report",
+        "audit finding",
+        "audit recommendation",
+        "financial audit",
+        "operational audit",
+        "management audit",
+        "audit trail",
+        "reconciliation",
+        "verification",
     ],
     "QA": [
-        "quality assurance", "inspection", "standard", "accreditation",
-        "quality control", "assessment", "evaluation", "examination",
-        "quality standard", "benchmark", "performance indicator",
-        "school inspection", "inspection report", "quality improvement",
-        "monitoring and evaluation", "compliance check",
+        "quality assurance",
+        "inspection",
+        "standard",
+        "accreditation",
+        "quality control",
+        "assessment",
+        "evaluation",
+        "examination",
+        "quality standard",
+        "benchmark",
+        "performance indicator",
+        "school inspection",
+        "inspection report",
+        "quality improvement",
+        "monitoring and evaluation",
+        "compliance check",
     ],
     "CC": [
-        "co-curricular", "sports", "cultural", "club", "society",
-        "extracurricular", "inter-school", "competition", "tournament",
-        "activities", "games", "athletics", "debate", "science fair",
-        "cultural festival", "sports day", "co-curricular activity",
+        "co-curricular",
+        "sports",
+        "cultural",
+        "club",
+        "society",
+        "extracurricular",
+        "inter-school",
+        "competition",
+        "tournament",
+        "activities",
+        "games",
+        "athletics",
+        "debate",
+        "science fair",
+        "cultural festival",
+        "sports day",
+        "co-curricular activity",
     ],
     "FRENCH": [
-        "french", "francophone", "french language", "french unit",
-        "bilingual", "langue francaise", "french immersion", "french programme",
-        "french teacher", "french curriculum", "french examination",
+        "french",
+        "francophone",
+        "french language",
+        "french unit",
+        "bilingual",
+        "langue francaise",
+        "french immersion",
+        "french programme",
+        "french teacher",
+        "french curriculum",
+        "french examination",
     ],
     "EMIS": [
-        "emis", "education management information", "data", "statistics",
-        "information system", "database", "reporting", "data collection",
-        "school data", "student data", "enrollment data", "census",
-        "data analysis", "information management", "school mapping",
+        "emis",
+        "education management information",
+        "data",
+        "statistics",
+        "information system",
+        "database",
+        "reporting",
+        "data collection",
+        "school data",
+        "student data",
+        "enrollment data",
+        "census",
+        "data analysis",
+        "information management",
+        "school mapping",
     ],
     "PLAN": [
-        "planning", "strategic plan", "development plan", "project",
-        "programme", "annual plan", "budget planning", "needs assessment",
-        "development", "implementation plan", "action plan", "master plan",
-        "sector plan", "education planning", "policy planning",
+        "planning",
+        "strategic plan",
+        "development plan",
+        "project",
+        "programme",
+        "annual plan",
+        "budget planning",
+        "needs assessment",
+        "development",
+        "implementation plan",
+        "action plan",
+        "master plan",
+        "sector plan",
+        "education planning",
+        "policy planning",
     ],
     "PROC": [
-        "procurement", "tender", "bid", "supply", "purchase",
-        "requisition", "quotation", "contract award", "vendor",
-        "supplier", "procurement process", "bidding", "evaluation committee",
-        "procurement plan", "public procurement",
+        "procurement",
+        "tender",
+        "bid",
+        "supply",
+        "purchase",
+        "requisition",
+        "quotation",
+        "contract award",
+        "vendor",
+        "supplier",
+        "procurement process",
+        "bidding",
+        "evaluation committee",
+        "procurement plan",
+        "public procurement",
     ],
     "PA": [
-        "public affairs", "public relation", "communication", "media",
-        "press", "publicity", "spokesperson", "public information",
-        "community relation", "stakeholder engagement", "public engagement",
-        "media relation", "news", "press release",
+        "public affairs",
+        "public relation",
+        "communication",
+        "media",
+        "press",
+        "publicity",
+        "spokesperson",
+        "public information",
+        "community relation",
+        "stakeholder engagement",
+        "public engagement",
+        "media relation",
+        "news",
+        "press release",
     ],
     "SA": [
-        "student affair", "school admin", "school management",
-        "student welfare", "admission", "enrollment", "registration",
-        "student record", "school head", "principal", "vice principal",
-        "school administration", "student discipline", "student support",
+        "student affair",
+        "school admin",
+        "school management",
+        "student welfare",
+        "admission",
+        "enrollment",
+        "registration",
+        "student record",
+        "school head",
+        "principal",
+        "vice principal",
+        "school administration",
+        "student discipline",
+        "student support",
         "guidance and counselling",
     ],
     "REG": [
-        "registry", "correspondence", "mail", "dispatch", "filing",
-        "document management", "record keeping", "archival", "reference number",
-        "incoming mail", "outgoing mail", "letter", "memo", "circular",
-        "internal memo", "official correspondence",
+        "registry",
+        "correspondence",
+        "mail",
+        "dispatch",
+        "filing",
+        "document management",
+        "record keeping",
+        "archival",
+        "reference number",
+        "incoming mail",
+        "outgoing mail",
+        "letter",
+        "memo",
+        "circular",
+        "internal memo",
+        "official correspondence",
     ],
     "TG": [
-        "tutor general", "permanent secretary", "management", "policy",
-        "governance", "strategic direction", "office of the tg",
-        "tg office", "executive decision", "board", "ministry directive",
+        "tutor general",
+        "permanent secretary",
+        "management",
+        "policy",
+        "governance",
+        "strategic direction",
+        "office of the tg",
+        "tg office",
+        "executive decision",
+        "board",
+        "ministry directive",
     ],
 }
 
 FILE_CATEGORY_KEYWORDS = {
-    "FIN": ["budget", "financial", "invoice", "payment", "expenditure", "revenue", "fund", "appropriation"],
-    "PROC": ["procurement", "tender", "bid", "supply", "contract", "purchase", "quotation"],
-    "ACAD": ["academic", "curriculum", "examination", "result", "grading", "syllabus", "teaching"],
+    "FIN": [
+        "budget",
+        "financial",
+        "invoice",
+        "payment",
+        "expenditure",
+        "revenue",
+        "fund",
+        "appropriation",
+    ],
+    "PROC": [
+        "procurement",
+        "tender",
+        "bid",
+        "supply",
+        "contract",
+        "purchase",
+        "quotation",
+    ],
+    "ACAD": [
+        "academic",
+        "curriculum",
+        "examination",
+        "result",
+        "grading",
+        "syllabus",
+        "teaching",
+    ],
     "ADMIN": ["administrative", "general", "staff", "office", "management"],
     "INSP": ["inspection", "monitoring", "evaluation", "compliance", "quality"],
     "DISC": ["disciplinary", "misconduct", "complaint", "grievance", "sanction"],
@@ -132,8 +308,23 @@ FILE_CATEGORY_KEYWORDS = {
 }
 
 URGENCY_KEYWORDS = {
-    "URGENT": ["urgent", "emergency", "immediate", "critical", "asap", "time-sensitive", "deadline today"],
-    "HIGH": ["important", "priority", "expedite", "fast track", "deadline approaching", "overdue"],
+    "URGENT": [
+        "urgent",
+        "emergency",
+        "immediate",
+        "critical",
+        "asap",
+        "time-sensitive",
+        "deadline today",
+    ],
+    "HIGH": [
+        "important",
+        "priority",
+        "expedite",
+        "fast track",
+        "deadline approaching",
+        "overdue",
+    ],
     "NORMAL": ["routine", "standard", "regular", "normal"],
     "LOW": ["information", "fyi", "note", "for record", "low priority"],
 }
@@ -149,8 +340,7 @@ class AgenticRouter:
     def _get_departments(self):
         if self._department_cache is None:
             self._department_cache = {
-                dept.code: dept
-                for dept in Department.objects.filter(is_active=True)
+                dept.code: dept for dept in Department.objects.filter(is_active=True)
             }
         return self._department_cache
 
@@ -225,9 +415,19 @@ class AgenticRouter:
         if dept and dept.head:
             return dept.head
         role_map = {
-            "TG": "TG_PS", "HR": "HR", "FIN": "FIN", "AUD": "AUDIT",
-            "QA": "QA", "CC": "CC", "FRENCH": "FRENCH", "EMIS": "EMIS",
-            "PLAN": "PLAN", "PROC": "PROC", "PA": "PA", "SA": "SA", "REG": "REG",
+            "TG": "TG_PS",
+            "HR": "HR",
+            "FIN": "FIN",
+            "AUD": "AUDIT",
+            "QA": "QA",
+            "CC": "CC",
+            "FRENCH": "FRENCH",
+            "EMIS": "EMIS",
+            "PLAN": "PLAN",
+            "PROC": "PROC",
+            "PA": "PA",
+            "SA": "SA",
+            "REG": "REG",
         }
         role = role_map.get(department_code)
         if role:
@@ -242,19 +442,27 @@ class AgenticRouter:
         dept = departments.get(department_code)
         if not dept:
             return []
-        staff = list(User.objects.filter(
-            Q(departments__head=dept) | Q(units__department=dept),
-            is_active=True,
-        ).distinct())
+        staff = list(
+            User.objects.filter(
+                Q(departments__head=dept) | Q(units__department=dept),
+                is_active=True,
+            ).distinct()
+        )
         if exclude_head and head:
             staff = [u for u in staff if u.id != head.id]
         return staff
 
     def auto_assign_task(self, task, workflow_step):
         try:
-            assigned_role = workflow_step.assigned_role if hasattr(workflow_step, "assigned_role") else None
+            assigned_role = (
+                workflow_step.assigned_role
+                if hasattr(workflow_step, "assigned_role")
+                else None
+            )
             if assigned_role:
-                candidate = User.objects.filter(role=assigned_role, is_active=True).first()
+                candidate = User.objects.filter(
+                    role=assigned_role, is_active=True
+                ).first()
                 if candidate:
                     task.assigned_to = candidate
                     task.save(update_fields=["assigned_to", "updated_at"])
@@ -265,11 +473,16 @@ class AgenticRouter:
 
     def route_incoming_mail(self, mail):
         try:
-            analysis_text = " ".join(filter(None, [
-                getattr(mail, "subject", "") or "",
-                getattr(mail, "content", "") or getattr(mail, "body", "") or "",
-                getattr(mail, "sender", "") or "",
-            ]))
+            analysis_text = " ".join(
+                filter(
+                    None,
+                    [
+                        getattr(mail, "subject", "") or "",
+                        getattr(mail, "content", "") or getattr(mail, "body", "") or "",
+                        getattr(mail, "sender", "") or "",
+                    ],
+                )
+            )
             dept_code = self.determine_department(analysis_text)
             dept_head = self.get_department_head(dept_code)
             urgency = self.determine_urgency(analysis_text)
@@ -303,11 +516,16 @@ class AgenticRouter:
 
     def route_file(self, file):
         try:
-            analysis_text = " ".join(filter(None, [
-                file.title or "",
-                file.description or "",
-                " ".join(file.tags or []),
-            ]))
+            analysis_text = " ".join(
+                filter(
+                    None,
+                    [
+                        file.title or "",
+                        file.description or "",
+                        " ".join(file.tags or []),
+                    ],
+                )
+            )
             dept_code = self.determine_department(analysis_text)
             dept_head = self.get_department_head(dept_code)
             category = self.determine_file_category(analysis_text)
@@ -322,10 +540,16 @@ class AgenticRouter:
             file.file_category = category
             file.priority = urgency
             file.classification = classification
-            file.save(update_fields=[
-                "assigned_department", "department", "file_category",
-                "priority", "classification", "updated_at",
-            ])
+            file.save(
+                update_fields=[
+                    "assigned_department",
+                    "department",
+                    "file_category",
+                    "priority",
+                    "classification",
+                    "updated_at",
+                ]
+            )
             result = {
                 "department_code": dept_code,
                 "department_head": dept_head,
@@ -353,10 +577,15 @@ class AgenticRouter:
     def route_memo(self, memo):
         try:
             document = memo.document if hasattr(memo, "document") else memo
-            analysis_text = " ".join(filter(None, [
-                getattr(document, "title", "") or "",
-                getattr(document, "content", "") or "",
-            ]))
+            analysis_text = " ".join(
+                filter(
+                    None,
+                    [
+                        getattr(document, "title", "") or "",
+                        getattr(document, "content", "") or "",
+                    ],
+                )
+            )
             dept_code = self.determine_department(analysis_text)
             urgency = self.determine_urgency(analysis_text)
             classification = self.determine_security_classification(analysis_text)
@@ -400,11 +629,16 @@ class MailDistributor:
         self.router = AgenticRouter()
 
     def classify_mail(self, mail):
-        text = " ".join(filter(None, [
-            getattr(mail, "subject", "") or "",
-            getattr(mail, "content", "") or getattr(mail, "body", "") or "",
-            getattr(mail, "sender", "") or "",
-        ]))
+        text = " ".join(
+            filter(
+                None,
+                [
+                    getattr(mail, "subject", "") or "",
+                    getattr(mail, "content", "") or getattr(mail, "body", "") or "",
+                    getattr(mail, "sender", "") or "",
+                ],
+            )
+        )
         doc_type = "CORRESPONDENCE"
         text_lower = text.lower()
         type_keywords = {
@@ -440,7 +674,9 @@ class MailDistributor:
                 dept_code = classification["department_code"]
                 assigned_to = self.router.get_department_head(dept_code)
             if assigned_to is None:
-                assigned_to = User.objects.filter(role="SYSADMIN", is_active=True).first()
+                assigned_to = User.objects.filter(
+                    role="SYSADMIN", is_active=True
+                ).first()
             if assigned_to is None:
                 logger.warning("No assignee found for mail action")
                 return None
@@ -451,7 +687,9 @@ class MailDistributor:
                 document = mail
             elif isinstance(mail, dict):
                 title = mail.get("title", "Untitled Mail")
-                ref_number = mail.get("reference_number", f"EDIV/MAIL/{timezone.now().year}/AUTO")
+                ref_number = mail.get(
+                    "reference_number", f"EDIV/MAIL/{timezone.now().year}/AUTO"
+                )
                 sender_name = mail.get("sender", "Unknown")
                 document = Document.objects.create(
                     reference_number=ref_number,
@@ -487,7 +725,9 @@ class MailDistributor:
                 workflow_type = "INCOMING_MAIL"
             ref_number = getattr(document, "reference_number", None)
             if ref_number is None:
-                ref_number = f"EDIV/MAIL/{timezone.now().year}/{timezone.now().timestamp():.0f}"
+                ref_number = (
+                    f"EDIV/MAIL/{timezone.now().year}/{timezone.now().timestamp():.0f}"
+                )
             try:
                 instance = WorkflowService.start_instance(
                     workflow_type=workflow_type,
@@ -497,10 +737,18 @@ class MailDistributor:
                         "document_id": document.id if document else None,
                         "action_required": action_required,
                         "classification": classification,
-                        "deadline": deadline.isoformat() if hasattr(deadline, "isoformat") else str(deadline) if deadline else None,
+                        "deadline": (
+                            deadline.isoformat()
+                            if hasattr(deadline, "isoformat")
+                            else str(deadline)
+                            if deadline
+                            else None
+                        ),
                     },
                 )
-                logger.info(f"Workflow instance {instance.reference_number} created for mail")
+                logger.info(
+                    f"Workflow instance {instance.reference_number} created for mail"
+                )
             except Exception as e:
                 logger.warning(f"Could not start workflow instance: {e}")
             result = {
@@ -521,7 +769,9 @@ class MailDistributor:
 
     def notify_recipients(self, mail, recipients):
         results = []
-        subject = getattr(mail, "subject", None) or getattr(mail, "title", "Mail Notification")
+        subject = getattr(mail, "subject", None) or getattr(
+            mail, "title", "Mail Notification"
+        )
         if isinstance(mail, Document):
             subject = f"New Mail: {mail.title}"
             body = f"You have been assigned a new mail item.\n\nReference: {mail.reference_number}\nSubject: {mail.title}"
@@ -553,7 +803,9 @@ class MailDistributor:
                 dept_code = classification["department_code"]
                 dept_head = self.router.get_department_head(dept_code)
                 if dept_head is None:
-                    dept_head = User.objects.filter(role="SYSADMIN", is_active=True).first()
+                    dept_head = User.objects.filter(
+                        role="SYSADMIN", is_active=True
+                    ).first()
                 result = self.assign_action(
                     mail=mail,
                     action_required="Process incoming mail",
@@ -633,7 +885,12 @@ class MailDistributor:
         successful = sum(1 for r in results if r.get("success"))
         failed = len(results) - successful
         logger.info(f"Bulk mail distribution: {successful} successful, {failed} failed")
-        return {"total": len(results), "successful": successful, "failed": failed, "details": results}
+        return {
+            "total": len(results),
+            "successful": successful,
+            "failed": failed,
+            "details": results,
+        }
 
 
 class FileDistributor:
@@ -707,7 +964,9 @@ class FileDistributor:
             candidate = User.objects.filter(role=django_role, is_active=True).first()
             if candidate:
                 return candidate
-            dept_code = file.assigned_department.code if file.assigned_department else "REG"
+            dept_code = (
+                file.assigned_department.code if file.assigned_department else "REG"
+            )
             return self.router.get_department_head(dept_code)
         except Exception as e:
             logger.error(f"Failed to determine next holder: {e}")
@@ -722,12 +981,19 @@ class FileDistributor:
         successful = sum(1 for r in results if r.get("success"))
         failed = len(results) - successful
         logger.info(f"Bulk file distribution: {successful} successful, {failed} failed")
-        return {"total": len(results), "successful": successful, "failed": failed, "details": results}
+        return {
+            "total": len(results),
+            "successful": successful,
+            "failed": failed,
+            "details": results,
+        }
 
     def rebalance_workload(self, department):
         try:
             if isinstance(department, str):
-                department = Department.objects.filter(code=department, is_active=True).first()
+                department = Department.objects.filter(
+                    code=department, is_active=True
+                ).first()
             if department is None:
                 return {"success": False, "error": "Department not found"}
             active_files = File.objects.filter(
@@ -752,7 +1018,9 @@ class FileDistributor:
                     current_holder_id=max_holder_id,
                     status__in=["ACTIVE", "PENDING"],
                 ).select_related("current_holder")[:2]
-                target_user = User.objects.filter(id=min_holder_id, is_active=True).first()
+                target_user = User.objects.filter(
+                    id=min_holder_id, is_active=True
+                ).first()
                 if target_user:
                     for f in excess_files:
                         try:
@@ -765,8 +1033,12 @@ class FileDistributor:
                             )
                             rebalanced += 1
                         except Exception as e:
-                            logger.error(f"Rebalance failed for file {f.file_number}: {e}")
-            logger.info(f"Workload rebalance for {department.code}: {rebalanced} files moved")
+                            logger.error(
+                                f"Rebalance failed for file {f.file_number}: {e}"
+                            )
+            logger.info(
+                f"Workload rebalance for {department.code}: {rebalanced} files moved"
+            )
             return {"success": True, "rebalanced": rebalanced}
         except Exception as e:
             logger.error(f"Workload rebalance failed: {e}")
@@ -791,15 +1063,23 @@ class DepartmentAgent:
     def _get_department_items(self, department, item_type="all"):
         items = {"pending_mails": [], "pending_files": [], "overdue_items": []}
         if item_type in ("all", "mail"):
-            items["pending_mails"] = Document.objects.filter(
-                Q(assigned_department=department) | Q(department=department),
-                status__in=["DRAFT", "PENDING"],
-            ).select_related("created_by").order_by("-created_at")[:50]
+            items["pending_mails"] = (
+                Document.objects.filter(
+                    Q(assigned_department=department) | Q(department=department),
+                    status__in=["DRAFT", "PENDING"],
+                )
+                .select_related("created_by")
+                .order_by("-created_at")[:50]
+            )
         if item_type in ("all", "file"):
-            items["pending_files"] = File.objects.filter(
-                Q(assigned_department=department) | Q(department=department),
-                status__in=["ACTIVE", "PENDING", "IN_TRANSIT", "UNDER_REVIEW"],
-            ).select_related("current_holder", "created_by").order_by("-created_at")[:50]
+            items["pending_files"] = (
+                File.objects.filter(
+                    Q(assigned_department=department) | Q(department=department),
+                    status__in=["ACTIVE", "PENDING", "IN_TRANSIT", "UNDER_REVIEW"],
+                )
+                .select_related("current_holder", "created_by")
+                .order_by("-created_at")[:50]
+            )
         if item_type in ("all", "overdue"):
             items["overdue_items"] = File.objects.filter(
                 Q(assigned_department=department) | Q(department=department),
@@ -820,13 +1100,20 @@ class DepartmentAgent:
         errors = 0
         for mail in pending_mails:
             try:
-                correspondence = mail.correspondence if hasattr(mail, "correspondence") else None
-                text = " ".join(filter(None, [
-                    mail.title or "",
-                    mail.content or "",
-                    correspondence.subject if correspondence else "",
-                    correspondence.sender if correspondence else "",
-                ]))
+                correspondence = (
+                    mail.correspondence if hasattr(mail, "correspondence") else None
+                )
+                text = " ".join(
+                    filter(
+                        None,
+                        [
+                            mail.title or "",
+                            mail.content or "",
+                            correspondence.subject if correspondence else "",
+                            correspondence.sender if correspondence else "",
+                        ],
+                    )
+                )
                 urgency = self.router.determine_urgency(text)
                 classification = self.router.determine_security_classification(text)
                 mail.status = "PENDING"
@@ -834,16 +1121,23 @@ class DepartmentAgent:
                 mail.save(update_fields=["status", "classification", "updated_at"])
                 department_head = department.head
                 if department_head and mail.created_by != department_head:
-                    staff = User.objects.filter(
-                        is_active=True,
-                    ).filter(
-                        Q(departments__head=department) | Q(units__department=department),
-                    ).exclude(id=department_head.id).first()
+                    staff = (
+                        User.objects.filter(
+                            is_active=True,
+                        )
+                        .filter(
+                            Q(departments__head=department)
+                            | Q(units__department=department),
+                        )
+                        .exclude(id=department_head.id)
+                        .first()
+                    )
                     assignee = staff or department_head
                 else:
-                    assignee = department_head or User.objects.filter(
-                        role="SYSADMIN", is_active=True
-                    ).first()
+                    assignee = (
+                        department_head
+                        or User.objects.filter(role="SYSADMIN", is_active=True).first()
+                    )
                 if assignee:
                     NotificationService.send_notification(
                         recipient=assignee,
@@ -892,13 +1186,26 @@ class DepartmentAgent:
             action="ARCHIVED",
             movement_date__date=today,
         ).count()
-        overdue_count = items["overdue_items"].count() if hasattr(items["overdue_items"], "count") else len(items["overdue_items"])
-        pending_count = items["pending_files"].count() if hasattr(items["pending_files"], "count") else len(items["pending_files"])
-        active_staff = User.objects.filter(
-            is_active=True,
-        ).filter(
-            Q(departments__head=department) | Q(units__department=department),
-        ).distinct().count()
+        overdue_count = (
+            items["overdue_items"].count()
+            if hasattr(items["overdue_items"], "count")
+            else len(items["overdue_items"])
+        )
+        pending_count = (
+            items["pending_files"].count()
+            if hasattr(items["pending_files"], "count")
+            else len(items["pending_files"])
+        )
+        active_staff = (
+            User.objects.filter(
+                is_active=True,
+            )
+            .filter(
+                Q(departments__head=department) | Q(units__department=department),
+            )
+            .distinct()
+            .count()
+        )
         workflow_instances = WorkflowInstance.objects.filter(
             initiated_by__in=User.objects.filter(
                 is_active=True,
@@ -934,8 +1241,14 @@ class DepartmentAgent:
                     "file_number": f.file_number,
                     "title": f.title,
                     "priority": f.priority,
-                    "current_holder": f.current_holder.get_full_name() if f.current_holder else None,
-                    "expected_completion": f.expected_completion_date.isoformat() if f.expected_completion_date else None,
+                    "current_holder": f.current_holder.get_full_name()
+                    if f.current_holder
+                    else None,
+                    "expected_completion": (
+                        f.expected_completion_date.isoformat()
+                        if f.expected_completion_date
+                        else None
+                    ),
                 }
                 for f in items["overdue_items"][:10]
             ],
@@ -962,7 +1275,9 @@ class DepartmentAgent:
         for file_obj in overdue_files:
             try:
                 old_priority = file_obj.priority
-                new_priority = FileMovementService.PRIORITY_ESCALATION.get(old_priority, old_priority)
+                new_priority = FileMovementService.PRIORITY_ESCALATION.get(
+                    old_priority, old_priority
+                )
                 file_obj.priority = new_priority
                 file_obj.escalation_status = "ESCALATED"
                 file_obj.escalation_reason = (
@@ -970,19 +1285,28 @@ class DepartmentAgent:
                     f"deadline {file_obj.expected_completion_date} passed"
                 )
                 file_obj.escalated_at = timezone.now()
-                file_obj.save(update_fields=[
-                    "priority", "escalation_status", "escalation_reason",
-                    "escalated_at", "updated_at",
-                ])
+                file_obj.save(
+                    update_fields=[
+                        "priority",
+                        "escalation_status",
+                        "escalation_reason",
+                        "escalated_at",
+                        "updated_at",
+                    ]
+                )
                 FileMovementService._add_timeline_entry(
                     file_obj,
                     file_obj.status,
-                    file_obj.created_by or User.objects.filter(role="SYSADMIN", is_active=True).first(),
+                    file_obj.created_by
+                    or User.objects.filter(role="SYSADMIN", is_active=True).first(),
                     "ESCALATED",
                     f"Auto-escalated by DepartmentAgent: deadline passed",
                 )
                 file_obj.save(update_fields=["status_timeline"])
-                if file_obj.current_holder and file_obj.current_holder_id not in notified:
+                if (
+                    file_obj.current_holder
+                    and file_obj.current_holder_id not in notified
+                ):
                     NotificationService.send_notification(
                         recipient=file_obj.current_holder,
                         subject=f"OVERDUE: File {file_obj.file_number}",
@@ -1022,7 +1346,11 @@ class DepartmentAgent:
             correspondence__response_deadline__lt=today,
         ).select_related("created_by")
         overdue_mails_count = overdue_mails.count()
-        if department.head and overdue_mails_count > 0 and department.head_id not in notified:
+        if (
+            department.head
+            and overdue_mails_count > 0
+            and department.head_id not in notified
+        ):
             NotificationService.send_notification(
                 recipient=department.head,
                 subject=f"OVERDUE: {overdue_mails_count} mail(s) require response",
@@ -1056,7 +1384,10 @@ class DepartmentAgent:
                 return self.mail_distributor.distribute(item)
             else:
                 logger.warning(f"Unknown item type for auto_route: {type(item)}")
-                return {"success": False, "error": f"Unsupported item type: {type(item)}"}
+                return {
+                    "success": False,
+                    "error": f"Unsupported item type: {type(item)}",
+                }
         except Exception as e:
             logger.error(f"Auto-route failed: {e}")
             return {"success": False, "error": str(e)}
@@ -1118,9 +1449,17 @@ class AutomationEngine:
             agent = self.get_department_agent(dept.code)
             result = agent.check_overdue_items(dept.code)
             results.append(result)
-        total_escalated = sum(r.get("files_escalated", 0) for r in results if r.get("success"))
-        logger.info(f"Overdue check complete: {total_escalated} files escalated across {len(results)} departments")
-        return {"departments_checked": len(results), "total_escalated": total_escalated, "details": results}
+        total_escalated = sum(
+            r.get("files_escalated", 0) for r in results if r.get("success")
+        )
+        logger.info(
+            f"Overdue check complete: {total_escalated} files escalated across {len(results)} departments"
+        )
+        return {
+            "departments_checked": len(results),
+            "total_escalated": total_escalated,
+            "details": results,
+        }
 
     def generate_all_daily_summaries(self):
         departments = Department.objects.filter(is_active=True)
@@ -1138,9 +1477,15 @@ class AutomationEngine:
         for dept in departments:
             result = self.file_distributor.rebalance_workload(dept)
             results.append({"department": dept.code, **result})
-        total_rebalanced = sum(r.get("rebalanced", 0) for r in results if r.get("success"))
+        total_rebalanced = sum(
+            r.get("rebalanced", 0) for r in results if r.get("success")
+        )
         logger.info(f"Workload rebalance complete: {total_rebalanced} files moved")
-        return {"departments_checked": len(results), "total_rebalanced": total_rebalanced, "details": results}
+        return {
+            "departments_checked": len(results),
+            "total_rebalanced": total_rebalanced,
+            "details": results,
+        }
 
     def run_full_cycle(self):
         logger.info("Starting full automation cycle")

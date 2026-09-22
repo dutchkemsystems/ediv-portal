@@ -133,16 +133,12 @@ class Payment(models.Model):
 
     def save(self, *args, **kwargs):
         from django.db import transaction
+
         super().save(*args, **kwargs)
         # Atomic aggregation to prevent race conditions on concurrent payments
         with transaction.atomic():
             sf = StudentFee.objects.select_for_update().get(pk=self.student_fee_id)
-            total_paid = (
-                sf.payments.filter(is_confirmed=True).aggregate(
-                    total=models.Sum("amount")
-                )["total"]
-                or 0
-            )
+            total_paid = sf.payments.filter(is_confirmed=True).aggregate(total=models.Sum("amount"))["total"] or 0
             sf.amount_paid = total_paid
             sf.balance = sf.amount_due - sf.amount_paid
             if sf.balance <= 0:

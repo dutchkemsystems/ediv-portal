@@ -6,7 +6,18 @@ from rest_framework.response import Response
 from config.permissions import IsAcademicStaff
 from config.rbac import RoleBasedPermission, SchoolScopedQuerysetMixin
 
-from .models import AcademicCalendar, Class, ClassSubject, Exam, ExamResult, GradeBoundary, GradingScale, ReportCard, StudentEnrollment, Subject
+from .models import (
+    AcademicCalendar,
+    Class,
+    ClassSubject,
+    Exam,
+    ExamResult,
+    GradeBoundary,
+    GradingScale,
+    ReportCard,
+    StudentEnrollment,
+    Subject,
+)
 from .serializers import (
     AcademicCalendarSerializer,
     BulkMarkEntrySerializer,
@@ -82,7 +93,9 @@ class ExamResultViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
 
         from decimal import Decimal
-        from .models import Exam as ExamModel, Subject as SubjectModel
+
+        from .models import Exam as ExamModel
+        from .models import Subject as SubjectModel
 
         try:
             exam = ExamModel.objects.get(id=serializer.validated_data["exam_id"])
@@ -110,17 +123,21 @@ class ExamResultViewSet(viewsets.ModelViewSet):
                     "entered_by": request.user,
                 },
             )
-            results.append({
-                "student_id": student_id,
-                "result_id": result.id,
-                "grade": result.grade,
-                "created": created,
-            })
+            results.append(
+                {
+                    "student_id": student_id,
+                    "result_id": result.id,
+                    "grade": result.grade,
+                    "created": created,
+                }
+            )
 
-        return Response({
-            "message": f"Processed {len(results)} results.",
-            "results": results,
-        })
+        return Response(
+            {
+                "message": f"Processed {len(results)} results.",
+                "results": results,
+            }
+        )
 
 
 class ReportCardViewSet(viewsets.ModelViewSet):

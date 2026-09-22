@@ -8,7 +8,7 @@ import authReducer from '../store/authSlice'
 
 // Mock react-apexcharts — jsdom lacks SVG getScreenCTM needed by apexcharts
 vi.mock('react-apexcharts', () => ({
-  default: (props) => <div data-testid="chart" />,
+  default: () => <div data-testid="apex-chart" />,
 }))
 
 const mockGet = vi.fn()

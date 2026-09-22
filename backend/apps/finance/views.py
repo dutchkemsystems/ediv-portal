@@ -5,7 +5,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from config.permissions import IsFinanceOrAdmin, IsAdminOrTGOrDeptHead
+from config.permissions import IsAdminOrTGOrDeptHead, IsFinanceOrAdmin
 from config.rbac import RoleBasedPermission, SchoolScopedQuerysetMixin
 
 from .models import Budget, FeeStructure, Grant, Payment, StudentFee
@@ -82,6 +82,7 @@ class GrantViewSet(SchoolScopedQuerysetMixin, viewsets.ModelViewSet):
 
 class FinancialReportView(APIView):
     """Financial summary report endpoint."""
+
     rbac_app = "finance"
     permission_classes = [RoleBasedPermission]
 
@@ -108,9 +109,7 @@ class FinancialReportView(APIView):
         total_balance = total_due - total_paid
 
         by_status = dict(
-            fees_qs.values_list("status")
-            .annotate(count=db_models.Count("id"))
-            .values_list("status", "count")
+            fees_qs.values_list("status").annotate(count=db_models.Count("id")).values_list("status", "count")
         )
 
         by_fee_type = list(
@@ -127,22 +126,25 @@ class FinancialReportView(APIView):
             "student_fee__student__user", "student_fee__fee_structure"
         ).order_by("-payment_date")[:20]
 
-        return Response({
-            "summary": {
-                "total_due": float(total_due),
-                "total_paid": float(total_paid),
-                "total_balance": float(total_balance),
-                "collection_rate": round((total_paid / total_due * 100), 2) if total_due > 0 else 0,
-                "total_fees": fees_qs.count(),
-            },
-            "by_status": by_status,
-            "by_fee_type": by_fee_type,
-            "recent_payments": PaymentSerializer(recent_payments, many=True).data,
-        })
+        return Response(
+            {
+                "summary": {
+                    "total_due": float(total_due),
+                    "total_paid": float(total_paid),
+                    "total_balance": float(total_balance),
+                    "collection_rate": round((total_paid / total_due * 100), 2) if total_due > 0 else 0,
+                    "total_fees": fees_qs.count(),
+                },
+                "by_status": by_status,
+                "by_fee_type": by_fee_type,
+                "recent_payments": PaymentSerializer(recent_payments, many=True).data,
+            }
+        )
 
 
 class RevenueBySchoolView(APIView):
     """Revenue breakdown by school."""
+
     rbac_app = "finance"
     permission_classes = [RoleBasedPermission]
 
@@ -171,6 +173,7 @@ class RevenueBySchoolView(APIView):
 
 class OutstandingBalanceView(APIView):
     """Outstanding balances by student."""
+
     rbac_app = "finance"
     permission_classes = [RoleBasedPermission]
 
@@ -178,9 +181,9 @@ class OutstandingBalanceView(APIView):
         school_id = request.query_params.get("school_id")
         limit = int(request.query_params.get("limit", 50))
 
-        qs = StudentFee.objects.filter(
-            status__in=["PENDING", "PARTIAL"]
-        ).select_related("student__user", "fee_structure__school")
+        qs = StudentFee.objects.filter(status__in=["PENDING", "PARTIAL"]).select_related(
+            "student__user", "fee_structure__school"
+        )
 
         if school_id:
             qs = qs.filter(fee_structure__school_id=school_id)

@@ -288,13 +288,12 @@ class GradingScaleSerializer(serializers.ModelSerializer):
 
 class BulkMarkEntrySerializer(serializers.Serializer):
     """Serializer for bulk mark entry."""
+
     exam_id = serializers.IntegerField()
     subject_id = serializers.IntegerField()
     marks = serializers.ListField(
-        child=serializers.DictField(
-            child=serializers.Field()
-        ),
-        help_text="List of {student_id: int, marks_obtained: decimal, remark: str}"
+        child=serializers.DictField(child=serializers.Field()),
+        help_text="List of {student_id: int, marks_obtained: decimal, remark: str}",
     )
 
     def validate_marks(self, value):

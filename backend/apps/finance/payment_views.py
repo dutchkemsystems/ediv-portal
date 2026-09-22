@@ -124,9 +124,7 @@ class KoraPayWebhookView(views.APIView):
 
                 # Atomic update with row-level lock to prevent race conditions
                 with transaction.atomic():
-                    student_fee = StudentFee.objects.select_for_update().get(
-                        pk=payment.student_fee_id
-                    )
+                    student_fee = StudentFee.objects.select_for_update().get(pk=payment.student_fee_id)
                     total_paid = (
                         student_fee.payments.filter(is_confirmed=True).aggregate(total=Sum("amount"))["total"] or 0
                     )

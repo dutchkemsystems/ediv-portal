@@ -18,17 +18,13 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("db_path", help="Path to .accdb or .mdb file")
-        parser.add_argument(
-            "--output", "-o", default="export", help="Output directory (default: export)"
-        )
+        parser.add_argument("--output", "-o", default="export", help="Output directory (default: export)")
         parser.add_argument(
             "--list-tables",
             action="store_true",
             help="List tables without exporting",
         )
-        parser.add_argument(
-            "--table", "-t", help="Export only this specific table"
-        )
+        parser.add_argument("--table", "-t", help="Export only this specific table")
         parser.add_argument(
             "--driver",
             choices=["pyodbc", "mdbtools"],
@@ -46,9 +42,7 @@ class Command(BaseCommand):
                 try:
                     import pyodbc
 
-                    pyodbc.connect(
-                        f"DRIVER={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={db_path};"
-                    )
+                    pyodbc.connect(f"DRIVER={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={db_path};")
                 except Exception as e:
                     raise CommandError(f"pyodbc not available: {e}")
             else:
@@ -86,9 +80,7 @@ class Command(BaseCommand):
         if options["table"]:
             target = options["table"]
             if target not in tables:
-                raise CommandError(
-                    f"Table '{target}' not found. Available: {', '.join(sorted(tables))}"
-                )
+                raise CommandError(f"Table '{target}' not found. Available: {', '.join(sorted(tables))}")
             export_tables = [target]
 
         manifest = {
@@ -103,9 +95,7 @@ class Command(BaseCommand):
         for table in sorted(export_tables):
             mapping = find_mapping_for_table(table)
             if mapping is None:
-                self.stdout.write(
-                    self.style.WARNING(f"  Skipping unmapped table: {table}")
-                )
+                self.stdout.write(self.style.WARNING(f"  Skipping unmapped table: {table}"))
                 skipped_count += 1
                 continue
 
@@ -126,9 +116,7 @@ class Command(BaseCommand):
                 skipped_count += 1
                 continue
 
-            mapped_headers, mapped_rows = self._apply_field_mapping(
-                rows, headers, mapping
-            )
+            mapped_headers, mapped_rows = self._apply_field_mapping(rows, headers, mapping)
 
             csv_filename = f"{mapping['model']}.csv"
             csv_path = output_dir / csv_filename
@@ -148,9 +136,7 @@ class Command(BaseCommand):
                 }
             )
 
-            self.stdout.write(
-                self.style.SUCCESS(f"    Exported {len(mapped_rows)} rows to {csv_path}")
-            )
+            self.stdout.write(self.style.SUCCESS(f"    Exported {len(mapped_rows)} rows to {csv_path}"))
             exported_count += 1
 
         manifest_path = output_dir / "manifest.json"
@@ -160,8 +146,7 @@ class Command(BaseCommand):
         self.stdout.write("")
         self.stdout.write(
             self.style.SUCCESS(
-                f"Done: {exported_count} exported, {skipped_count} skipped. "
-                f"Manifest: {manifest_path}"
+                f"Done: {exported_count} exported, {skipped_count} skipped. " f"Manifest: {manifest_path}"
             )
         )
 

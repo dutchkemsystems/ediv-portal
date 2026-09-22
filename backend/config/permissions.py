@@ -54,33 +54,21 @@ class IsAdminUser(permissions.BasePermission):
     """Only SYSADMIN can access."""
 
     def has_permission(self, request, view):
-        return (
-            request.user
-            and request.user.is_authenticated
-            and request.user.role == SYSADMIN
-        )
+        return request.user and request.user.is_authenticated and request.user.role == SYSADMIN
 
 
 class IsAdminOrTG(permissions.BasePermission):
     """SYSADMIN or TG_PS can access."""
 
     def has_permission(self, request, view):
-        return (
-            request.user
-            and request.user.is_authenticated
-            and request.user.role in (SYSADMIN, TG_PS)
-        )
+        return request.user and request.user.is_authenticated and request.user.role in (SYSADMIN, TG_PS)
 
 
 class IsAdminOrTGOrDeptHead(permissions.BasePermission):
     """SYSADMIN, TG_PS, or department heads can access."""
 
     def has_permission(self, request, view):
-        return (
-            request.user
-            and request.user.is_authenticated
-            and request.user.role in ALL_ADMIN_ROLES
-        )
+        return request.user and request.user.is_authenticated and request.user.role in ALL_ADMIN_ROLES
 
 
 class IsSchoolManagementOrAbove(permissions.BasePermission):
@@ -90,8 +78,7 @@ class IsSchoolManagementOrAbove(permissions.BasePermission):
         return (
             request.user
             and request.user.is_authenticated
-            and request.user.role
-            in (SYSADMIN, TG_PS) + DEPARTMENT_HEADS + SCHOOL_MANAGEMENT
+            and request.user.role in (SYSADMIN, TG_PS) + DEPARTMENT_HEADS + SCHOOL_MANAGEMENT
         )
 
 
@@ -104,8 +91,7 @@ class IsStaffReadOnly(permissions.BasePermission):
         return (
             request.user
             and request.user.is_authenticated
-            and request.user.role
-            in (SYSADMIN, TG_PS) + DEPARTMENT_HEADS + SCHOOL_MANAGEMENT
+            and request.user.role in (SYSADMIN, TG_PS) + DEPARTMENT_HEADS + SCHOOL_MANAGEMENT
         )
 
 
@@ -113,22 +99,14 @@ class IsFinanceOrAdmin(permissions.BasePermission):
     """Finance operations: only SYSADMIN, TG_PS, FIN, PRI."""
 
     def has_permission(self, request, view):
-        return (
-            request.user
-            and request.user.is_authenticated
-            and request.user.role in (SYSADMIN, TG_PS, "FIN", "PRI")
-        )
+        return request.user and request.user.is_authenticated and request.user.role in (SYSADMIN, TG_PS, "FIN", "PRI")
 
 
 class IsHROrAdmin(permissions.BasePermission):
     """HR operations: only SYSADMIN, TG_PS, HR."""
 
     def has_permission(self, request, view):
-        return (
-            request.user
-            and request.user.is_authenticated
-            and request.user.role in (SYSADMIN, TG_PS, "HR")
-        )
+        return request.user and request.user.is_authenticated and request.user.role in (SYSADMIN, TG_PS, "HR")
 
 
 class IsAcademicStaff(permissions.BasePermission):
@@ -140,8 +118,7 @@ class IsAcademicStaff(permissions.BasePermission):
         return (
             request.user
             and request.user.is_authenticated
-            and request.user.role
-            in (SYSADMIN, TG_PS) + DEPARTMENT_HEADS + ALL_SCHOOL_ROLES
+            and request.user.role in (SYSADMIN, TG_PS) + DEPARTMENT_HEADS + ALL_SCHOOL_ROLES
         )
 
 
@@ -152,9 +129,7 @@ class IsSchoolStaffOrAdmin(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return request.user and request.user.is_authenticated
         return (
-            request.user
-            and request.user.is_authenticated
-            and request.user.role in (SYSADMIN, TG_PS) + ALL_SCHOOL_ROLES
+            request.user and request.user.is_authenticated and request.user.role in (SYSADMIN, TG_PS) + ALL_SCHOOL_ROLES
         )
 
 
@@ -167,8 +142,7 @@ class IsMailStaff(permissions.BasePermission):
         return (
             request.user
             and request.user.is_authenticated
-            and request.user.role
-            in (SYSADMIN, TG_PS) + DEPARTMENT_HEADS + SCHOOL_MANAGEMENT + ("REG_OFF",)
+            and request.user.role in (SYSADMIN, TG_PS) + DEPARTMENT_HEADS + SCHOOL_MANAGEMENT + ("REG_OFF",)
         )
 
 
@@ -176,8 +150,4 @@ class CanApproveOutgoingMail(permissions.BasePermission):
     """Only SYSADMIN, TG_PS, or REG can approve/reject outgoing mail."""
 
     def has_permission(self, request, view):
-        return (
-            request.user
-            and request.user.is_authenticated
-            and request.user.role in (SYSADMIN, TG_PS, "REG", "PRI")
-        )
+        return request.user and request.user.is_authenticated and request.user.role in (SYSADMIN, TG_PS, "REG", "PRI")

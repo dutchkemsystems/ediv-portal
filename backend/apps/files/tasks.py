@@ -40,9 +40,10 @@ def process_offline_queue():
 def send_deadline_reminders():
     """Periodic task to send deadline approaching reminders."""
     try:
+        from datetime import timedelta
+
         from apps.files.models import File
         from apps.files.services.notification_service import NotificationService
-        from datetime import timedelta
 
         # Find files with deadlines approaching within 4 hours
         deadline_threshold = timezone.now() + timedelta(hours=4)

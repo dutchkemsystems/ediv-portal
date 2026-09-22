@@ -203,6 +203,4 @@ class Command(BaseCommand):
             )
             if created:
                 ay_created += 1
-        self.stdout.write(
-            self.style.SUCCESS(f"Done! {ay_created} academic years created for {current_year}.")
-        )
+        self.stdout.write(self.style.SUCCESS(f"Done! {ay_created} academic years created for {current_year}."))

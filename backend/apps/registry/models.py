@@ -27,7 +27,9 @@ class Document(models.Model):
     title = models.CharField(max_length=300)
     document_type = models.CharField(max_length=20, choices=DocumentType.choices)
     content = models.TextField(blank=True)
-    attachment = models.FileField(upload_to="registry/documents/", blank=True, help_text="Upload file (JPEG, PDF, Excel, Word, etc.)")
+    attachment = models.FileField(
+        upload_to="registry/documents/", blank=True, help_text="Upload file (JPEG, PDF, Excel, Word, etc.)"
+    )
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="created_documents")
     department = models.ForeignKey(
         "departments.Department", on_delete=models.SET_NULL, null=True, blank=True, related_name="documents"

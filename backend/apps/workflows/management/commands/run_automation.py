@@ -1,6 +1,7 @@
 """
 Management command to run the agentic automation engine.
 """
+
 from django.core.management.base import BaseCommand
 
 from apps.workflows.automation import AutomationEngine, run_automation
@@ -16,7 +17,7 @@ class Command(BaseCommand):
             default="full",
             choices=["full", "process", "overdue", "rebalance", "summary"],
             help="Action to run: full (all), process (pending items), overdue (check overdue), "
-                 "rebalance (workload), summary (daily summaries)",
+            "rebalance (workload), summary (daily summaries)",
         )
 
     def handle(self, *args, **options):

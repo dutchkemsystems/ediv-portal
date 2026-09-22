@@ -1,14 +1,15 @@
 """
 Celery tasks for email notifications and automation.
 """
+
 import logging
 from datetime import timedelta
 
 from celery import shared_task
+from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils import timezone
-from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -38,9 +39,8 @@ def send_mail_assignment_notification(assignment_id):
     """Send email when mail is assigned to a staff member."""
     try:
         from apps.mail_workflow.models import MailAssignment
-        assignment = MailAssignment.objects.select_related(
-            "mail", "assigned_to", "assigned_by"
-        ).get(id=assignment_id)
+
+        assignment = MailAssignment.objects.select_related("mail", "assigned_to", "assigned_by").get(id=assignment_id)
 
         mail = assignment.mail
         user = assignment.assigned_to
@@ -88,6 +88,7 @@ def send_mail_status_change_notification(mail_id, old_status, new_status, change
 
         # Notify assigned staff
         from apps.mail_workflow.models import MailAssignment
+
         assignments = MailAssignment.objects.filter(mail=mail).select_related("assigned_to")
         for a in assignments:
             if a.assigned_to and a.assigned_to.email:
@@ -136,9 +137,7 @@ def send_outgoing_mail_notification(outgoing_mail_id, event_type, changed_by_id)
 
         # Notify approvers when submitted
         if event_type == "SUBMITTED":
-            approvers = User.objects.filter(
-                role__in=["SYSADMIN", "TG_PS"], is_active=True
-            ).exclude(id=changed_by_id)
+            approvers = User.objects.filter(role__in=["SYSADMIN", "TG_PS"], is_active=True).exclude(id=changed_by_id)
             for u in approvers:
                 if u.email:
                     recipients.add(u.email)
@@ -256,7 +255,7 @@ def check_overdue_files():
                 FileMovementService.escalate_file(
                     file_id=file_obj.id,
                     escalated_by_id=file_obj.current_holder_id or file_obj.created_by_id,
-                    remarks="Auto-escalated: overdue file"
+                    remarks="Auto-escalated: overdue file",
                 )
             except Exception as exc:
                 logger.error(f"Auto-escalate file {file_obj.id} failed: {exc}")
@@ -268,9 +267,9 @@ def check_overdue_files():
 def send_weekly_digest():
     """Send weekly digest email to department heads."""
     try:
-        from apps.users.models import User
         from apps.files.models import File
         from apps.mail_workflow.models import IncomingMail
+        from apps.users.models import User
 
         week_ago = timezone.now() - timedelta(days=7)
 
@@ -279,13 +278,10 @@ def send_weekly_digest():
         ).exclude(email="")
 
         for user in dept_heads:
-            files_received = File.objects.filter(
-                current_holder=user, created_at__gte=week_ago
-            ).count()
+            files_received = File.objects.filter(current_holder=user, created_at__gte=week_ago).count()
 
             mails_assigned = IncomingMail.objects.filter(
-                mailassignment__assigned_to=user,
-                created_at__gte=week_ago
+                mailassignment__assigned_to=user, created_at__gte=week_ago
             ).count()
 
             if files_received == 0 and mails_assigned == 0:

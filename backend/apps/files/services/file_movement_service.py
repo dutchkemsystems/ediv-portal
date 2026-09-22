@@ -179,9 +179,7 @@ class FileMovementService:
             prefix = f"FIL-{department.code}-{year}"
         else:
             prefix = f"FIL-{year}"
-        last = File.objects.filter(file_number__startswith=prefix).aggregate(
-            max_num=Max("file_number")
-        )["max_num"]
+        last = File.objects.filter(file_number__startswith=prefix).aggregate(max_num=Max("file_number"))["max_num"]
         if last:
             try:
                 seq = int(last.split("-")[-1]) + 1
@@ -400,9 +398,7 @@ class FileMovementService:
         if role == "REG_OFF":
             return User.objects.filter(role__in=["REG", "REG_OFF"], is_active=True)
         if role == "SA_OFF":
-            return User.objects.filter(
-                role__in=["SA_OFF", "SA", "PRI", "VP"], is_active=True
-            )
+            return User.objects.filter(role__in=["SA_OFF", "SA", "PRI", "VP"], is_active=True)
         if role == "TCH":
             return User.objects.filter(role__in=["TCH", "SA_OFF"], is_active=True)
         return User.objects.filter(role=role, is_active=True)
@@ -425,9 +421,7 @@ class FileMovementService:
         and enforces ascending workflow steps.
         """
         if file.current_holder is not None and file.current_holder != from_holder:
-            raise ValueError(
-                f"User {from_holder} is not the current holder of file {file.file_number}."
-            )
+            raise ValueError(f"User {from_holder} is not the current holder of file {file.file_number}.")
 
         current_step = file.current_workflow_step or 0
         direction = file.direction or "INCOMING"
@@ -453,9 +447,7 @@ class FileMovementService:
 
         # Handle ESCALATED priority increment
         if action == "ESCALATED":
-            new_priority = FileMovementService.PRIORITY_ESCALATION.get(
-                file.priority, file.priority
-            )
+            new_priority = FileMovementService.PRIORITY_ESCALATION.get(file.priority, file.priority)
             file.priority = new_priority
 
         # Handle RETURNED action
@@ -463,9 +455,7 @@ class FileMovementService:
         actual_return_date = timezone.now().date() if is_returned else None
 
         # Calculate expected completion
-        deadline_hours = FileMovementService._get_deadline_for_step(
-            target_step, direction
-        )
+        deadline_hours = FileMovementService._get_deadline_for_step(target_step, direction)
         expected_completion = timezone.now() + datetime.timedelta(hours=deadline_hours)
 
         # Create movement record
@@ -495,9 +485,7 @@ class FileMovementService:
         file.current_workflow_step = target_step
         file.status = "IN_TRANSIT"
         file.last_moved_at = timezone.now()
-        file.expected_completion_date = (
-            timezone.now() + datetime.timedelta(hours=deadline_hours)
-        ).date()
+        file.expected_completion_date = (timezone.now() + datetime.timedelta(hours=deadline_hours)).date()
 
         if action == "ESCALATED":
             file.escalation_status = "ESCALATED"
@@ -514,17 +502,13 @@ class FileMovementService:
             "updated_at",
         ]
         if action == "ESCALATED":
-            update_fields.extend(
-                ["priority", "escalation_status", "escalation_reason", "escalated_at"]
-            )
+            update_fields.extend(["priority", "escalation_status", "escalation_reason", "escalated_at"])
 
         notes = remarks or f"File {action.lower()}"
         if to_holder:
             notes = f"File moved to {to_holder.get_full_name() or to_holder.username}: {action}"
 
-        FileMovementService._add_timeline_entry(
-            file, file.status, from_holder, action, notes
-        )
+        FileMovementService._add_timeline_entry(file, file.status, from_holder, action, notes)
         file.save(update_fields=update_fields)
 
         from apps.files.services.audit_service import AuditService
@@ -558,18 +542,14 @@ class FileMovementService:
 
         # Check user can act at current step
         if not FileMovementService._user_can_act_at_step(user, current_step, direction):
-            raise ValidationError(
-                f"User role {user.role} cannot act at workflow step {current_step}."
-            )
+            raise ValidationError(f"User role {user.role} cannot act at workflow step {current_step}.")
 
         next_step = FileMovementService._get_next_step(current_step, direction)
         if not next_step:
             raise ValidationError("File has reached the final workflow step.")
 
         # Get recipient for next step
-        recipients = FileMovementService._get_recipients_for_step(
-            next_step["step"], direction
-        )
+        recipients = FileMovementService._get_recipients_for_step(next_step["step"], direction)
         next_holder = recipients.first() if recipients.exists() else file.current_holder
 
         return FileMovementService.move_file(
@@ -577,8 +557,7 @@ class FileMovementService:
             from_holder=user,
             to_holder=next_holder,
             action=action,
-            remarks=notes
-            or f"Advanced to step {next_step['step']}: {next_step.get('label', '')}",
+            remarks=notes or f"Advanced to step {next_step['step']}: {next_step.get('label', '')}",
             target_step=next_step["step"],
         )
 
@@ -587,20 +566,14 @@ class FileMovementService:
     def receive_file(*, file, received_by, notes=""):
         """Mark file as received by current holder."""
         if received_by != file.current_holder:
-            raise ValueError(
-                f"User {received_by} is not the current holder of file {file.file_number}."
-            )
+            raise ValueError(f"User {received_by} is not the current holder of file {file.file_number}.")
 
-        last_movement = (
-            FileMovement.objects.filter(file=file).order_by("-movement_date").first()
-        )
+        last_movement = FileMovement.objects.filter(file=file).order_by("-movement_date").first()
         if last_movement and not last_movement.is_returned:
             last_movement.is_returned = True
             last_movement.actual_return_date = timezone.now().date()
             last_movement.completion_notes = notes
-            last_movement.save(
-                update_fields=["is_returned", "actual_return_date", "completion_notes"]
-            )
+            last_movement.save(update_fields=["is_returned", "actual_return_date", "completion_notes"])
 
         if file.status == "IN_TRANSIT":
             file.status = "ACTIVE"
@@ -611,8 +584,7 @@ class FileMovementService:
             from_holder=received_by,
             to_holder=None,
             action="RECEIVED",
-            remarks=notes
-            or f"File received by {received_by.get_full_name() or received_by.username}",
+            remarks=notes or f"File received by {received_by.get_full_name() or received_by.username}",
             is_returned=True,
             actual_return_date=timezone.now().date(),
             completion_notes=notes,
@@ -627,8 +599,7 @@ class FileMovementService:
             file.status,
             received_by,
             "RECEIVED",
-            notes
-            or f"Received by {received_by.get_full_name() or received_by.username}",
+            notes or f"Received by {received_by.get_full_name() or received_by.username}",
         )
         file.save(update_fields=["status_timeline"])
         FileMovementService._invalidate_cache(file.id)
@@ -640,15 +611,11 @@ class FileMovementService:
     def recall_file(*, file, recalled_by, reason=""):
         """Recall a file from current holder."""
         previous_movement = (
-            FileMovement.objects.filter(file=file, from_holder=recalled_by)
-            .order_by("-movement_date")
-            .first()
+            FileMovement.objects.filter(file=file, from_holder=recalled_by).order_by("-movement_date").first()
         )
 
         if not previous_movement:
-            raise ValueError(
-                f"User {recalled_by} cannot recall file {file.file_number}."
-            )
+            raise ValueError(f"User {recalled_by} cannot recall file {file.file_number}.")
 
         file.current_holder = recalled_by
 
@@ -657,8 +624,7 @@ class FileMovementService:
             from_holder=recalled_by,
             to_holder=previous_movement.to_holder,
             action="RETURNED",
-            remarks=reason
-            or f"File recalled by {recalled_by.get_full_name() or recalled_by.username}",
+            remarks=reason or f"File recalled by {recalled_by.get_full_name() or recalled_by.username}",
             is_returned=True,
             actual_return_date=timezone.now().date(),
             workflow_step=file.current_workflow_step or 0,
@@ -670,8 +636,7 @@ class FileMovementService:
             file.status,
             recalled_by,
             "RETURNED",
-            reason
-            or f"File recalled by {recalled_by.get_full_name() or recalled_by.username}",
+            reason or f"File recalled by {recalled_by.get_full_name() or recalled_by.username}",
         )
         file.save(update_fields=["current_holder", "status_timeline", "updated_at"])
         FileMovementService._invalidate_cache(file.id)
@@ -683,9 +648,7 @@ class FileMovementService:
     def escalate_file(*, file, escalated_by, reason=""):
         """Escalate file priority and mark as escalated."""
         old_priority = file.priority
-        new_priority = FileMovementService.PRIORITY_ESCALATION.get(
-            file.priority, file.priority
-        )
+        new_priority = FileMovementService.PRIORITY_ESCALATION.get(file.priority, file.priority)
         file.priority = new_priority
         file.escalation_status = "ESCALATED"
         file.escalation_reason = reason
@@ -728,9 +691,7 @@ class FileMovementService:
         """Archive a completed file."""
         valid_statuses = ["CLOSED", "ARCHIVED"]
         if file.status not in valid_statuses:
-            raise ValueError(
-                f"Cannot archive file {file.file_number} with status {file.status}."
-            )
+            raise ValueError(f"Cannot archive file {file.file_number} with status {file.status}.")
 
         file.status = "ARCHIVED"
         file.save(update_fields=["status", "updated_at"])
@@ -740,8 +701,7 @@ class FileMovementService:
             from_holder=archived_by,
             to_holder=None,
             action="ARCHIVED",
-            remarks=notes
-            or f"File archived by {archived_by.get_full_name() or archived_by.username}",
+            remarks=notes or f"File archived by {archived_by.get_full_name() or archived_by.username}",
             workflow_step=file.current_workflow_step or 0,
         )
         movement.save()
@@ -751,8 +711,7 @@ class FileMovementService:
             file.status,
             archived_by,
             "ARCHIVED",
-            notes
-            or f"Archived by {archived_by.get_full_name() or archived_by.username}",
+            notes or f"Archived by {archived_by.get_full_name() or archived_by.username}",
         )
         file.save(update_fields=["status_timeline"])
         FileMovementService._invalidate_cache(file.id)
@@ -774,9 +733,7 @@ class FileMovementService:
             try:
                 # Escalate priority
                 old_priority = file_obj.priority
-                new_priority = FileMovementService.PRIORITY_ESCALATION.get(
-                    old_priority, old_priority
-                )
+                new_priority = FileMovementService.PRIORITY_ESCALATION.get(old_priority, old_priority)
                 file_obj.priority = new_priority
                 file_obj.escalation_status = "ESCALATED"
                 file_obj.escalation_reason = f"Auto-escalated: deadline {file_obj.expected_completion_date} passed"
@@ -794,9 +751,7 @@ class FileMovementService:
                 # Notify TG/PS
                 from apps.files.services.notification_service import NotificationService
 
-                tg_ps_users = User.objects.filter(
-                    role__in=["SYSADMIN", "TG_PS"], is_active=True
-                )
+                tg_ps_users = User.objects.filter(role__in=["SYSADMIN", "TG_PS"], is_active=True)
                 for tg in tg_ps_users:
                     NotificationService.send_notification(
                         recipient=tg,
@@ -831,9 +786,7 @@ class FileMovementService:
     def get_file_timeline(file):
         """Return chronological list of all movements for a file."""
         movements = (
-            FileMovement.objects.filter(file=file)
-            .select_related("from_holder", "to_holder")
-            .order_by("movement_date")
+            FileMovement.objects.filter(file=file).select_related("from_holder", "to_holder").order_by("movement_date")
         )
 
         timeline = []
@@ -845,24 +798,17 @@ class FileMovementService:
                     "action": m.action,
                     "from_holder_id": m.from_holder_id,
                     "from_holder_name": (
-                        m.from_holder.get_full_name() or m.from_holder.username
-                        if m.from_holder
-                        else None
+                        m.from_holder.get_full_name() or m.from_holder.username if m.from_holder else None
                     ),
                     "to_holder_id": m.to_holder_id,
-                    "to_holder_name": m.to_holder.get_full_name()
-                    or m.to_holder.username
-                    if m.to_holder
-                    else None,
+                    "to_holder_name": m.to_holder.get_full_name() or m.to_holder.username if m.to_holder else None,
                     "remarks": m.remarks,
                     "status": file.status,
                     "is_returned": m.is_returned,
                     "workflow_step": m.workflow_step,
                     "from_location": m.from_location,
                     "to_location": m.to_location,
-                    "expected_completion": m.expected_completion.isoformat()
-                    if m.expected_completion
-                    else None,
+                    "expected_completion": m.expected_completion.isoformat() if m.expected_completion else None,
                     "is_overdue": m.is_overdue,
                 }
             )
@@ -880,9 +826,9 @@ class FileMovementService:
     @staticmethod
     def get_department_files(department, status=None):
         """Return files belonging to a department, optionally filtered by status."""
-        qs = File.objects.filter(
-            Q(department=department) | Q(assigned_department=department)
-        ).select_related("created_by", "current_holder", "school")
+        qs = File.objects.filter(Q(department=department) | Q(assigned_department=department)).select_related(
+            "created_by", "current_holder", "school"
+        )
 
         if status:
             qs = qs.filter(status=status)
@@ -903,15 +849,11 @@ class FileMovementService:
         current_holder=None,
     ):
         """Full-text search with multiple filters."""
-        qs = File.objects.select_related(
-            "created_by", "current_holder", "department", "school"
-        )
+        qs = File.objects.select_related("created_by", "current_holder", "department", "school")
 
         if query:
             qs = qs.filter(
-                Q(title__icontains=query)
-                | Q(description__icontains=query)
-                | Q(file_number__icontains=query)
+                Q(title__icontains=query) | Q(description__icontains=query) | Q(file_number__icontains=query)
             )
         if file_type:
             qs = qs.filter(file_type=file_type)
@@ -983,8 +925,7 @@ class FileMovementService:
             "current_holder": (
                 {
                     "id": file_obj.current_holder.id,
-                    "name": file_obj.current_holder.get_full_name()
-                    or file_obj.current_holder.username,
+                    "name": file_obj.current_holder.get_full_name() or file_obj.current_holder.username,
                 }
                 if file_obj.current_holder
                 else None
@@ -1015,9 +956,7 @@ class FileMovementService:
             ),
             "due_date": file_obj.due_date.isoformat() if file_obj.due_date else None,
             "expected_completion_date": (
-                file_obj.expected_completion_date.isoformat()
-                if file_obj.expected_completion_date
-                else None
+                file_obj.expected_completion_date.isoformat() if file_obj.expected_completion_date else None
             ),
             "tags": file_obj.tags or [],
             "timeline": FileMovementService.get_file_timeline(file_obj),
@@ -1071,15 +1010,11 @@ class FileMovementService:
                 {
                     "id": m.id,
                     "action": m.action,
-                    "from_holder": m.from_holder.get_full_name()
-                    if m.from_holder
-                    else None,
+                    "from_holder": m.from_holder.get_full_name() if m.from_holder else None,
                     "to_holder": m.to_holder.get_full_name() if m.to_holder else None,
                     "remarks": m.remarks,
                     "workflow_step": m.workflow_step,
-                    "movement_date": m.movement_date.isoformat()
-                    if m.movement_date
-                    else None,
+                    "movement_date": m.movement_date.isoformat() if m.movement_date else None,
                 }
             )
 
@@ -1097,9 +1032,7 @@ class FileMovementService:
             "workflow_steps": steps,
             "total_steps": len(workflow),
             "completed_count": len(completed_steps),
-            "progress_percent": int((len(completed_steps) / len(workflow)) * 100)
-            if workflow
-            else 0,
+            "progress_percent": int((len(completed_steps) / len(workflow)) * 100) if workflow else 0,
         }
 
     @staticmethod

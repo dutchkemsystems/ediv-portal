@@ -23,7 +23,6 @@ except ImportError:
 
 try:
     import cv2
-
     import numpy as np
 
     CV2_AVAILABLE = True
@@ -108,9 +107,7 @@ class OCRService:
         try:
             img = Image.open(io.BytesIO(image_bytes))
             # Save to temp file for processing
-            with tempfile.NamedTemporaryFile(
-                suffix=os.path.splitext(filename)[1] or ".jpg", delete=False
-            ) as tmp:
+            with tempfile.NamedTemporaryFile(suffix=os.path.splitext(filename)[1] or ".jpg", delete=False) as tmp:
                 img.save(tmp.name)
                 result = OCRService.extract_text_from_image(tmp.name, language, preprocess)
                 os.unlink(tmp.name)
@@ -277,14 +274,16 @@ class OCRService:
                 key = (block_num, line_num)
                 if key not in lines:
                     lines[key] = []
-                lines[key].append({
-                    "text": word,
-                    "x": tsv_data["left"][i],
-                    "y": tsv_data["top"][i],
-                    "width": tsv_data["width"][i],
-                    "height": tsv_data["height"][i],
-                    "conf": tsv_data["conf"][i],
-                })
+                lines[key].append(
+                    {
+                        "text": word,
+                        "x": tsv_data["left"][i],
+                        "y": tsv_data["top"][i],
+                        "width": tsv_data["width"][i],
+                        "height": tsv_data["height"][i],
+                        "conf": tsv_data["conf"][i],
+                    }
+                )
 
             # Sort lines by vertical position
             sorted_lines = sorted(lines.items(), key=lambda x: x[0][1])
@@ -363,9 +362,7 @@ class OCRService:
                 pass  # Already grayscale
             elif mode == "threshold":
                 # Adaptive threshold for varying lighting
-                gray = cv2.adaptiveThreshold(
-                    gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
-                )
+                gray = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
             elif mode == "denoise":
                 gray = cv2.fastNlMeansDenoising(gray, None, 10, 7, 21)
 

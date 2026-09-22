@@ -6,9 +6,8 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('registry', '0002_document_attachment'),
-        ('registry', '0003_add_memo_workflow_models'),
+        ("registry", "0002_document_attachment"),
+        ("registry", "0003_add_memo_workflow_models"),
     ]
 
-    operations = [
-    ]
+    operations = []

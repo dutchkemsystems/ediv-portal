@@ -57,9 +57,7 @@ User = get_user_model()
 
 class FileViewSet(SchoolScopedQuerysetMixin, viewsets.ModelViewSet):
     rbac_app = "files"
-    queryset = File.objects.select_related(
-        "created_by", "current_holder", "department", "school"
-    ).all()
+    queryset = File.objects.select_related("created_by", "current_holder", "department", "school").all()
     permission_classes = [RoleBasedPermission]
     filter_backends = [
         DjangoFilterBackend,
@@ -87,9 +85,7 @@ class FileViewSet(SchoolScopedQuerysetMixin, viewsets.ModelViewSet):
         if user.role in ("SYSADMIN", "TG_PS"):
             return File.objects.all()
         return File.objects.filter(
-            models.Q(created_by=user)
-            | models.Q(current_holder=user)
-            | models.Q(classification="PUBLIC")
+            models.Q(created_by=user) | models.Q(current_holder=user) | models.Q(classification="PUBLIC")
         ).distinct()
 
     def perform_create(self, serializer):
@@ -193,9 +189,7 @@ class FileViewSet(SchoolScopedQuerysetMixin, viewsets.ModelViewSet):
         try:
             to_holder = User.objects.get(id=to_holder_id)
         except User.DoesNotExist:
-            return Response(
-                {"error": "Target user not found."}, status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"error": "Target user not found."}, status=status.HTTP_404_NOT_FOUND)
 
         movement = FileMovement.objects.create(
             file=file_obj,
@@ -219,9 +213,7 @@ class FileViewSet(SchoolScopedQuerysetMixin, viewsets.ModelViewSet):
 
         file_obj.current_holder = to_holder
         file_obj.status = "IN_TRANSIT"
-        file_obj.save(
-            update_fields=["current_holder", "status", "status_timeline", "updated_at"]
-        )
+        file_obj.save(update_fields=["current_holder", "status", "status_timeline", "updated_at"])
 
         from config.security import AuditLogger
 
@@ -282,11 +274,7 @@ class FileViewSet(SchoolScopedQuerysetMixin, viewsets.ModelViewSet):
 
         file_obj.status = "ACTIVE"
 
-        last_movement = (
-            FileMovement.objects.filter(file=file_obj)
-            .order_by("-movement_date")
-            .first()
-        )
+        last_movement = FileMovement.objects.filter(file=file_obj).order_by("-movement_date").first()
         if last_movement and not last_movement.is_returned:
             completion_notes = request.data.get("completion_notes", "")
             import datetime as _dt
@@ -294,9 +282,7 @@ class FileViewSet(SchoolScopedQuerysetMixin, viewsets.ModelViewSet):
             last_movement.actual_return_date = _dt.date.today()
             last_movement.is_returned = True
             last_movement.completion_notes = completion_notes
-            last_movement.save(
-                update_fields=["actual_return_date", "is_returned", "completion_notes"]
-            )
+            last_movement.save(update_fields=["actual_return_date", "is_returned", "completion_notes"])
 
         import datetime as dt
 
@@ -321,9 +307,7 @@ class FileViewSet(SchoolScopedQuerysetMixin, viewsets.ModelViewSet):
         )
 
         # Wire in-app notification
-        _safe_notify_file_movement(
-            file_obj, None, request.user, "RECEIVED", moved_by=request.user
-        )
+        _safe_notify_file_movement(file_obj, None, request.user, "RECEIVED", moved_by=request.user)
 
         return Response({"message": f"File {file_obj.file_number} marked as received."})
 
@@ -371,15 +355,9 @@ class FileViewSet(SchoolScopedQuerysetMixin, viewsets.ModelViewSet):
         file_obj = self.get_object()
         user = request.user
 
-        if (
-            file_obj.current_holder != user
-            and file_obj.created_by != user
-            and user.role not in ("SYSADMIN", "TG_PS")
-        ):
+        if file_obj.current_holder != user and file_obj.created_by != user and user.role not in ("SYSADMIN", "TG_PS"):
             return Response(
-                {
-                    "error": "Only the current holder, file creator, or Admin can log status changes."
-                },
+                {"error": "Only the current holder, file creator, or Admin can log status changes."},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -470,9 +448,7 @@ class FileViewSet(SchoolScopedQuerysetMixin, viewsets.ModelViewSet):
             description=f"File {file_obj.file_number} submitted for review",
         )
 
-        return Response(
-            {"message": f"File {file_obj.file_number} submitted for review."}
-        )
+        return Response({"message": f"File {file_obj.file_number} submitted for review."})
 
     @action(detail=True, methods=["post"], url_path="approve")
     def approve_file(self, request, pk=None):
@@ -562,11 +538,7 @@ class FileViewSet(SchoolScopedQuerysetMixin, viewsets.ModelViewSet):
             description=f"File {file_obj.file_number} rejected by {user.get_full_name()}",
         )
 
-        return Response(
-            {
-                "message": f"File {file_obj.file_number} has been rejected and returned to draft."
-            }
-        )
+        return Response({"message": f"File {file_obj.file_number} has been rejected and returned to draft."})
 
     @action(detail=True, methods=["post"], url_path="escalate")
     def escalate_file(self, request, pk=None):
@@ -587,9 +559,7 @@ class FileViewSet(SchoolScopedQuerysetMixin, viewsets.ModelViewSet):
         try:
             to_holder = User.objects.get(id=to_holder_id)
         except User.DoesNotExist:
-            return Response(
-                {"error": "Target user not found."}, status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"error": "Target user not found."}, status=status.HTTP_404_NOT_FOUND)
 
         notes = request.data.get("notes", "")
 
@@ -625,9 +595,7 @@ class FileViewSet(SchoolScopedQuerysetMixin, viewsets.ModelViewSet):
         )
 
         # Wire in-app notification
-        _safe_notify_file_movement(
-            file_obj, user, to_holder, "ESCALATED", moved_by=user
-        )
+        _safe_notify_file_movement(file_obj, user, to_holder, "ESCALATED", moved_by=user)
 
         return Response(
             {
@@ -642,9 +610,7 @@ class FileMovementViewSet(viewsets.ReadOnlyModelViewSet):
     FileViewSet actions (receive, approve, move, reject, etc.)."""
 
     rbac_app = "files"
-    queryset = FileMovement.objects.select_related(
-        "file", "from_holder", "to_holder"
-    ).all()
+    queryset = FileMovement.objects.select_related("file", "from_holder", "to_holder").all()
     serializer_class = FileMovementSerializer
     permission_classes = [RoleBasedPermission]
     filterset_fields = ["file", "from_holder", "to_holder", "is_returned"]
@@ -687,9 +653,7 @@ class FileTemplateViewSet(viewsets.ModelViewSet):
     """CRUD for file templates."""
 
     rbac_app = "files"
-    queryset = FileTemplate.objects.select_related(
-        "created_by", "default_department"
-    ).all()
+    queryset = FileTemplate.objects.select_related("created_by", "default_department").all()
     serializer_class = FileTemplateSerializer
     permission_classes = [RoleBasedPermission]
     filter_backends = [
@@ -709,9 +673,7 @@ class FileTemplateViewSet(viewsets.ModelViewSet):
         field_values = request.data.get("field_values", {})
 
         if not title:
-            return Response(
-                {"error": "title is required."}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "title is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         from .services.template_service import TemplateService
 
@@ -756,16 +718,12 @@ class FileClassificationViewSet(viewsets.ModelViewSet):
         """Classify a single file."""
         file_id = request.data.get("file_id")
         if not file_id:
-            return Response(
-                {"error": "file_id is required."}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "file_id is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             file_obj = File.objects.get(id=file_id)
         except File.DoesNotExist:
-            return Response(
-                {"error": "File not found."}, status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"error": "File not found."}, status=status.HTTP_404_NOT_FOUND)
 
         from .services.classification_service import ClassificationService
 
@@ -779,9 +737,7 @@ class FileClassificationViewSet(viewsets.ModelViewSet):
 
         from .services.classification_service import ClassificationService
 
-        results = ClassificationService.bulk_classify(
-            file_ids=file_ids if file_ids else None
-        )
+        results = ClassificationService.bulk_classify(file_ids=file_ids if file_ids else None)
         return Response(
             {
                 "classified": len(results),
@@ -795,9 +751,7 @@ class FileClassificationViewSet(viewsets.ModelViewSet):
         classification = self.get_object()
         from .services.classification_service import ClassificationService
 
-        suggestions = ClassificationService.get_classification_suggestions(
-            classification.file
-        )
+        suggestions = ClassificationService.get_classification_suggestions(classification.file)
         return Response(suggestions)
 
 
@@ -832,9 +786,7 @@ class OfflineQueueViewSet(viewsets.ModelViewSet):
             action_type=action_type,
             data=data,
         )
-        return Response(
-            OfflineQueueSerializer(item).data, status=status.HTTP_201_CREATED
-        )
+        return Response(OfflineQueueSerializer(item).data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=["post"], url_path="process")
     def process_queue(self, request):
@@ -924,9 +876,7 @@ class FileImportView(APIView):
         default_priority = request.data.get("priority", "NORMAL")
 
         if not uploaded_file:
-            return Response(
-                {"error": "No file provided."}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "No file provided."}, status=status.HTTP_400_BAD_REQUEST)
 
         if not file_format:
             # Auto-detect from filename
@@ -971,9 +921,7 @@ class FileImportView(APIView):
         return Response(
             {
                 "file_id": result["file"].id if result.get("file") else None,
-                "file_number": result["file"].file_number
-                if result.get("file")
-                else None,
+                "file_number": result["file"].file_number if result.get("file") else None,
                 "attachments": len(result.get("attachments", [])),
                 "errors": result.get("errors", []),
             }
@@ -990,15 +938,11 @@ class FileExportView(APIView):
         export_format = request.data.get("format", "xlsx")
 
         if not file_ids:
-            return Response(
-                {"error": "No file IDs provided."}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "No file IDs provided."}, status=status.HTTP_400_BAD_REQUEST)
 
         files = File.objects.filter(id__in=file_ids)
         if not files.exists():
-            return Response(
-                {"error": "No files found."}, status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"error": "No files found."}, status=status.HTTP_404_NOT_FOUND)
 
         from .services.import_export_service import ImportExportService
 
@@ -1018,9 +962,7 @@ class FileExportView(APIView):
 
             response = HttpResponse(
                 content.read(),
-                content_type=content_type_map.get(
-                    export_format, "application/octet-stream"
-                ),
+                content_type=content_type_map.get(export_format, "application/octet-stream"),
             )
             response["Content-Disposition"] = f'attachment; filename="{content.name}"'
             return response
@@ -1040,9 +982,7 @@ class FileBulkImportView(APIView):
         department = request.data.get("department")
 
         if not uploaded_file:
-            return Response(
-                {"error": "No file provided."}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "No file provided."}, status=status.HTTP_400_BAD_REQUEST)
 
         from apps.departments.models import Department
 
@@ -1110,9 +1050,7 @@ class NotificationReadView(APIView):
         success = NotificationService.mark_notification_read(pk, request.user)
         if success:
             return Response({"message": "Notification marked as read."})
-        return Response(
-            {"error": "Notification not found."}, status=status.HTTP_404_NOT_FOUND
-        )
+        return Response({"error": "Notification not found."}, status=status.HTTP_404_NOT_FOUND)
 
 
 # === DASHBOARD AND BULK ENDPOINTS ===
@@ -1134,17 +1072,11 @@ class FileDashboardView(APIView):
         my_files = File.objects.filter(Q(created_by=user) | Q(current_holder=user))
 
         # Status counts
-        status_counts = dict(
-            my_files.values_list("status")
-            .annotate(count=Count("id"))
-            .values_list("status", "count")
-        )
+        status_counts = dict(my_files.values_list("status").annotate(count=Count("id")).values_list("status", "count"))
 
         # Priority counts
         priority_counts = dict(
-            my_files.values_list("priority")
-            .annotate(count=Count("id"))
-            .values_list("priority", "count")
+            my_files.values_list("priority").annotate(count=Count("id")).values_list("priority", "count")
         )
 
         # Recent files (last 7 days)
@@ -1204,9 +1136,7 @@ class FileBulkActionView(APIView):
         notes = request.data.get("notes", "")
 
         if not file_ids:
-            return Response(
-                {"error": "No file IDs provided."}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "No file IDs provided."}, status=status.HTTP_400_BAD_REQUEST)
 
         files = File.objects.filter(id__in=file_ids)
         results = {"success": 0, "failed": 0, "errors": []}
@@ -1214,21 +1144,13 @@ class FileBulkActionView(APIView):
         for file_obj in files:
             try:
                 if action == "archive":
-                    FileMovementService.archive_file(
-                        file=file_obj, archived_by=request.user, notes=notes
-                    )
+                    FileMovementService.archive_file(file=file_obj, archived_by=request.user, notes=notes)
                 elif action == "escalate":
-                    FileMovementService.escalate_file(
-                        file=file_obj, escalated_by=request.user, reason=notes
-                    )
+                    FileMovementService.escalate_file(file=file_obj, escalated_by=request.user, reason=notes)
                 elif action == "advance":
-                    FileMovementService.advance_workflow(
-                        file=file_obj, user=request.user, notes=notes
-                    )
+                    FileMovementService.advance_workflow(file=file_obj, user=request.user, notes=notes)
                 else:
-                    results["errors"].append(
-                        {"file_id": file_obj.id, "error": f"Unknown action: {action}"}
-                    )
+                    results["errors"].append({"file_id": file_obj.id, "error": f"Unknown action: {action}"})
                     results["failed"] += 1
                     continue
                 results["success"] += 1
@@ -1247,9 +1169,7 @@ class WorkflowVisualizationView(APIView):
     def get(self, request, pk=None):
         result = FileMovementService.get_workflow_visualization(pk)
         if not result:
-            return Response(
-                {"error": "File not found."}, status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"error": "File not found."}, status=status.HTTP_404_NOT_FOUND)
         return Response(result)
 
 
@@ -1265,9 +1185,7 @@ class WorkflowAdvanceView(APIView):
         try:
             file_obj = File.objects.get(id=pk)
         except File.DoesNotExist:
-            return Response(
-                {"error": "File not found."}, status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"error": "File not found."}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = WorkflowAdvanceSerializer(data=request.data)
         if not serializer.is_valid():
@@ -1316,9 +1234,7 @@ class WorkflowMoveView(APIView):
         try:
             file_obj = File.objects.get(id=pk)
         except File.DoesNotExist:
-            return Response(
-                {"error": "File not found."}, status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"error": "File not found."}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = FileMoveWorkflowSerializer(data=request.data)
         if not serializer.is_valid():
@@ -1344,11 +1260,7 @@ class WorkflowMoveView(APIView):
                 recipients = FileMovementService._get_recipients_for_step(
                     next_step["step"], file_obj.direction or "INCOMING"
                 )
-                to_holder = (
-                    recipients.first()
-                    if recipients.exists()
-                    else file_obj.current_holder
-                )
+                to_holder = recipients.first() if recipients.exists() else file_obj.current_holder
 
         try:
             movement = FileMovementService.move_file(
@@ -1357,9 +1269,7 @@ class WorkflowMoveView(APIView):
                 to_holder=to_holder,
                 action=serializer.validated_data.get("action", "FORWARDED"),
                 remarks=serializer.validated_data.get("remarks", ""),
-                expected_return_date=serializer.validated_data.get(
-                    "expected_return_date"
-                ),
+                expected_return_date=serializer.validated_data.get("expected_return_date"),
                 completion_notes=serializer.validated_data.get("completion_notes", ""),
                 target_step=serializer.validated_data.get("target_step"),
             )
@@ -1397,9 +1307,7 @@ class WorkflowDetailView(APIView):
 
         result = FileMovementService.get_workflow_visualization(pk)
         if not result:
-            return Response(
-                {"error": "File not found."}, status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"error": "File not found."}, status=status.HTTP_404_NOT_FOUND)
         return Response(result)
 
 
@@ -1412,8 +1320,7 @@ class OverdueFilesView(APIView):
         from django.db.models import Q
 
         overdue = File.objects.filter(
-            Q(expected_completion_date__lt=timezone.now().date())
-            | Q(due_date__lt=timezone.now().date()),
+            Q(expected_completion_date__lt=timezone.now().date()) | Q(due_date__lt=timezone.now().date()),
             status__in=["ACTIVE", "IN_TRANSIT", "PENDING", "UNDER_REVIEW"],
         ).select_related("created_by", "current_holder", "department")
 
@@ -1425,14 +1332,10 @@ class OverdueFilesView(APIView):
                 "status": f.status,
                 "priority": f.priority,
                 "escalation_status": f.escalation_status,
-                "current_holder": f.current_holder.get_full_name()
-                if f.current_holder
-                else None,
+                "current_holder": f.current_holder.get_full_name() if f.current_holder else None,
                 "due_date": f.due_date.isoformat() if f.due_date else None,
                 "expected_completion_date": (
-                    f.expected_completion_date.isoformat()
-                    if f.expected_completion_date
-                    else None
+                    f.expected_completion_date.isoformat() if f.expected_completion_date else None
                 ),
             }
             for f in overdue
@@ -1475,17 +1378,13 @@ class OCRView(APIView):
 
         if not OCRService.is_available():
             return Response(
-                {
-                    "error": "OCR service not available. Install pytesseract and Tesseract-OCR."
-                },
+                {"error": "OCR service not available. Install pytesseract and Tesseract-OCR."},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
         uploaded_file = request.FILES.get("file")
         if not uploaded_file:
-            return Response(
-                {"error": "No file provided."}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "No file provided."}, status=status.HTTP_400_BAD_REQUEST)
 
         language = request.data.get("language", "eng")
         preprocess = request.data.get("preprocess", "auto")
@@ -1512,9 +1411,7 @@ class OCRView(APIView):
                     tmp_path = tmp.name
 
                 try:
-                    result = OCRService.extract_text_from_pdf(
-                        tmp_path, language=language, preprocess=preprocess
-                    )
+                    result = OCRService.extract_text_from_pdf(tmp_path, language=language, preprocess=preprocess)
                 finally:
                     os.unlink(tmp_path)
             else:

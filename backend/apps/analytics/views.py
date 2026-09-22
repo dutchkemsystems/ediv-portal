@@ -347,57 +347,60 @@ class DashboardStatsViewSet(viewsets.ViewSet):
     def financial_reports(self, request):
         from datetime import timedelta
 
-        from django.db.models import Sum, Count
+        from django.db.models import Count, Sum
         from django.utils import timezone
+
         from apps.finance.models import Budget, Payment, StudentFee
 
         # Revenue by school
         revenue_by_school = list(
             Payment.objects.filter(is_confirmed=True)
-            .values('student_fee__fee_structure__school__name')
-            .annotate(total_collected=Sum('amount'), count=Count('id'))
-            .order_by('-total_collected')[:10]
+            .values("student_fee__fee_structure__school__name")
+            .annotate(total_collected=Sum("amount"), count=Count("id"))
+            .order_by("-total_collected")[:10]
         )
 
         # Budget utilization
         budget_utilization = list(
-            Budget.objects.values('category')
-            .annotate(allocated=Sum('allocated_amount'), spent=Sum('spent_amount'))
-            .order_by('-allocated')[:10]
+            Budget.objects.values("category")
+            .annotate(allocated=Sum("allocated_amount"), spent=Sum("spent_amount"))
+            .order_by("-allocated")[:10]
         )
 
         # Fee collection trend (last 6 months)
         six_months_ago = timezone.now() - timedelta(days=180)
         fee_collection_trend = list(
             Payment.objects.filter(is_confirmed=True, payment_date__gte=six_months_ago.date())
-            .values('payment_date__year', 'payment_date__month')
-            .annotate(total=Sum('amount'), count=Count('id'))
-            .order_by('payment_date__year', 'payment_date__month')
+            .values("payment_date__year", "payment_date__month")
+            .annotate(total=Sum("amount"), count=Count("id"))
+            .order_by("payment_date__year", "payment_date__month")
         )
 
         # Outstanding balances
         outstanding = list(
-            StudentFee.objects.filter(status__in=['PENDING', 'PARTIAL'])
-            .values('student__school__name')
-            .annotate(total_due=Sum('balance'), count=Count('id'))
-            .order_by('-total_due')[:10]
+            StudentFee.objects.filter(status__in=["PENDING", "PARTIAL"])
+            .values("student__school__name")
+            .annotate(total_due=Sum("balance"), count=Count("id"))
+            .order_by("-total_due")[:10]
         )
 
         # Payment method breakdown
         payment_methods = list(
             Payment.objects.filter(is_confirmed=True)
-            .values('payment_method')
-            .annotate(total=Sum('amount'), count=Count('id'))
-            .order_by('-total')
+            .values("payment_method")
+            .annotate(total=Sum("amount"), count=Count("id"))
+            .order_by("-total")
         )
 
-        return Response({
-            'revenue_by_school': revenue_by_school,
-            'budget_utilization': budget_utilization,
-            'fee_collection_trend': fee_collection_trend,
-            'outstanding_balances': outstanding,
-            'payment_methods': payment_methods,
-        })
+        return Response(
+            {
+                "revenue_by_school": revenue_by_school,
+                "budget_utilization": budget_utilization,
+                "fee_collection_trend": fee_collection_trend,
+                "outstanding_balances": outstanding,
+                "payment_methods": payment_methods,
+            }
+        )
 
     @action(detail=False, methods=["get"])
     def principal_dashboard(self, request):
@@ -675,7 +678,8 @@ class DashboardStatsViewSet(viewsets.ViewSet):
 
         # --- Personal Info ---
         current_age = (
-            today.year - staff.date_of_birth.year
+            today.year
+            - staff.date_of_birth.year
             - ((today.month, today.day) < (staff.date_of_birth.month, staff.date_of_birth.day))
         )
 
@@ -720,14 +724,17 @@ class DashboardStatsViewSet(viewsets.ViewSet):
         retirement_date = date(year_of_retirement, staff.date_of_birth.month, staff.date_of_birth.day)
         if retirement_date > today:
             years_remaining = (
-                retirement_date.year - today.year
+                retirement_date.year
+                - today.year
                 - ((retirement_date.month, retirement_date.day) < (today.month, today.day))
             )
         else:
             years_remaining = 0
 
         service_timeline = {
-            "date_of_first_appointment": staff.date_of_first_appointment.isoformat() if staff.date_of_first_appointment else None,
+            "date_of_first_appointment": (
+                staff.date_of_first_appointment.isoformat() if staff.date_of_first_appointment else None
+            ),
             "date_joined": staff.date_joined.isoformat(),
             "date_of_retirement": staff.date_of_retirement.isoformat() if staff.date_of_retirement else None,
             "years_of_service": years_of_service,
@@ -752,11 +759,7 @@ class DashboardStatsViewSet(viewsets.ViewSet):
         }
 
         # --- Performance ---
-        latest_performance = (
-            StaffPerformance.objects.filter(staff=staff)
-            .order_by("-academic_year", "-term")
-            .first()
-        )
+        latest_performance = StaffPerformance.objects.filter(staff=staff).order_by("-academic_year", "-term").first()
         performance = None
         if latest_performance:
             performance = {
@@ -782,12 +785,14 @@ class DashboardStatsViewSet(viewsets.ViewSet):
             "approved_leaves": leaves_approved,
         }
 
-        return Response({
-            "personal_info": personal_info,
-            "employment_info": employment_info,
-            "service_timeline": service_timeline,
-            "school_history": school_history,
-            "financial": financial,
-            "performance": performance,
-            "leave_summary": leave_summary,
-        })
+        return Response(
+            {
+                "personal_info": personal_info,
+                "employment_info": employment_info,
+                "service_timeline": service_timeline,
+                "school_history": school_history,
+                "financial": financial,
+                "performance": performance,
+                "leave_summary": leave_summary,
+            }
+        )

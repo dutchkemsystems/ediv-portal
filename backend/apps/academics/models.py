@@ -327,6 +327,7 @@ class StudentEnrollment(models.Model):
 
 class GradingScale(models.Model):
     """School-level grading scale that defines grade boundaries."""
+
     school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="grading_scales")
     name = models.CharField(max_length=100)
     academic_year = models.CharField(max_length=9)
@@ -355,6 +356,7 @@ class GradingScale(models.Model):
 
 class GradeBoundary(models.Model):
     """Individual grade boundary within a grading scale."""
+
     grading_scale = models.ForeignKey(GradingScale, on_delete=models.CASCADE, related_name="boundaries")
     grade = models.CharField(max_length=5)
     min_percentage = models.DecimalField(max_digits=5, decimal_places=2)
