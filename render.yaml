@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: free
     buildCommand: |
-      cd /opt/render/project/src && npm install --prefix frontend && npm run build --prefix frontend && pip install --no-cache-dir -r requirements.txt && cd backend && python manage.py collectstatic --noinput
+      cd /opt/render/project/src && npm install && npm run build && pip install --no-cache-dir -r requirements.txt && cd backend && python manage.py collectstatic --noinput
     startCommand: cd /opt/render/project/src/backend && python manage.py migrate --noinput && python manage.py ensure_admin && python manage.py seed_departments && python manage.py seed_schools && python manage.py seed_users && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 180
     envVars:
       - key: DJANGO_SETTINGS_MODULE
@@ -98,13 +98,13 @@ services:
       - key: CLOUDINARY_URL
         sync: false
 
-  # DEPRECATED — frontend now served by Django. Delete this service from Render dashboard.
+  # Static frontend — serves the React SPA, API calls proxy to ediv-portal.onrender.com
   - type: static
     name: ediv-frontend-static
     plan: free
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: frontend/dist
-    autoDeploy: false
+    autoDeploy: true
     routes:
       - type: rewrite
         source: /**
