@@ -81,3 +81,52 @@ def reindex_elasticsearch():
     except Exception as exc:
         logger.error(f"Elasticsearch reindex failed: {exc}")
         return {"error": str(exc)}
+
+
+@shared_task
+def async_file_import(
+    file_bytes,
+    filename,
+    file_format,
+    created_by_id,
+    department_id=None,
+    classification="INTERNAL",
+    priority="NORMAL",
+):
+    """Extension Plan (Feature B): queued import used when FILES_ASYNC_IMPORT is on."""
+    try:
+        from base64 import b64decode
+
+        from django.contrib.auth import get_user_model
+        from django.core.files.base import ContentFile
+
+        from apps.departments.models import Department
+        from apps.files.services.import_export_service import ImportExportService
+
+        uploaded = ContentFile(b64decode(file_bytes), name=filename)
+        uploaded.content_type = ""
+        dept = (
+            Department.objects.filter(id=department_id).first()
+            if department_id
+            else None
+        )
+        created_by = get_user_model().objects.filter(id=created_by_id).first()
+        if created_by is None:
+            return {"error": "Unknown created_by user"}
+
+        result = ImportExportService.import_file(
+            uploaded_file=uploaded,
+            file_format=file_format,
+            created_by=created_by,
+            department=dept,
+            default_classification=classification,
+            default_priority=priority,
+        )
+        logger.info(f"Async import completed for {filename}: {result.get('file')}")
+        return {
+            "file_id": result["file"].id if result.get("file") else None,
+            "errors": result.get("errors", []),
+        }
+    except Exception as exc:
+        logger.error(f"Async import failed for {filename}: {exc}")
+        return {"error": str(exc)}

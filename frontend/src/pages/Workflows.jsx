@@ -31,6 +31,9 @@ import {
   Assignment as TaskIcon,
   FilterList as FilterIcon,
   Clear as ClearIcon,
+  Psychology as AutoAssignIcon,
+  Preview as PreviewIcon,
+  Check as ConfirmIcon,
 } from '@mui/icons-material'
 import DataTable from '../components/common/DataTable'
 import StatCard from '../components/common/StatCard'
@@ -38,6 +41,15 @@ import Loading from '../components/common/Loading'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 import api from '../api/client'
 import { notify } from '../utils/notifications'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Alert,
+} from '@mui/material'
 
 function Workflows() {
   const [workflows, setWorkflows] = useState([])
@@ -56,6 +68,14 @@ function Workflows() {
   // Filters
   const [filters, setFilters] = useState({ status: '', trigger_type: '' })
   const [showFilters, setShowFilters] = useState(false)
+
+  // Auto-assign preview (FE-002)
+  const [openAutoAssign, setOpenAutoAssign] = useState(false)
+  const [autoType, setAutoType] = useState('file')
+  const [autoId, setAutoId] = useState('')
+  const [autoPreview, setAutoPreview] = useState(null)
+  const [autoLoading, setAutoLoading] = useState(false)
+  const [autoAssigning, setAutoAssigning] = useState(false)
 
   useEffect(() => {
     fetchAll()
@@ -108,6 +128,37 @@ function Workflows() {
 
   const clearFilters = () => setFilters({ status: '', trigger_type: '' })
   const hasActiveFilters = Object.values(filters).some(v => v !== '')
+
+  // Auto-assign preview + confirm (FE-002)
+  const handlePreview = async () => {
+    if (!autoId.trim()) { notify.warning('Enter an item ID'); return }
+    setAutoLoading(true)
+    setAutoPreview(null)
+    try {
+      const res = await api.post('/workflows/assignment/preview/', { type: autoType, id: parseInt(autoId, 10) })
+      setAutoPreview(res.data)
+    } catch (error) {
+      notify.error(error.response?.data?.error || 'Preview failed')
+    } finally {
+      setAutoLoading(false)
+    }
+  }
+
+  const handleConfirmAssign = async () => {
+    setAutoAssigning(true)
+    try {
+      const res = await api.post('/workflows/assignment/assign/', { type: autoType, id: parseInt(autoId, 10), action_required: 'Process item' })
+      notify.success(`Assigned to ${res.data.assignee_name || res.data.assignee || 'assignee'}`)
+      setOpenAutoAssign(false)
+      setAutoPreview(null)
+      setAutoId('')
+      fetchTasks()
+    } catch (error) {
+      notify.error(error.response?.data?.error || 'Assignment failed')
+    } finally {
+      setAutoAssigning(false)
+    }
+  }
 
   // Form handling
   const handleOpenCreate = () => {
@@ -213,6 +264,9 @@ function Workflows() {
           </Typography>
         </Box>
         <Stack direction="row" spacing={1}>
+          <Button variant="outlined" startIcon={<AutoAssignIcon />} onClick={() => { setOpenAutoAssign(true); setAutoPreview(null); setAutoId('') }}>
+            Auto-Assign
+          </Button>
           <Button variant="outlined" startIcon={<FilterIcon />} onClick={() => setShowFilters(!showFilters)} color={hasActiveFilters ? 'primary' : 'inherit'}>
             Filters {hasActiveFilters ? `(${Object.values(filters).filter(v => v).length})` : ''}
           </Button>
@@ -321,6 +375,64 @@ function Workflows() {
           <Button variant="contained" onClick={handleSubmit} disabled={submitting}
             sx={{ bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1642' } }}>
             {submitting ? 'Saving...' : selectedItem ? 'Update' : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ============ AUTO-ASSIGN DIALOG (FE-002) ============ */}
+      <Dialog open={openAutoAssign} onClose={() => setOpenAutoAssign(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 600 }}>
+          <AutoAssignIcon /> Auto-Assign Preview
+        </DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Item Type</InputLabel>
+                <Select value={autoType} onChange={(e) => { setAutoType(e.target.value); setAutoPreview(null) }} label="Item Type">
+                  <MenuItem value="file">File</MenuItem>
+                  <MenuItem value="mail">Mail / Document</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField fullWidth size="small" label="Item ID" type="number"
+                value={autoId} onChange={(e) => { setAutoId(e.target.value); setAutoPreview(null) }} />
+            </Grid>
+            <Grid item xs={12}>
+              <Button variant="contained" startIcon={<PreviewIcon />} onClick={handlePreview} disabled={autoLoading}
+                sx={{ bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1642' } }}>
+                {autoLoading ? 'Previewing...' : 'Preview Assignment'}
+              </Button>
+            </Grid>
+            {autoPreview && (
+              <Grid item xs={12}>
+                <Alert severity="info" sx={{ mb: 1 }}>
+                  Routed to <strong>{autoPreview.department_name}</strong> — assignee <strong>{autoPreview.assignee_name || autoPreview.assignee || 'no head found'}</strong>
+                </Alert>
+                <TableContainer component={Paper}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow><TableCell>Department</TableCell><TableCell>Assignee</TableCell><TableCell>Keywords Used</TableCell></TableRow>
+                    </TableHead>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>{autoPreview.department_code} — {autoPreview.department_name}</TableCell>
+                        <TableCell>{autoPreview.assignee_name || autoPreview.assignee || '—'}</TableCell>
+                        <TableCell>{(autoPreview.keywords_used || []).join(', ') || '—'}</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Grid>
+            )}
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => setOpenAutoAssign(false)}>Cancel</Button>
+          <Button variant="contained" startIcon={<ConfirmIcon />} onClick={handleConfirmAssign} disabled={!autoPreview || autoAssigning}
+            sx={{ bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1642' } }}>
+            {autoAssigning ? 'Assigning...' : 'Confirm Assign'}
           </Button>
         </DialogActions>
       </Dialog>

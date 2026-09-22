@@ -21,8 +21,14 @@ class TaskStatus(models.TextChoices):
 class Workflow(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField()
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="created_workflows")
-    status = models.CharField(max_length=20, choices=WorkflowStatus.choices, default="DRAFT")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="created_workflows",
+    )
+    status = models.CharField(
+        max_length=20, choices=WorkflowStatus.choices, default="DRAFT"
+    )
     trigger_type = models.CharField(
         max_length=20,
         choices=[
@@ -49,7 +55,9 @@ class Workflow(models.Model):
 
 
 class WorkflowStep(models.Model):
-    workflow = models.ForeignKey(Workflow, on_delete=models.CASCADE, related_name="steps")
+    workflow = models.ForeignKey(
+        Workflow, on_delete=models.CASCADE, related_name="steps"
+    )
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     step_type = models.CharField(
@@ -64,7 +72,11 @@ class WorkflowStep(models.Model):
     )
     assigned_role = models.CharField(max_length=20, blank=True)
     assigned_user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="workflow_steps"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="workflow_steps",
     )
     order = models.IntegerField(default=0)
     is_required = models.BooleanField(default=True)
@@ -79,13 +91,21 @@ class WorkflowStep(models.Model):
 
 
 class WorkflowInstance(models.Model):
-    workflow = models.ForeignKey(Workflow, on_delete=models.CASCADE, related_name="instances")
+    workflow = models.ForeignKey(
+        Workflow, on_delete=models.CASCADE, related_name="instances"
+    )
     initiated_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="initiated_workflows"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="initiated_workflows",
     )
     reference_number = models.CharField(max_length=50, unique=True)
-    status = models.CharField(max_length=20, choices=TaskStatus.choices, default="PENDING")
-    current_step = models.ForeignKey(WorkflowStep, on_delete=models.SET_NULL, null=True, blank=True)
+    status = models.CharField(
+        max_length=20, choices=TaskStatus.choices, default="PENDING"
+    )
+    current_step = models.ForeignKey(
+        WorkflowStep, on_delete=models.SET_NULL, null=True, blank=True
+    )
     data = models.JSONField(default=dict)
     started_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
@@ -105,10 +125,20 @@ class WorkflowInstance(models.Model):
 
 
 class Task(models.Model):
-    workflow_instance = models.ForeignKey(WorkflowInstance, on_delete=models.CASCADE, related_name="tasks")
-    step = models.ForeignKey(WorkflowStep, on_delete=models.CASCADE, related_name="tasks")
-    assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="assigned_tasks")
-    status = models.CharField(max_length=20, choices=TaskStatus.choices, default="PENDING")
+    workflow_instance = models.ForeignKey(
+        WorkflowInstance, on_delete=models.CASCADE, related_name="tasks"
+    )
+    step = models.ForeignKey(
+        WorkflowStep, on_delete=models.CASCADE, related_name="tasks"
+    )
+    assigned_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="assigned_tasks",
+    )
+    status = models.CharField(
+        max_length=20, choices=TaskStatus.choices, default="PENDING"
+    )
     comments = models.TextField(blank=True)
     decision = models.CharField(
         max_length=20,
@@ -135,3 +165,18 @@ class Task(models.Model):
 
     def __str__(self):
         return f"{self.workflow_instance.reference_number} - {self.step.name}"
+
+
+class AssignmentRule(models.Model):
+    """Optional per-department routing overrides (Extension Plan Feature B, flag-gated)."""
+
+    department = models.CharField(max_length=10, unique=True)
+    role_override = models.CharField(max_length=20, blank=True)
+    keyword_overrides = models.JSONField(default=list, blank=True)
+    weight = models.IntegerField(default=1)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.department} (weight={self.weight})"

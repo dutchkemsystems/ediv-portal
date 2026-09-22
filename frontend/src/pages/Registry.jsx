@@ -19,6 +19,13 @@ import {
   Divider,
   Paper,
   Stack,
+  Drawer,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -28,6 +35,9 @@ import {
   Cancel as RejectIcon,
   FilterList as FilterIcon,
   Clear as ClearIcon,
+  History as HistoryIcon,
+  Download as DownloadIcon,
+  EventRepeat as FollowUpIcon,
 } from '@mui/icons-material'
 import DataTable from '../components/common/DataTable'
 import StatCard from '../components/common/StatCard'
@@ -51,6 +61,12 @@ function Registry() {
     classification: 'INTERNAL',
   })
 
+  // History + follow-ups + export (FE-003)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [historyEntries, setHistoryEntries] = useState([])
+  const [followUpDialog, setFollowUpDialog] = useState({ open: false, doc: null, assignee_id: '', due_date: '', notes: '' })
+  const [staffList, setStaffList] = useState([])
+
   // Filters
   const [filters, setFilters] = useState({ document_type: '', classification: '', status: '' })
   const [showFilters, setShowFilters] = useState(false)
@@ -58,6 +74,58 @@ function Registry() {
   useEffect(() => {
     fetchDocuments()
   }, [fetchDocuments])
+
+  useEffect(() => {
+    api.get('/users/school-staff/')
+      .then((res) => setStaffList(res.data.results || res.data))
+      .catch(() => setStaffList([]))
+  }, [])
+
+  const handleOpenHistory = async (item) => {
+    setSelectedItem(item)
+    setHistoryOpen(true)
+    try {
+      const res = await api.get(`/registry/documents/${item.id}/history/`)
+      setHistoryEntries(res.data.entries || [])
+    } catch {
+      setHistoryEntries([])
+      notify.error('Failed to load document history')
+    }
+  }
+
+  const handleSubmitFollowUp = async () => {
+    const { doc, assignee_id, due_date, notes } = followUpDialog
+    if (!doc || !assignee_id) {
+      notify.error('Please select an assignee')
+      return
+    }
+    try {
+      await api.post(`/registry/documents/${doc.id}/follow-ups/`, {
+        assignee_id: parseInt(assignee_id, 10),
+        due_date: due_date || null,
+        notes,
+      })
+      notify.success('Follow-up created')
+      setFollowUpDialog({ open: false, doc: null, assignee_id: '', due_date: '', notes: '' })
+    } catch (error) {
+      notify.error(error.response?.data?.error || 'Failed to create follow-up')
+    }
+  }
+
+  const handleExport = async () => {
+    try {
+      const res = await api.get('/registry/documents/export/', { params: { format: 'csv' }, responseType: 'blob' })
+      const url = window.URL.createObjectURL(new Blob([res.data]))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'registry-index.csv'
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      notify.error('Failed to export registry index')
+    }
+  }
 
   useEffect(() => {
     fetchDocuments()
@@ -192,6 +260,17 @@ function Registry() {
     { id: 'created_at', label: 'Created', render: (row) => new Date(row.created_at).toLocaleDateString() },
     { id: 'actions', label: 'Actions', render: (row) => (
       <Box sx={{ display: 'flex', gap: 0.5 }}>
+        {row.requires_response && (
+          <Button
+            size="small"
+            color="warning"
+            startIcon={<FollowUpIcon />}
+            onClick={() => setFollowUpDialog({ open: true, doc: row, assignee_id: '', due_date: '', notes: '' })}
+            sx={{ minWidth: 0, px: 1 }}
+          >
+            Follow-up
+          </Button>
+        )}
         {row.status === 'PENDING' && (
           <>
             <Button
@@ -234,6 +313,9 @@ function Registry() {
           </Typography>
         </Box>
         <Stack direction="row" spacing={1}>
+          <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleExport}>
+            Export
+          </Button>
           <Button variant="outlined" startIcon={<FilterIcon />} onClick={() => setShowFilters(!showFilters)} color={hasActiveFilters ? 'primary' : 'inherit'}>
             Filters {hasActiveFilters ? `(${Object.values(filters).filter(v => v).length})` : ''}
           </Button>
@@ -447,6 +529,7 @@ function Registry() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenViewDialog(false)}>Close</Button>
+          <Button startIcon={<HistoryIcon />} onClick={() => { setOpenViewDialog(false); handleOpenHistory(selectedItem) }}>History</Button>
           <Button variant="contained" startIcon={<EditIcon />} onClick={() => { setOpenViewDialog(false); handleOpenEdit(selectedItem) }} sx={{ bgcolor: '#1a237e' }}>Edit</Button>
         </DialogActions>
       </Dialog>
@@ -487,6 +570,89 @@ function Registry() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* ============ FOLLOW-UP DIALOG (FE-003) ============ */}
+      <Dialog open={followUpDialog.open} onClose={() => setFollowUpDialog({ open: false, doc: null, assignee_id: '', due_date: '', notes: '' })} maxWidth="sm" fullWidth>
+        <DialogTitle>Create Follow-up — {followUpDialog.doc?.reference_number}</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Assign To</InputLabel>
+                <Select
+                  value={followUpDialog.assignee_id}
+                  onChange={(e) => setFollowUpDialog({ ...followUpDialog, assignee_id: e.target.value })}
+                  label="Assign To"
+                >
+                  {staffList.map((s) => (
+                    <MenuItem key={s.id} value={s.id}>{s.first_name} {s.last_name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                type="date"
+                label="Due Date"
+                value={followUpDialog.due_date}
+                onChange={(e) => setFollowUpDialog({ ...followUpDialog, due_date: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                label="Notes"
+                value={followUpDialog.notes}
+                onChange={(e) => setFollowUpDialog({ ...followUpDialog, notes: e.target.value })}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setFollowUpDialog({ open: false, doc: null, assignee_id: '', due_date: '', notes: '' })}>Cancel</Button>
+          <Button onClick={handleSubmitFollowUp} variant="contained" sx={{ bgcolor: '#1a237e' }}>Create Follow-up</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ============ HISTORY DRAWER (FE-003) ============ */}
+      <Drawer anchor="right" open={historyOpen} onClose={() => setHistoryOpen(false)}>
+        <Box sx={{ width: 520, p: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6" fontWeight={600}>Audit History — {selectedItem?.reference_number}</Typography>
+            <Button size="small" onClick={() => setHistoryOpen(false)}>Close</Button>
+          </Box>
+          {historyEntries.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">No history recorded for this document.</Typography>
+          ) : (
+            <TableContainer component={Paper}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Action</TableCell>
+                    <TableCell>User</TableCell>
+                    <TableCell>Details</TableCell>
+                    <TableCell>Timestamp</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {historyEntries.map((entry, idx) => (
+                    <TableRow key={idx}>
+                      <TableCell><Chip label={entry.action} size="small" color={entry.action === 'UPDATE' ? 'warning' : entry.action === 'ASSIGN' ? 'primary' : 'default'} /></TableCell>
+                      <TableCell>{entry.user || '—'}</TableCell>
+                      <TableCell>{entry.details}</TableCell>
+                      <TableCell>{entry.timestamp ? new Date(entry.timestamp).toLocaleString() : '—'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </Box>
+      </Drawer>
     </Box>
   )
 }

@@ -11,6 +11,7 @@ import {
   CheckCircle as ApproveIcon, Cancel as RejectIcon, Upgrade as EscalateIcon,
   Archive as ArchiveIcon, Refresh as RefreshIcon, PlayArrow as AdvanceIcon,
   Warning as WarningIcon, Timeline as WorkflowIcon, Search as SearchIcon,
+  UploadFile as UploadFileIcon,
 } from '@mui/icons-material'
 import StatCard from '../components/common/StatCard'
 import Loading from '../components/common/Loading'
@@ -110,6 +111,10 @@ function Files() {
     expected_return_date: '',
     use_workflow: true,
   })
+  const [openImportDialog, setOpenImportDialog] = useState(false)
+  const [importFile, setImportFile] = useState(null)
+  const [importFormats, setImportFormats] = useState(null)
+  const [importing, setImporting] = useState(false)
 
   const fetchFiles = useCallback(async () => {
     setLoading(true)
@@ -132,6 +137,12 @@ function Files() {
 
   useEffect(() => { fetchFiles(); fetchStaff() }, [fetchFiles, fetchStaff])
 
+  useEffect(() => {
+    api.get('/files/import/formats/')
+      .then((res) => setImportFormats(res.data))
+      .catch(() => setImportFormats(null))
+  }, [])
+
   const handleAdd = () => {
     setSelectedFile(null)
     setFormData({
@@ -140,6 +151,51 @@ function Files() {
       direction: 'INCOMING', description: '',
     })
     setOpenDialog(true)
+  }
+
+  const handleImportPick = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const formats = (importFormats?.formats || []).map((f) => f.format)
+    const ext = `.${file.name.split('.').pop().toLowerCase()}`
+    const isImage = file.type.startsWith('image/')
+    const known = formats.some((f) => ext === `.${f}` || (f === 'jpeg' && (ext === '.jpg' || ext === '.jpeg')))
+    if (!known && !isImage) {
+      notify.error(`Unsupported file type. Allowed: ${formats.join(', ')}`)
+      e.target.value = null
+      return
+    }
+    const maxSize = (importFormats?.formats || []).find((f) => ext === `.${f}` || (f === 'jpeg' && (ext === '.jpg' || ext === '.jpeg')))?.max_size_mb || 25
+    if (file.size > maxSize * 1024 * 1024) {
+      notify.error(`File too large. Maximum allowed size is ${maxSize}MB`)
+      e.target.value = null
+      return
+    }
+    setImportFile(file)
+  }
+
+  const handleSubmitImport = async () => {
+    if (!importFile) return
+    setImporting(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', importFile)
+      const res = await api.post('/files/import/', formData)
+      if (res.status === 202 || res.data.job === 'queued') {
+        notify.success('File queued for import — you will be notified when processing completes')
+      } else if (res.data.errors?.length) {
+        notify.warning(`File imported with ${res.data.errors.length} error(s) (${res.data.file_number || ''})`)
+      } else {
+        notify.success(`File imported successfully (${res.data.file_number || ''})`)
+      }
+      setOpenImportDialog(false)
+      setImportFile(null)
+      fetchFiles()
+    } catch (error) {
+      notify.error(error.response?.data?.error || error.response?.data?.detail || 'Failed to import file')
+    } finally {
+      setImporting(false)
+    }
   }
 
   const handleMove = (file) => {
@@ -300,6 +356,10 @@ function Files() {
             InputProps={{ endAdornment: <IconButton size="small" onClick={handleSearch}><SearchIcon /></IconButton> }}
             sx={{ width: 250 }}
           />
+          <Button variant="contained" startIcon={<UploadFileIcon />} onClick={() => setOpenImportDialog(true)}
+            sx={{ bgcolor: '#00695c', '&:hover': { bgcolor: '#004d40' } }}>
+            Import
+          </Button>
           <Button variant="contained" startIcon={<AddIcon />} onClick={handleAdd}
             sx={{ bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1642' } }}>
             New File
@@ -609,6 +669,45 @@ function Files() {
           <Button onClick={handleSubmitCreate} variant="contained" disabled={!formData.title}
             sx={{ bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1642' } }}>
             Create
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Import File Dialog */}
+      <Dialog open={openImportDialog} onClose={() => setOpenImportDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Import File</DialogTitle>
+        <DialogContent>
+          <Button
+            component="label"
+            variant="outlined"
+            fullWidth
+            sx={{ py: 3, borderStyle: 'dashed', flexDirection: 'column', gap: 1 }}
+          >
+            <UploadFileIcon sx={{ fontSize: 40 }} />
+            <Typography>{importFile ? importFile.name : 'Click to select a file'}</Typography>
+            <Typography variant="caption" color="text.secondary">
+              {importFormats?.formats
+                ? `Allowed: ${importFormats.formats.map((f) => f.format.toUpperCase()).join(', ')}`
+                : 'Supported formats: DOC, DOCX, XLS, XLSX, PDF, JPEG, PNG, CSV, TXT, MDB/ACCDB, MP3, MP4'}
+            </Typography>
+            {importFile && importFormats?.formats && (
+              <Typography variant="caption" color="text.secondary">
+                Size: {(importFile.size / (1024 * 1024)).toFixed(1)}MB of {
+                  importFormats.formats.find((f) =>
+                    (`.${importFile.name.split('.').pop().toLowerCase()}` === `.${f.format}`) ||
+                    (f.format === 'jpeg' && ['.jpg', '.jpeg'].includes(`.${importFile.name.split('.').pop().toLowerCase()}`))
+                  )?.max_size_mb || 25
+                }MB max
+              </Typography>
+            )}
+            <input type="file" hidden onChange={handleImportPick} />
+          </Button>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenImportDialog(false)}>Cancel</Button>
+          <Button onClick={handleSubmitImport} variant="contained" disabled={!importFile || importing}
+            sx={{ bgcolor: '#00695c', '&:hover': { bgcolor: '#004d40' } }}>
+            {importing ? 'Importing...' : 'Import'}
           </Button>
         </DialogActions>
       </Dialog>

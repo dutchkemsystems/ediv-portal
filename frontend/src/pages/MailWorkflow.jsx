@@ -238,6 +238,12 @@ function MailWorkflow() {
         <Alert severity={alert.type} onClose={() => setAlert(null)} sx={{ mb: 2 }}>{alert.msg}</Alert>
       )}
 
+      {import.meta.env.VITE_REGISTRY_AUTO_TASK === 'true' && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Auto-assignment is enabled — saving a correspondence with a response required will auto-create a follow-up task.
+        </Alert>
+      )}
+
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={4}>
           <StatCard title="Incoming Mail" value={activeIncoming.length} icon={<MailIcon />} color={lagosRed} />

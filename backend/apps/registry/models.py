@@ -28,13 +28,25 @@ class Document(models.Model):
     document_type = models.CharField(max_length=20, choices=DocumentType.choices)
     content = models.TextField(blank=True)
     attachment = models.FileField(
-        upload_to="registry/documents/", blank=True, help_text="Upload file (JPEG, PDF, Excel, Word, etc.)"
+        upload_to="registry/documents/",
+        blank=True,
+        help_text="Upload file (JPEG, PDF, Excel, Word, etc.)",
     )
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="created_documents")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="created_documents",
+    )
     department = models.ForeignKey(
-        "departments.Department", on_delete=models.SET_NULL, null=True, blank=True, related_name="documents"
+        "departments.Department",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="documents",
     )
-    status = models.CharField(max_length=20, choices=DocumentStatus.choices, default="DRAFT")
+    status = models.CharField(
+        max_length=20, choices=DocumentStatus.choices, default="DRAFT"
+    )
     classification = models.CharField(
         max_length=20,
         choices=[
@@ -69,7 +81,9 @@ class Correspondence(models.Model):
         OUTGOING = "OUTGOING", "Outgoing"
         INTERNAL = "INTERNAL", "Internal"
 
-    document = models.OneToOneField(Document, on_delete=models.CASCADE, related_name="correspondence")
+    document = models.OneToOneField(
+        Document, on_delete=models.CASCADE, related_name="correspondence"
+    )
     direction = models.CharField(max_length=20, choices=Direction.choices)
     sender = models.CharField(max_length=200)
     recipient = models.CharField(max_length=200)
@@ -89,12 +103,18 @@ class Correspondence(models.Model):
 
 
 class Filing(models.Model):
-    document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name="filings")
+    document = models.ForeignKey(
+        Document, on_delete=models.CASCADE, related_name="filings"
+    )
     file_code = models.CharField(max_length=50)
     box_number = models.CharField(max_length=20, blank=True)
     shelf_number = models.CharField(max_length=20, blank=True)
     room = models.CharField(max_length=100, blank=True)
-    filed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="filed_documents")
+    filed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="filed_documents",
+    )
     filed_date = models.DateField()
     notes = models.TextField(blank=True)
 
@@ -106,12 +126,18 @@ class Filing(models.Model):
 
 
 class DocumentVersion(models.Model):
-    document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name="versions")
+    document = models.ForeignKey(
+        Document, on_delete=models.CASCADE, related_name="versions"
+    )
     version_number = models.IntegerField()
     content = models.TextField()
     file = models.FileField(upload_to="registry/versions/")
     changes = models.TextField(blank=True)
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="document_versions")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="document_versions",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -137,7 +163,9 @@ class MemoWorkflow(models.Model):
         REPORTED = "REPORTED", "Reported"
         ARCHIVED = "ARCHIVED", "Archived"
 
-    document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name="memo_workflows")
+    document = models.ForeignKey(
+        Document, on_delete=models.CASCADE, related_name="memo_workflows"
+    )
     workflow_type = models.CharField(max_length=20, choices=WorkflowType.choices)
     status = models.CharField(max_length=20, choices=Status.choices, default="DRAFT")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -156,8 +184,14 @@ class MemoApproval(models.Model):
         APPROVED = "APPROVED", "Approved"
         REJECTED = "REJECTED", "Rejected"
 
-    memo_workflow = models.ForeignKey(MemoWorkflow, on_delete=models.CASCADE, related_name="approvals")
-    approver = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="memo_approvals")
+    memo_workflow = models.ForeignKey(
+        MemoWorkflow, on_delete=models.CASCADE, related_name="approvals"
+    )
+    approver = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="memo_approvals",
+    )
     approval_order = models.IntegerField(default=1)
     status = models.CharField(max_length=20, choices=Status.choices, default="PENDING")
     comments = models.TextField(blank=True)
@@ -177,8 +211,14 @@ class MemoCirculation(models.Model):
         ACTION_TAKEN = "ACTION_TAKEN", "Action Taken"
         REPORTED = "REPORTED", "Reported"
 
-    memo_workflow = models.ForeignKey(MemoWorkflow, on_delete=models.CASCADE, related_name="circulations")
-    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="memo_circulations")
+    memo_workflow = models.ForeignKey(
+        MemoWorkflow, on_delete=models.CASCADE, related_name="circulations"
+    )
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="memo_circulations",
+    )
     date_sent = models.DateTimeField(auto_now_add=True)
     date_acknowledged = models.DateTimeField(null=True, blank=True)
     acknowledgement_notes = models.TextField(blank=True)
@@ -189,3 +229,62 @@ class MemoCirculation(models.Model):
 
     def __str__(self):
         return f"{self.memo_workflow} -> {self.recipient.get_full_name()}"
+
+
+class DocumentAuditEntry(models.Model):
+    """Per-document trail of create/update events (Extension Plan Feature B)."""
+
+    document = models.ForeignKey(
+        Document, on_delete=models.CASCADE, related_name="audit_entries"
+    )
+    action = models.CharField(max_length=50)
+    details = models.TextField(blank=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="document_audit_entries",
+    )
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-timestamp"]
+
+    def __str__(self):
+        return f"{self.document.reference_number} - {self.action}"
+
+
+class FollowUp(models.Model):
+    """Follow-up/task record for a document (Extension Plan Feature B)."""
+
+    class Status(models.TextChoices):
+        PENDING = "PENDING", "Pending"
+        IN_PROGRESS = "IN_PROGRESS", "In Progress"
+        COMPLETED = "COMPLETED", "Completed"
+
+    document = models.ForeignKey(
+        Document, on_delete=models.CASCADE, related_name="follow_ups"
+    )
+    assignee = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="assigned_follow_ups",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="created_follow_ups",
+    )
+    due_date = models.DateField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default="PENDING")
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["status"])]
+
+    def __str__(self):
+        return f"{self.document.reference_number} - {self.assignee.get_full_name()}"

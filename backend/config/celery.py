@@ -8,6 +8,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.development")
 app = Celery("config")
 app.config_from_object("django.conf:settings", namespace="CELERY")
 app.autodiscover_tasks()
+app.set_default()
 
 # Periodic task schedule for enterprise automation
 app.conf.beat_schedule = {
