@@ -1,0 +1,30 @@
+{
+  "short_name": "EDIV Portal",
+  "name": "Education District IV Portal",
+  "description": "Digital ecosystem for Education District IV - 80,000+ students, 95 schools",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#C8102E",
+  "background_color": "#ffffff",
+  "scope": "/",
+  "categories": ["education", "government"],
+  "prefer_related_applications": false
+}
