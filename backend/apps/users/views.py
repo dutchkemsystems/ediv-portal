@@ -14,12 +14,7 @@ from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 
 from config.security import AccountLockout, AuditLogger, SessionManager
 
-from .mfa import (
-    generate_mfa_secret,
-    get_mfa_provisioning_uri,
-    get_mfa_qr_code_url,
-    verify_mfa_code,
-)
+from .mfa import generate_mfa_secret, get_mfa_provisioning_uri, get_mfa_qr_code_url, verify_mfa_code
 from .models import Privilege, RolePrivilege, User
 from .serializers import (
     ChangePasswordSerializer,

@@ -17,14 +17,7 @@ from apps.departments.models import Department, Unit
 from apps.files.models import File, FileCategory, FileMovement, FileType
 from apps.files.services.file_movement_service import FileMovementService
 from apps.files.services.notification_service import NotificationService
-from apps.registry.models import (
-    Correspondence,
-    Document,
-    DocumentType,
-    MemoApproval,
-    MemoCirculation,
-    MemoWorkflow,
-)
+from apps.registry.models import Correspondence, Document, DocumentType, MemoApproval, MemoCirculation, MemoWorkflow
 from apps.workflows.models import Task, WorkflowInstance
 from apps.workflows.services.workflow_service import WorkflowService
 from apps.workflows.workflow_definitions import (

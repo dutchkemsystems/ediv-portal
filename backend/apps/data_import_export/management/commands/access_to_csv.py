@@ -7,10 +7,7 @@ from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
 
-from apps.data_import_export.access_mapping import (
-    ACCESS_TABLE_MAPPINGS,
-    find_mapping_for_table,
-)
+from apps.data_import_export.access_mapping import ACCESS_TABLE_MAPPINGS, find_mapping_for_table
 
 
 class Command(BaseCommand):

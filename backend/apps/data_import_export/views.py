@@ -20,15 +20,9 @@ from config.permissions import IsAdminOrTGOrDeptHead
 from config.security import AuditLogger
 
 from .access_mapping import ACCESS_TABLE_MAPPINGS, find_mapping_for_table
-from .models import (
-    AccessDatabase,
-    AccessPrivilege,
-    AccessTableData,
-)
+from .models import AccessDatabase, AccessPrivilege, AccessTableData
 from .models import ImportError as ImportErrorModel
-from .models import (
-    ImportJob,
-)
+from .models import ImportJob
 from .serializers import (
     AccessDatabaseListSerializer,
     AccessDatabaseSerializer,

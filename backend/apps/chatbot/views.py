@@ -3,11 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .models import ChatIntent, ChatMessage, ChatSession
-from .serializers import (
-    ChatIntentSerializer,
-    ChatRequestSerializer,
-    ChatSessionSerializer,
-)
+from .serializers import ChatIntentSerializer, ChatRequestSerializer, ChatSessionSerializer
 from .services.chatbot_engine import ChatbotEngine
 
 

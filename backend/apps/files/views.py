@@ -39,9 +39,7 @@ from .serializers import (
 from .services.file_movement_service import FileMovementService
 
 try:
-    from apps.mail_workflow.services.mail_communication_integration import (
-        notify_file_movement,
-    )
+    from apps.mail_workflow.services.mail_communication_integration import notify_file_movement
 except ImportError:
     notify_file_movement = None
 
