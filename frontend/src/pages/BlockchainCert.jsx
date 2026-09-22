@@ -10,7 +10,6 @@ import {
   Card,
   CardContent,
   Alert,
-  Container,
   LinearProgress,
   TextField,
   MenuItem,
@@ -24,7 +23,6 @@ import {
   Verified as VerifiedIcon,
   Add as AddIcon,
   Search as SearchIcon,
-  School as SchoolIcon,
 } from '@mui/icons-material'
 import api from '../api/client'
 

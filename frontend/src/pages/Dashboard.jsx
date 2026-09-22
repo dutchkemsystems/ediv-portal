@@ -36,11 +36,8 @@ import api from '../api/client'
 import { notify } from '../utils/notifications'
 
 const SysAdminDashboard = lazy(() => import('../components/dashboard/SysAdminDashboard'))
-const HRDashboard = lazy(() => import('../components/dashboard/HRDashboard'))
 const FinanceDashboard = lazy(() => import('../components/dashboard/FinanceDashboard'))
 const PrincipalDashboard = lazy(() => import('../components/dashboard/PrincipalDashboard'))
-const TeacherDashboard = lazy(() => import('../components/dashboard/TeacherDashboard'))
-const RegistryDashboard = lazy(() => import('../components/dashboard/RegistryDashboard'))
 const ParentDashboard = lazy(() => import('../components/dashboard/ParentDashboard'))
 const StaffEnterpriseDashboard = lazy(() => import('../components/dashboard/StaffEnterpriseDashboard'))
 

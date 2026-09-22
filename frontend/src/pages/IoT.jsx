@@ -69,7 +69,6 @@ function IoT() {
   const [devices, setDevices] = useState([])
   const [readings, setReadings] = useState([])
   const [alerts, setAlerts] = useState([])
-  const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
@@ -83,12 +82,6 @@ function IoT() {
       setDevices(devicesRes.data.results || devicesRes.data)
       setReadings(readingsRes.data.results || readingsRes.data)
       setAlerts(alertsRes.data.results || alertsRes.data)
-      try {
-        const statsRes = await api.get('/iot/alerts/dashboard/')
-        setStats(statsRes.data)
-      } catch {
-        setStats({ total_devices: devicesRes.data.results?.length || devicesRes.data?.length || 0 })
-      }
     } catch (error) {
       console.error('Error fetching IoT data:', error)
     } finally {
