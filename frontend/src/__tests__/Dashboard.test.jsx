@@ -75,16 +75,18 @@ describe('Dashboard Page', () => {
   })
 
   describe('Generic Dashboard (non-role-specific)', () => {
-    it('shows loading spinner while data is being fetched', () => {
+    const genericRole = 'UNKNOWN_ROLE'
+
+    it('shows loading state while data is being fetched', () => {
       mockGet.mockReturnValue(new Promise(() => {}))
 
       renderWithProviders(<Dashboard />, {
         preloadedState: {
-          auth: { user: { first_name: 'Admin', role: 'QA' }, isAuthenticated: true, loading: false, error: null },
+          auth: { user: { first_name: 'Admin', role: genericRole }, isAuthenticated: true, loading: false, error: null },
         },
       })
 
-      expect(screen.getByRole('progressbar')).toBeInTheDocument()
+      expect(screen.getByTestId('loading')).toBeInTheDocument()
     })
 
     it('renders welcome message with user name', async () => {
@@ -94,7 +96,7 @@ describe('Dashboard Page', () => {
 
       renderWithProviders(<Dashboard />, {
         preloadedState: {
-          auth: { user: { first_name: 'John', role: 'QA' }, isAuthenticated: true, loading: false, error: null },
+          auth: { user: { first_name: 'John', role: genericRole }, isAuthenticated: true, loading: false, error: null },
         },
       })
 
@@ -110,7 +112,7 @@ describe('Dashboard Page', () => {
 
       renderWithProviders(<Dashboard />, {
         preloadedState: {
-          auth: { user: { first_name: 'Admin', role: 'EMIS' }, isAuthenticated: true, loading: false, error: null },
+          auth: { user: { first_name: 'Admin', role: genericRole }, isAuthenticated: true, loading: false, error: null },
         },
       })
 
@@ -126,7 +128,7 @@ describe('Dashboard Page', () => {
 
       renderWithProviders(<Dashboard />, {
         preloadedState: {
-          auth: { user: { first_name: 'Admin', role: 'QA' }, isAuthenticated: true, loading: false, error: null },
+          auth: { user: { first_name: 'Admin', role: genericRole }, isAuthenticated: true, loading: false, error: null },
         },
       })
 
@@ -145,7 +147,7 @@ describe('Dashboard Page', () => {
 
       renderWithProviders(<Dashboard />, {
         preloadedState: {
-          auth: { user: { first_name: 'Admin', role: 'QA' }, isAuthenticated: true, loading: false, error: null },
+          auth: { user: { first_name: 'Admin', role: genericRole }, isAuthenticated: true, loading: false, error: null },
         },
       })
 
@@ -160,7 +162,7 @@ describe('Dashboard Page', () => {
 
       renderWithProviders(<Dashboard />, {
         preloadedState: {
-          auth: { user: { first_name: 'Admin', role: 'QA' }, isAuthenticated: true, loading: false, error: null },
+          auth: { user: { first_name: 'Admin', role: genericRole }, isAuthenticated: true, loading: false, error: null },
         },
       })
 
