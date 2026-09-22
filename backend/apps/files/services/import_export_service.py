@@ -17,7 +17,21 @@ logger = logging.getLogger(__name__)
 class ImportExportService:
     """Service for importing and exporting files in multiple formats."""
 
-    SUPPORTED_IMPORT_FORMATS = ["doc", "docx", "xls", "xlsx", "pdf", "jpeg", "jpg", "png", "csv", "txt"]
+    SUPPORTED_IMPORT_FORMATS = [
+        "doc",
+        "docx",
+        "xls",
+        "xlsx",
+        "pdf",
+        "jpeg",
+        "jpg",
+        "png",
+        "csv",
+        "txt",
+        "access",
+        "mp3",
+        "mp4",
+    ]
     SUPPORTED_EXPORT_FORMATS = ["xlsx", "csv", "pdf", "docx"]
 
     # MIME type to format mapping for auto-detection
@@ -31,6 +45,10 @@ class ImportExportService:
         "image/png": "png",
         "text/csv": "csv",
         "text/plain": "txt",
+        "application/vnd.ms-access": "access",
+        "application/x-msaccess": "access",
+        "audio/mpeg": "mp3",
+        "video/mp4": "mp4",
     }
 
     EXT_FORMAT_MAP = {
@@ -44,6 +62,27 @@ class ImportExportService:
         ".png": "png",
         ".csv": "csv",
         ".txt": "txt",
+        ".mdb": "access",
+        ".accdb": "access",
+        ".mp3": "mp3",
+        ".mp4": "mp4",
+    }
+
+    # Centralized upload size limits per import format (MB). Enforced by FileImportView.
+    MAX_UPLOAD_SIZE_MB = {
+        "doc": 25,
+        "docx": 25,
+        "pdf": 25,
+        "xls": 50,
+        "xlsx": 50,
+        "access": 50,
+        "jpeg": 10,
+        "jpg": 10,
+        "png": 10,
+        "mp3": 50,
+        "mp4": 200,
+        "csv": 25,
+        "txt": 25,
     }
 
     @staticmethod
@@ -85,7 +124,11 @@ class ImportExportService:
         file_obj = None
 
         if file_format not in ImportExportService.SUPPORTED_IMPORT_FORMATS:
-            return {"file": None, "attachments": [], "errors": [f"Unsupported format: {file_format}"]}
+            return {
+                "file": None,
+                "attachments": [],
+                "errors": [f"Unsupported format: {file_format}"],
+            }
 
         try:
             # Read file content for description extraction
@@ -121,11 +164,15 @@ class ImportExportService:
                     if "priority" in first_row:
                         metadata["priority"] = first_row["priority"]
                 # Re-encode for attachment
-                uploaded_file = ContentFile(raw, name=getattr(uploaded_file, "name", "import.csv"))
+                uploaded_file = ContentFile(
+                    raw, name=getattr(uploaded_file, "name", "import.csv")
+                )
 
             elif file_format in ("xlsx", "xls"):
                 uploaded_file.seek(0)
-                metadata = ImportExportService._import_spreadsheet(uploaded_file, file_format)
+                metadata = ImportExportService._import_spreadsheet(
+                    uploaded_file, file_format
+                )
                 if metadata.get("data"):
                     d = metadata["data"]
                     if "title" in d:
@@ -136,7 +183,9 @@ class ImportExportService:
             elif file_format in ("docx", "doc", "pdf"):
                 uploaded_file.seek(0)
                 try:
-                    doc_data = ImportExportService._import_document(uploaded_file, file_format)
+                    doc_data = ImportExportService._import_document(
+                        uploaded_file, file_format
+                    )
                     description = doc_data.get("text", "")
                 except ImportError as e:
                     errors.append(f"Missing library for {file_format}: {str(e)}")
@@ -144,7 +193,9 @@ class ImportExportService:
             elif file_format in ("jpeg", "jpg", "png"):
                 uploaded_file.seek(0)
                 try:
-                    img_data = ImportExportService._import_image(uploaded_file, file_format)
+                    img_data = ImportExportService._import_image(
+                        uploaded_file, file_format
+                    )
                     # Use OCR-extracted text if available, otherwise use metadata
                     if img_data.get("text"):
                         description = img_data["text"]
@@ -156,7 +207,9 @@ class ImportExportService:
 
             # Determine title
             file_name = getattr(uploaded_file, "name", f"import.{file_format}")
-            title = metadata.get("title", file_name.rsplit(".", 1)[0] if "." in file_name else file_name)
+            title = metadata.get(
+                "title", file_name.rsplit(".", 1)[0] if "." in file_name else file_name
+            )
 
             # Determine file_type
             file_type = metadata.get("file_type", "OTHER")
@@ -216,7 +269,9 @@ class ImportExportService:
     def _generate_file_number():
         """Generate a unique file number."""
         year = datetime.date.today().year
-        seq = File.objects.filter(file_number__startswith=f"EDIV-{year}-IMP").count() + 1
+        seq = (
+            File.objects.filter(file_number__startswith=f"EDIV-{year}-IMP").count() + 1
+        )
         return f"EDIV-{year}-IMP-{seq:04d}"
 
     @staticmethod
@@ -238,7 +293,11 @@ class ImportExportService:
                             data[header.lower().strip()] = str(row[col_idx])
                     break
             wb.close()
-            return {"headers": headers, "data": data, "row_count": max(ws.max_row - 1, 0)}
+            return {
+                "headers": headers,
+                "data": data,
+                "row_count": max(ws.max_row - 1, 0),
+            }
 
         elif file_format == "xls":
             # Legacy .xls format via xlrd
@@ -288,7 +347,9 @@ class ImportExportService:
                 import openpyxl
 
                 uploaded_file.seek(0)
-                wb = openpyxl.load_workbook(uploaded_file, read_only=True, data_only=True)
+                wb = openpyxl.load_workbook(
+                    uploaded_file, read_only=True, data_only=True
+                )
                 ws = wb.active
                 headers = []
                 data = {}
@@ -301,7 +362,11 @@ class ImportExportService:
                                 data[header.lower().strip()] = str(row[col_idx])
                         break
                 wb.close()
-                return {"headers": headers, "data": data, "row_count": max(ws.max_row - 1, 0)}
+                return {
+                    "headers": headers,
+                    "data": data,
+                    "row_count": max(ws.max_row - 1, 0),
+                }
             except Exception as e:
                 logger.error(f"openpyxl fallback for .xls failed: {e}")
         except Exception as e:
@@ -343,14 +408,20 @@ class ImportExportService:
                             text = ocr_result["text"]
                             return {
                                 "text": text,
-                                "page_count": ocr_result.get("pages_processed", len(reader.pages)),
+                                "page_count": ocr_result.get(
+                                    "pages_processed", len(reader.pages)
+                                ),
                                 "extraction_method": "ocr",
                                 "ocr_confidence": ocr_result.get("confidence", 0),
                             }
                 except Exception as e:
                     logger.warning(f"OCR fallback for scanned PDF failed: {e}")
 
-            return {"text": text, "page_count": len(reader.pages), "extraction_method": "digital"}
+            return {
+                "text": text,
+                "page_count": len(reader.pages),
+                "extraction_method": "digital",
+            }
 
         return {"text": "", "page_count": 0}
 
@@ -381,7 +452,9 @@ class ImportExportService:
                 tmp.write(uploaded_file.read())
                 tmp_path = tmp.name
             try:
-                result = subprocess.run(["antiword", tmp_path], capture_output=True, text=True, timeout=30)
+                result = subprocess.run(
+                    ["antiword", tmp_path], capture_output=True, text=True, timeout=30
+                )
                 if result.returncode == 0:
                     return {"text": result.stdout, "extraction_method": "antiword"}
             finally:
@@ -460,7 +533,9 @@ class ImportExportService:
             return None
 
         # Fetch files (skip non-existent IDs)
-        files = File.objects.filter(id__in=file_ids).select_related("created_by", "department")
+        files = File.objects.filter(id__in=file_ids).select_related(
+            "created_by", "department"
+        )
 
         if export_format == "xlsx":
             return ImportExportService._export_to_xlsx(files)
@@ -519,7 +594,10 @@ class ImportExportService:
         buffer = io.BytesIO()
         wb.save(buffer)
         buffer.seek(0)
-        return ContentFile(buffer.getvalue(), name=f'files_export_{timezone.now().strftime("%Y%m%d_%H%M%S")}.xlsx')
+        return ContentFile(
+            buffer.getvalue(),
+            name=f"files_export_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+        )
 
     @staticmethod
     def _export_to_csv(files) -> ContentFile:
@@ -560,7 +638,9 @@ class ImportExportService:
             )
 
         content = output.getvalue().encode("utf-8")
-        return ContentFile(content, name=f'files_export_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv')
+        return ContentFile(
+            content, name=f"files_export_{timezone.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        )
 
     @staticmethod
     def _export_to_pdf(files) -> ContentFile:
@@ -569,7 +649,13 @@ class ImportExportService:
             from reportlab.lib import colors
             from reportlab.lib.pagesizes import A4
             from reportlab.lib.styles import getSampleStyleSheet
-            from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+            from reportlab.platypus import (
+                Paragraph,
+                SimpleDocTemplate,
+                Spacer,
+                Table,
+                TableStyle,
+            )
         except ImportError:
             return None
 
@@ -605,7 +691,12 @@ class ImportExportService:
                     ("FONTSIZE", (0, 1), (-1, -1), 8),
                     ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
                     ("GRID", (0, 0), (-1, -1), 1, colors.black),
-                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.Color(0.95, 0.95, 0.95)]),
+                    (
+                        "ROWBACKGROUNDS",
+                        (0, 1),
+                        (-1, -1),
+                        [colors.white, colors.Color(0.95, 0.95, 0.95)],
+                    ),
                 ]
             )
         )
@@ -613,7 +704,10 @@ class ImportExportService:
 
         doc.build(elements)
         buffer.seek(0)
-        return ContentFile(buffer.getvalue(), name=f'files_export_{timezone.now().strftime("%Y%m%d_%H%M%S")}.pdf')
+        return ContentFile(
+            buffer.getvalue(),
+            name=f"files_export_{timezone.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+        )
 
     @staticmethod
     def _export_to_docx(files) -> ContentFile:
@@ -648,10 +742,15 @@ class ImportExportService:
         buffer = io.BytesIO()
         doc.save(buffer)
         buffer.seek(0)
-        return ContentFile(buffer.getvalue(), name=f'files_export_{timezone.now().strftime("%Y%m%d_%H%M%S")}.docx')
+        return ContentFile(
+            buffer.getvalue(),
+            name=f"files_export_{timezone.now().strftime('%Y%m%d_%H%M%S')}.docx",
+        )
 
     @staticmethod
-    def bulk_import(*, uploaded_file, file_format, created_by, department=None, skip_errors=True) -> dict:
+    def bulk_import(
+        *, uploaded_file, file_format, created_by, department=None, skip_errors=True
+    ) -> dict:
         """
         Bulk import from CSV/XLSX.
         Returns: {'imported': int, 'skipped': int, 'errors': list}
@@ -661,7 +760,11 @@ class ImportExportService:
         errors = []
 
         if file_format not in ("csv", "xlsx"):
-            return {"imported": 0, "skipped": 0, "errors": [f"Bulk import only supports csv/xlsx, got: {file_format}"]}
+            return {
+                "imported": 0,
+                "skipped": 0,
+                "errors": [f"Bulk import only supports csv/xlsx, got: {file_format}"],
+            }
 
         try:
             if file_format == "csv":
@@ -674,18 +777,25 @@ class ImportExportService:
                 import openpyxl
 
                 uploaded_file.seek(0)
-                wb = openpyxl.load_workbook(uploaded_file, read_only=True, data_only=True)
+                wb = openpyxl.load_workbook(
+                    uploaded_file, read_only=True, data_only=True
+                )
                 ws = wb.active
                 headers = None
                 rows = []
                 for row_idx, row in enumerate(ws.iter_rows(values_only=True), 1):
                     if row_idx == 1:
-                        headers = [str(cell) if cell else f"col_{i}" for i, cell in enumerate(row)]
+                        headers = [
+                            str(cell) if cell else f"col_{i}"
+                            for i, cell in enumerate(row)
+                        ]
                     else:
                         row_dict = {}
                         for col_idx, cell in enumerate(row):
                             if col_idx < len(headers):
-                                row_dict[headers[col_idx]] = str(cell) if cell is not None else ""
+                                row_dict[headers[col_idx]] = (
+                                    str(cell) if cell is not None else ""
+                                )
                         rows.append(row_dict)
                 wb.close()
             else:
@@ -693,20 +803,32 @@ class ImportExportService:
 
             for idx, row in enumerate(rows):
                 try:
-                    title = row.get("title", "") or row.get("Title", "") or f"Bulk Import {idx + 1}"
-                    file_type = row.get("file_type", "") or row.get("Type", "") or "OTHER"
+                    title = (
+                        row.get("title", "")
+                        or row.get("Title", "")
+                        or f"Bulk Import {idx + 1}"
+                    )
+                    file_type = (
+                        row.get("file_type", "") or row.get("Type", "") or "OTHER"
+                    )
 
                     # Validate file_type
-                    valid_types = [c[0] for c in File._meta.get_field("file_type").choices]
+                    valid_types = [
+                        c[0] for c in File._meta.get_field("file_type").choices
+                    ]
                     if file_type not in valid_types:
                         file_type = "OTHER"
 
-                    priority = row.get("priority", "") or row.get("Priority", "") or "NORMAL"
+                    priority = (
+                        row.get("priority", "") or row.get("Priority", "") or "NORMAL"
+                    )
                     valid_priorities = ["LOW", "NORMAL", "HIGH", "URGENT"]
                     if priority not in valid_priorities:
                         priority = "NORMAL"
 
-                    description = row.get("description", "") or row.get("Description", "")
+                    description = row.get("description", "") or row.get(
+                        "Description", ""
+                    )
 
                     file_obj = File.objects.create(
                         file_number=ImportExportService._generate_file_number(),

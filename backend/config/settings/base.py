@@ -266,6 +266,11 @@ if importlib.util.find_spec("django_celery_beat"):
     INSTALLED_APPS += ["django_celery_beat", "django_celery_results"]
     CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
+# Extension Plan feature flags (default OFF - zero behavior change until enabled)
+AUTO_ASSIGN_RULES = False
+FILES_ASYNC_IMPORT = False
+REGISTRY_AUTO_TASK = False
+
 # Elasticsearch (optional - falls back to database search when unavailable)
 ELASTICSEARCH_HOSTS = [os.environ.get("ELASTICSEARCH_URL", "http://localhost:9200")]
 

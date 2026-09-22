@@ -61,18 +61,40 @@ class File(models.Model):
     file_number = models.CharField(max_length=50, unique=True)
     title = models.CharField(max_length=300)
     file_type = models.CharField(max_length=20, choices=FileType.choices)
-    file_category = models.CharField(max_length=20, choices=FileCategory.choices, default="ADMIN")
+    file_category = models.CharField(
+        max_length=20, choices=FileCategory.choices, default="ADMIN"
+    )
     description = models.TextField(blank=True)
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="created_files")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="created_files"
+    )
     current_holder = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="held_files"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="held_files",
     )
     department = models.ForeignKey(
-        "departments.Department", on_delete=models.SET_NULL, null=True, blank=True, related_name="files"
+        "departments.Department",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="files",
     )
-    school = models.ForeignKey("schools.School", on_delete=models.SET_NULL, null=True, blank=True, related_name="files")
-    status = models.CharField(max_length=20, choices=FileStatus.choices, default="DRAFT")
-    classification = models.CharField(max_length=20, choices=SecurityClassification.choices, default="CONFIDENTIAL")
+    school = models.ForeignKey(
+        "schools.School",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="files",
+    )
+    status = models.CharField(
+        max_length=20, choices=FileStatus.choices, default="DRAFT"
+    )
+    classification = models.CharField(
+        max_length=20, choices=SecurityClassification.choices, default="CONFIDENTIAL"
+    )
     priority = models.CharField(
         max_length=20,
         choices=[
@@ -83,15 +105,23 @@ class File(models.Model):
         ],
         default="NORMAL",
     )
-    direction = models.CharField(max_length=20, choices=DIRECTION_CHOICES, default="INCOMING")
+    direction = models.CharField(
+        max_length=20, choices=DIRECTION_CHOICES, default="INCOMING"
+    )
     due_date = models.DateField(null=True, blank=True)
     tags = models.JSONField(default=list)
     status_timeline = models.JSONField(
-        default=list, blank=True, help_text="List of {timestamp, status, changed_by_id, changed_by_name, notes} entries"
+        default=list,
+        blank=True,
+        help_text="List of {timestamp, status, changed_by_id, changed_by_name, notes} entries",
     )
     expected_completion_date = models.DateField(null=True, blank=True)
-    current_workflow_step = models.IntegerField(default=1, help_text="Current step in the file movement workflow")
-    escalation_status = models.CharField(max_length=20, choices=ESCALATION_STATUS_CHOICES, default="NORMAL")
+    current_workflow_step = models.IntegerField(
+        default=1, help_text="Current step in the file movement workflow"
+    )
+    escalation_status = models.CharField(
+        max_length=20, choices=ESCALATION_STATUS_CHOICES, default="NORMAL"
+    )
     escalation_reason = models.TextField(blank=True)
     escalated_at = models.DateTimeField(null=True, blank=True)
     assigned_department = models.ForeignKey(
@@ -155,10 +185,16 @@ class FileMovement(models.Model):
 
     file = models.ForeignKey(File, on_delete=models.CASCADE, related_name="movements")
     from_holder = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="file_movements_from"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="file_movements_from",
     )
     to_holder = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="file_movements_to"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="file_movements_to",
     )
     action = models.CharField(max_length=20, choices=Action.choices)
     remarks = models.TextField(blank=True)
@@ -166,11 +202,17 @@ class FileMovement(models.Model):
     actual_return_date = models.DateField(null=True, blank=True)
     is_returned = models.BooleanField(default=False)
     completion_notes = models.TextField(blank=True)
-    workflow_step = models.IntegerField(default=0, help_text="Workflow step number at time of movement")
-    from_location = models.CharField(
-        max_length=50, blank=True, help_text="Location code where file was before movement"
+    workflow_step = models.IntegerField(
+        default=0, help_text="Workflow step number at time of movement"
     )
-    to_location = models.CharField(max_length=50, blank=True, help_text="Location code where file is going")
+    from_location = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Location code where file was before movement",
+    )
+    to_location = models.CharField(
+        max_length=50, blank=True, help_text="Location code where file is going"
+    )
     expected_completion = models.DateTimeField(
         null=True, blank=True, help_text="Expected completion datetime for this step"
     )
@@ -213,11 +255,16 @@ class FileAttachment(models.Model):
             ("png", "PNG"),
             ("csv", "CSV"),
             ("txt", "TXT"),
+            ("access", "ACCESS"),
+            ("mp3", "MP3"),
+            ("mp4", "MP4"),
             ("other", "Other"),
         ],
     )
     uploaded_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="uploaded_attachments"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="uploaded_attachments",
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -230,9 +277,14 @@ class FileAttachment(models.Model):
 
 class FileComment(models.Model):
     file = models.ForeignKey(File, on_delete=models.CASCADE, related_name="comments")
-    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="file_comments")
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="file_comments"
+    )
     content = models.TextField()
-    is_internal = models.BooleanField(default=False, help_text="Internal comments not visible to external stakeholders")
+    is_internal = models.BooleanField(
+        default=False,
+        help_text="Internal comments not visible to external stakeholders",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -253,7 +305,9 @@ class WorkflowConfig(models.Model):
     ]
 
     step_name = models.CharField(max_length=100)
-    direction = models.CharField(max_length=20, choices=DIRECTION_CHOICES, default="INCOMING")
+    direction = models.CharField(
+        max_length=20, choices=DIRECTION_CHOICES, default="INCOMING"
+    )
     default_deadline_hours = models.IntegerField(default=24)
     escalation_level = models.IntegerField(default=1)
     is_active = models.BooleanField(default=True)
@@ -263,7 +317,11 @@ class WorkflowConfig(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["step_name", "direction"], name="unique_step_direction")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["step_name", "direction"], name="unique_step_direction"
+            )
+        ]
         ordering = ["direction", "step_name"]
 
     def __str__(self):
@@ -287,11 +345,17 @@ class FileTemplate(models.Model):
 
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
-    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default="OTHER")
+    category = models.CharField(
+        max_length=20, choices=CATEGORY_CHOICES, default="OTHER"
+    )
     file_type = models.CharField(max_length=50, blank=True)
     file_category = models.CharField(max_length=20, blank=True)
     default_department = models.ForeignKey(
-        "departments.Department", on_delete=models.SET_NULL, null=True, blank=True, related_name="file_templates"
+        "departments.Department",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="file_templates",
     )
     default_classification = models.CharField(
         max_length=20,
@@ -305,19 +369,29 @@ class FileTemplate(models.Model):
     )
     default_priority = models.CharField(
         max_length=20,
-        choices=[("LOW", "Low"), ("NORMAL", "Normal"), ("HIGH", "High"), ("URGENT", "Urgent")],
+        choices=[
+            ("LOW", "Low"),
+            ("NORMAL", "Normal"),
+            ("HIGH", "High"),
+            ("URGENT", "Urgent"),
+        ],
         default="NORMAL",
     )
     template_content = models.TextField(
-        blank=True, help_text="Default content/body for files created from this template"
+        blank=True,
+        help_text="Default content/body for files created from this template",
     )
     template_fields = models.JSONField(
-        default=dict, blank=True, help_text="JSON schema for required fields when using this template"
+        default=dict,
+        blank=True,
+        help_text="JSON schema for required fields when using this template",
     )
     is_active = models.BooleanField(default=True)
     usage_count = models.IntegerField(default=0)
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="created_file_templates"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="created_file_templates",
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -347,7 +421,9 @@ class OfflineQueue(models.Model):
 
     object_id = models.CharField(max_length=100)
     action_type = models.CharField(max_length=20, choices=ACTION_TYPES)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="offline_queue")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="offline_queue"
+    )
     data = models.JSONField(default=dict)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="PENDING")
     attempt_count = models.IntegerField(default=0)
@@ -370,7 +446,9 @@ class OfflineQueue(models.Model):
 class FileClassification(models.Model):
     """AI-powered file classification results."""
 
-    file = models.OneToOneField(File, on_delete=models.CASCADE, related_name="ai_classification")
+    file = models.OneToOneField(
+        File, on_delete=models.CASCADE, related_name="ai_classification"
+    )
     suggested_department = models.CharField(max_length=50, blank=True)
     department_confidence = models.FloatField(default=0)
     urgency = models.CharField(

@@ -18,7 +18,11 @@ from apps.users.models import User
 class FileModelTest(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
-            email="user@ediv.gov.ng", password="TestPass123!@#", first_name="Test", last_name="User", role="SYSADMIN"
+            email="user@ediv.gov.ng",
+            password="TestPass123!@#",
+            first_name="Test",
+            last_name="User",
+            role="SYSADMIN",
         )
         self.file = File.objects.create(
             file_number="EDIV-2024-REG-001",
@@ -39,7 +43,11 @@ class FileModelTest(TestCase):
 class FilesAPITest(APITestCase):
     def setUp(self):
         self.admin = User.objects.create_user(
-            email="admin@ediv.gov.ng", password="AdminPass123!@#", first_name="Admin", last_name="User", role="SYSADMIN"
+            email="admin@ediv.gov.ng",
+            password="AdminPass123!@#",
+            first_name="Admin",
+            last_name="User",
+            role="SYSADMIN",
         )
         self.token = RefreshToken.for_user(self.admin)
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.token.access_token}")
@@ -92,7 +100,11 @@ class MoveFileTest(APITestCase):
 
     def setUp(self):
         self.admin = User.objects.create_user(
-            email="admin@ediv.gov.ng", password="AdminPass123!@#", first_name="Admin", last_name="User", role="SYSADMIN"
+            email="admin@ediv.gov.ng",
+            password="AdminPass123!@#",
+            first_name="Admin",
+            last_name="User",
+            role="SYSADMIN",
         )
         self.receiver = User.objects.create_user(
             email="receiver@ediv.gov.ng",
@@ -205,7 +217,9 @@ class ReceiveFileTest(APITestCase):
         self.sender_token = RefreshToken.for_user(self.sender)
 
     def test_receiver_marks_received(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.receiver_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.receiver_token.access_token}"
+        )
         response = self.client.post(f"/api/files/files/{self.file.id}/receive/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -219,7 +233,9 @@ class ReceiveFileTest(APITestCase):
         self.assertIsNotNone(self.movement.actual_return_date)
 
     def test_non_holder_cannot_receive(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.sender_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.sender_token.access_token}"
+        )
         response = self.client.post(f"/api/files/files/{self.file.id}/receive/")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -236,10 +252,18 @@ class CloseFileTest(APITestCase):
             role="PRI",
         )
         self.other = User.objects.create_user(
-            email="other@ediv.gov.ng", password="OtherPass123!@#", first_name="Other", last_name="User", role="TCH"
+            email="other@ediv.gov.ng",
+            password="OtherPass123!@#",
+            first_name="Other",
+            last_name="User",
+            role="TCH",
         )
         self.admin = User.objects.create_user(
-            email="admin@ediv.gov.ng", password="AdminPass123!@#", first_name="Admin", last_name="User", role="TG_PS"
+            email="admin@ediv.gov.ng",
+            password="AdminPass123!@#",
+            first_name="Admin",
+            last_name="User",
+            role="TG_PS",
         )
         self.file = File.objects.create(
             file_number="EDIV-2024-REG-003",
@@ -256,26 +280,34 @@ class CloseFileTest(APITestCase):
         self.admin_token = RefreshToken.for_user(self.admin)
 
     def test_creator_can_close(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.creator_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.creator_token.access_token}"
+        )
         response = self.client.post(f"/api/files/files/{self.file.id}/close/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.file.refresh_from_db()
         self.assertEqual(self.file.status, "ARCHIVED")
 
     def test_admin_can_close(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}"
+        )
         response = self.client.post(f"/api/files/files/{self.file.id}/close/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.file.refresh_from_db()
         self.assertEqual(self.file.status, "ARCHIVED")
 
     def test_other_user_cannot_close(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.other_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.other_token.access_token}"
+        )
         response = self.client.post(f"/api/files/files/{self.file.id}/close/")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_close_logs_status_timeline(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.creator_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.creator_token.access_token}"
+        )
         self.client.post(f"/api/files/files/{self.file.id}/close/")
         self.file.refresh_from_db()
         self.assertEqual(len(self.file.status_timeline), 1)
@@ -285,10 +317,18 @@ class CloseFileTest(APITestCase):
 class LogStatusChangeTest(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
-            email="holder@ediv.gov.ng", password="Test123!@#", first_name="Holder", last_name="User", role="TCH"
+            email="holder@ediv.gov.ng",
+            password="Test123!@#",
+            first_name="Holder",
+            last_name="User",
+            role="TCH",
         )
         self.other = User.objects.create_user(
-            email="other@ediv.gov.ng", password="Test123!@#", first_name="Other", last_name="User", role="TCH"
+            email="other@ediv.gov.ng",
+            password="Test123!@#",
+            first_name="Other",
+            last_name="User",
+            role="TCH",
         )
         self.file = File.objects.create(
             file_number="EDIV-2024-GEN-001",
@@ -304,7 +344,9 @@ class LogStatusChangeTest(APITestCase):
         self.other_token = RefreshToken.for_user(self.other)
 
     def test_current_holder_can_log_status(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.user_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.user_token.access_token}"
+        )
         response = self.client.post(
             f"/api/files/files/{self.file.id}/log-status/",
             {"status": "PENDING", "notes": "Awaiting review"},
@@ -318,26 +360,40 @@ class LogStatusChangeTest(APITestCase):
         self.assertEqual(self.file.status_timeline[0]["notes"], "Awaiting review")
 
     def test_other_user_cannot_log_status(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.other_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.other_token.access_token}"
+        )
         response = self.client.post(
-            f"/api/files/files/{self.file.id}/log-status/", {"status": "PENDING", "notes": "test"}, format="json"
+            f"/api/files/files/{self.file.id}/log-status/",
+            {"status": "PENDING", "notes": "test"},
+            format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_invalid_status_rejected(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.user_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.user_token.access_token}"
+        )
         response = self.client.post(
-            f"/api/files/files/{self.file.id}/log-status/", {"status": "INVALID_STATUS"}, format="json"
+            f"/api/files/files/{self.file.id}/log-status/",
+            {"status": "INVALID_STATUS"},
+            format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_multiple_timeline_entries(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.user_token.access_token}")
-        self.client.post(
-            f"/api/files/files/{self.file.id}/log-status/", {"status": "PENDING", "notes": "step 1"}, format="json"
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.user_token.access_token}"
         )
         self.client.post(
-            f"/api/files/files/{self.file.id}/log-status/", {"status": "IN_TRANSIT", "notes": "step 2"}, format="json"
+            f"/api/files/files/{self.file.id}/log-status/",
+            {"status": "PENDING", "notes": "step 1"},
+            format="json",
+        )
+        self.client.post(
+            f"/api/files/files/{self.file.id}/log-status/",
+            {"status": "IN_TRANSIT", "notes": "step 2"},
+            format="json",
         )
         self.file.refresh_from_db()
         self.assertEqual(len(self.file.status_timeline), 2)
@@ -345,10 +401,16 @@ class LogStatusChangeTest(APITestCase):
         self.assertEqual(self.file.status_timeline[1]["status"], "IN_TRANSIT")
 
     def test_move_logs_status_timeline(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.user_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.user_token.access_token}"
+        )
         response = self.client.post(
             f"/api/files/files/{self.file.id}/move/",
-            {"to_holder_id": self.other.id, "action": "FORWARDED", "remarks": "Please review"},
+            {
+                "to_holder_id": self.other.id,
+                "action": "FORWARDED",
+                "remarks": "Please review",
+            },
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -389,7 +451,9 @@ class WorkflowConfigModelTest(TestCase):
 
     def test_different_directions_allowed(self):
         WorkflowConfig.objects.create(step_name="Review", direction="INCOMING")
-        config2 = WorkflowConfig.objects.create(step_name="Review", direction="OUTGOING")
+        config2 = WorkflowConfig.objects.create(
+            step_name="Review", direction="OUTGOING"
+        )
         self.assertIsNotNone(config2.id)
 
     def test_default_values(self):
@@ -439,8 +503,12 @@ class FileTemplateModelTest(TestCase):
         self.assertEqual(str(template), "Memo Template (MEMO)")
 
     def test_ordering_by_usage_count(self):
-        t1 = FileTemplate.objects.create(name="A", category="OTHER", created_by=self.user, usage_count=5)
-        t2 = FileTemplate.objects.create(name="B", category="OTHER", created_by=self.user, usage_count=10)
+        t1 = FileTemplate.objects.create(
+            name="A", category="OTHER", created_by=self.user, usage_count=5
+        )
+        t2 = FileTemplate.objects.create(
+            name="B", category="OTHER", created_by=self.user, usage_count=10
+        )
         templates = list(FileTemplate.objects.all())
         self.assertEqual(templates[0], t2)
         self.assertEqual(templates[1], t1)
@@ -501,15 +569,25 @@ class OfflineQueueModelTest(TestCase):
 
     def test_index_fields(self):
         """Test that indexed fields exist by querying them."""
-        OfflineQueue.objects.create(object_id="a", action_type="CREATE", user=self.user, status="PENDING")
-        OfflineQueue.objects.create(object_id="b", action_type="UPDATE", user=self.user, status="COMPLETED")
+        OfflineQueue.objects.create(
+            object_id="a", action_type="CREATE", user=self.user, status="PENDING"
+        )
+        OfflineQueue.objects.create(
+            object_id="b", action_type="UPDATE", user=self.user, status="COMPLETED"
+        )
         # Querying indexed fields should work
         self.assertEqual(OfflineQueue.objects.filter(status="PENDING").count(), 1)
-        self.assertEqual(OfflineQueue.objects.filter(user=self.user, status="COMPLETED").count(), 1)
+        self.assertEqual(
+            OfflineQueue.objects.filter(user=self.user, status="COMPLETED").count(), 1
+        )
 
     def test_ordering(self):
-        e1 = OfflineQueue.objects.create(object_id="a", action_type="CREATE", user=self.user)
-        e2 = OfflineQueue.objects.create(object_id="b", action_type="UPDATE", user=self.user)
+        e1 = OfflineQueue.objects.create(
+            object_id="a", action_type="CREATE", user=self.user
+        )
+        e2 = OfflineQueue.objects.create(
+            object_id="b", action_type="UPDATE", user=self.user
+        )
         entries = list(OfflineQueue.objects.all())
         self.assertEqual(entries[0], e2)
         self.assertEqual(entries[1], e1)
@@ -560,12 +638,16 @@ class FileClassificationModelTest(TestCase):
             file=self.file,
             suggested_department="HR",
         )
-        self.assertEqual(str(classification), f"Classification for {self.file.file_number}")
+        self.assertEqual(
+            str(classification), f"Classification for {self.file.file_number}"
+        )
 
     def test_one_to_one_constraint(self):
         FileClassification.objects.create(file=self.file, suggested_department="Admin")
         with self.assertRaises(Exception):
-            FileClassification.objects.create(file=self.file, suggested_department="Another")
+            FileClassification.objects.create(
+                file=self.file, suggested_department="Another"
+            )
 
     def test_default_values(self):
         classification = FileClassification.objects.create(file=self.file)
@@ -631,3 +713,14 @@ class FileAttachmentFieldsTest(TestCase):
             file_format="docx",
         )
         self.assertEqual(attachment.file_format, "docx")
+        # Extension Plan (Feature A): access/mp3/mp4 are valid choices
+        for fmt in ("access", "mp3", "mp4"):
+            attachment = FileAttachment.objects.create(
+                file=self.file,
+                document=f"files/attachments/test.{fmt}",
+                original_filename=f"test.{fmt}",
+                file_size=2048,
+                uploaded_by=self.user,
+                file_format=fmt,
+            )
+            self.assertEqual(attachment.file_format, fmt)

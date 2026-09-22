@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# post_compile — runs after Gigalixir/Heroku buildpack compiles the app
+set -e
+
+echo "--- Running collectstatic ---"
+python manage.py collectstatic --noinput
