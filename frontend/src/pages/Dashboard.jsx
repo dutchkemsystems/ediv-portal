@@ -8,7 +8,6 @@ import {
   Box,
   Card,
   CardContent,
-  CircularProgress,
   CardActionArea,
   List,
   ListItem,
@@ -116,11 +115,7 @@ function Dashboard() {
   // Render role-specific dashboard if user has one
   if (RoleDashboard) {
     return (
-      <Suspense fallback={
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-          <CircularProgress />
-        </Box>
-      }>
+      <Suspense fallback={<div data-testid="loading">Loading...</div>}>
         <RoleDashboard />
       </Suspense>
     )
@@ -128,9 +123,9 @@ function Dashboard() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-        <CircularProgress />
-      </Box>
+      <div data-testid="loading" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+        Loading...
+      </div>
     )
   }
 

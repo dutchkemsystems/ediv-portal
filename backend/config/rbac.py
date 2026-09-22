@@ -7,7 +7,6 @@ enforce access at the API view level.
 
 from rest_framework import permissions
 
-
 # ── Role permission mapping ──────────────────────────────────────────────
 # Each app maps actions to the list of roles allowed to perform them.
 # Actions: view, create, edit, delete, and app-specific (move, approve, process).

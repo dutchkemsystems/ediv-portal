@@ -49,6 +49,28 @@ Object.defineProperty(window, 'IntersectionObserver', {
 // Mock scrollTo
 window.scrollTo = vi.fn()
 
+// Mock getComputedStyle for MUI + jsdom compatibility
+const originalGetComputedStyle = window.getComputedStyle
+window.getComputedStyle = (elt, pseudoElt) => {
+  const style = originalGetComputedStyle ? originalGetComputedStyle(elt, pseudoElt) : {}
+  return {
+    ...style,
+    getPropertyValue: (prop) => style.getPropertyValue?.(prop) ?? '',
+  }
+}
+
+// Mock ResizeObserver for MUI components
+class MockResizeObserver {
+  constructor() {}
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+Object.defineProperty(window, 'ResizeObserver', {
+  writable: true,
+  value: MockResizeObserver,
+})
+
 // Suppress React Router future warnings in tests
 beforeEach(() => {
   localStorageMock.clear()

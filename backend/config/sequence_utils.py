@@ -44,9 +44,7 @@ def next_sequence_number(model_class, prefix, field_name="reference_number", wid
     return seq
 
 
-def next_cross_table_sequence(
-    model_classes, prefix, field_name="reference_number", width=4
-):
+def next_cross_table_sequence(model_classes, prefix, field_name="reference_number", width=4):
     lock_key = hash(f"{prefix}/cross_table/{field_name}") % (2**31)
 
     with transaction.atomic():
