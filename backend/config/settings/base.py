@@ -267,9 +267,21 @@ if importlib.util.find_spec("django_celery_beat"):
     CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 # Extension Plan feature flags (default OFF - zero behavior change until enabled)
-AUTO_ASSIGN_RULES = False
-FILES_ASYNC_IMPORT = False
-REGISTRY_AUTO_TASK = False
+AUTO_ASSIGN_RULES = os.environ.get("AUTO_ASSIGN_RULES", "false").lower() in (
+    "1",
+    "true",
+    "yes",
+)
+FILES_ASYNC_IMPORT = os.environ.get("FILES_ASYNC_IMPORT", "false").lower() in (
+    "1",
+    "true",
+    "yes",
+)
+REGISTRY_AUTO_TASK = os.environ.get("REGISTRY_AUTO_TASK", "false").lower() in (
+    "1",
+    "true",
+    "yes",
+)
 
 # Elasticsearch (optional - falls back to database search when unavailable)
 ELASTICSEARCH_HOSTS = [os.environ.get("ELASTICSEARCH_URL", "http://localhost:9200")]
