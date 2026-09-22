@@ -339,17 +339,13 @@ class AgenticRouter:
 
     def _get_departments(self):
         if self._department_cache is None:
-            self._department_cache = {
-                dept.code: dept for dept in Department.objects.filter(is_active=True)
-            }
+            self._department_cache = {dept.code: dept for dept in Department.objects.filter(is_active=True)}
         return self._department_cache
 
     def _get_department_users(self, role):
         cache_key = f"role_{role}"
         if cache_key not in self._user_cache:
-            self._user_cache[cache_key] = list(
-                User.objects.filter(role=role, is_active=True).order_by("id")
-            )
+            self._user_cache[cache_key] = list(User.objects.filter(role=role, is_active=True).order_by("id"))
         return self._user_cache[cache_key]
 
     def determine_department(self, text):
@@ -454,15 +450,9 @@ class AgenticRouter:
 
     def auto_assign_task(self, task, workflow_step):
         try:
-            assigned_role = (
-                workflow_step.assigned_role
-                if hasattr(workflow_step, "assigned_role")
-                else None
-            )
+            assigned_role = workflow_step.assigned_role if hasattr(workflow_step, "assigned_role") else None
             if assigned_role:
-                candidate = User.objects.filter(
-                    role=assigned_role, is_active=True
-                ).first()
+                candidate = User.objects.filter(role=assigned_role, is_active=True).first()
                 if candidate:
                     task.assigned_to = candidate
                     task.save(update_fields=["assigned_to", "updated_at"])
@@ -500,9 +490,7 @@ class AgenticRouter:
                 if dept:
                     mail.assigned_department = dept
                     mail.save(update_fields=["assigned_department", "updated_at"])
-            logger.info(
-                f"Mail routed: dept={dept_code}, head={dept_head}, urgency={urgency}"
-            )
+            logger.info(f"Mail routed: dept={dept_code}, head={dept_head}, urgency={urgency}")
             return result
         except Exception as e:
             logger.error(f"Failed to route incoming mail: {e}")
@@ -558,10 +546,7 @@ class AgenticRouter:
                 "classification": classification,
                 "department_name": DEPARTMENT_CODES.get(dept_code, "Registry"),
             }
-            logger.info(
-                f"File {file.file_number} routed: dept={dept_code}, "
-                f"cat={category}, urgency={urgency}"
-            )
+            logger.info(f"File {file.file_number} routed: dept={dept_code}, " f"cat={category}, urgency={urgency}")
             return result
         except Exception as e:
             logger.error(f"Failed to route file {file.file_number}: {e}")
@@ -606,10 +591,7 @@ class AgenticRouter:
                 "classification": classification,
                 "department_name": DEPARTMENT_CODES.get(dept_code, "Registry"),
             }
-            logger.info(
-                f"Memo routed: dept={dept_code}, recipients={len(recipients)}, "
-                f"urgency={urgency}"
-            )
+            logger.info(f"Memo routed: dept={dept_code}, recipients={len(recipients)}, " f"urgency={urgency}")
             return result
         except Exception as e:
             logger.error(f"Failed to route memo: {e}")
@@ -674,9 +656,7 @@ class MailDistributor:
                 dept_code = classification["department_code"]
                 assigned_to = self.router.get_department_head(dept_code)
             if assigned_to is None:
-                assigned_to = User.objects.filter(
-                    role="SYSADMIN", is_active=True
-                ).first()
+                assigned_to = User.objects.filter(role="SYSADMIN", is_active=True).first()
             if assigned_to is None:
                 logger.warning("No assignee found for mail action")
                 return None
@@ -687,9 +667,7 @@ class MailDistributor:
                 document = mail
             elif isinstance(mail, dict):
                 title = mail.get("title", "Untitled Mail")
-                ref_number = mail.get(
-                    "reference_number", f"EDIV/MAIL/{timezone.now().year}/AUTO"
-                )
+                ref_number = mail.get("reference_number", f"EDIV/MAIL/{timezone.now().year}/AUTO")
                 sender_name = mail.get("sender", "Unknown")
                 document = Document.objects.create(
                     reference_number=ref_number,
@@ -725,9 +703,7 @@ class MailDistributor:
                 workflow_type = "INCOMING_MAIL"
             ref_number = getattr(document, "reference_number", None)
             if ref_number is None:
-                ref_number = (
-                    f"EDIV/MAIL/{timezone.now().year}/{timezone.now().timestamp():.0f}"
-                )
+                ref_number = f"EDIV/MAIL/{timezone.now().year}/{timezone.now().timestamp():.0f}"
             try:
                 instance = WorkflowService.start_instance(
                     workflow_type=workflow_type,
@@ -740,15 +716,11 @@ class MailDistributor:
                         "deadline": (
                             deadline.isoformat()
                             if hasattr(deadline, "isoformat")
-                            else str(deadline)
-                            if deadline
-                            else None
+                            else str(deadline) if deadline else None
                         ),
                     },
                 )
-                logger.info(
-                    f"Workflow instance {instance.reference_number} created for mail"
-                )
+                logger.info(f"Workflow instance {instance.reference_number} created for mail")
             except Exception as e:
                 logger.warning(f"Could not start workflow instance: {e}")
             result = {
@@ -769,12 +741,12 @@ class MailDistributor:
 
     def notify_recipients(self, mail, recipients):
         results = []
-        subject = getattr(mail, "subject", None) or getattr(
-            mail, "title", "Mail Notification"
-        )
+        subject = getattr(mail, "subject", None) or getattr(mail, "title", "Mail Notification")
         if isinstance(mail, Document):
             subject = f"New Mail: {mail.title}"
-            body = f"You have been assigned a new mail item.\n\nReference: {mail.reference_number}\nSubject: {mail.title}"
+            body = (
+                f"You have been assigned a new mail item.\n\nReference: {mail.reference_number}\nSubject: {mail.title}"
+            )
         elif isinstance(mail, dict):
             subject = mail.get("subject", "Mail Notification")
             body = mail.get("body", "You have been assigned a new mail item.")
@@ -803,9 +775,7 @@ class MailDistributor:
                 dept_code = classification["department_code"]
                 dept_head = self.router.get_department_head(dept_code)
                 if dept_head is None:
-                    dept_head = User.objects.filter(
-                        role="SYSADMIN", is_active=True
-                    ).first()
+                    dept_head = User.objects.filter(role="SYSADMIN", is_active=True).first()
                 result = self.assign_action(
                     mail=mail,
                     action_required="Process incoming mail",
@@ -964,9 +934,7 @@ class FileDistributor:
             candidate = User.objects.filter(role=django_role, is_active=True).first()
             if candidate:
                 return candidate
-            dept_code = (
-                file.assigned_department.code if file.assigned_department else "REG"
-            )
+            dept_code = file.assigned_department.code if file.assigned_department else "REG"
             return self.router.get_department_head(dept_code)
         except Exception as e:
             logger.error(f"Failed to determine next holder: {e}")
@@ -991,9 +959,7 @@ class FileDistributor:
     def rebalance_workload(self, department):
         try:
             if isinstance(department, str):
-                department = Department.objects.filter(
-                    code=department, is_active=True
-                ).first()
+                department = Department.objects.filter(code=department, is_active=True).first()
             if department is None:
                 return {"success": False, "error": "Department not found"}
             active_files = File.objects.filter(
@@ -1018,9 +984,7 @@ class FileDistributor:
                     current_holder_id=max_holder_id,
                     status__in=["ACTIVE", "PENDING"],
                 ).select_related("current_holder")[:2]
-                target_user = User.objects.filter(
-                    id=min_holder_id, is_active=True
-                ).first()
+                target_user = User.objects.filter(id=min_holder_id, is_active=True).first()
                 if target_user:
                     for f in excess_files:
                         try:
@@ -1033,12 +997,8 @@ class FileDistributor:
                             )
                             rebalanced += 1
                         except Exception as e:
-                            logger.error(
-                                f"Rebalance failed for file {f.file_number}: {e}"
-                            )
-            logger.info(
-                f"Workload rebalance for {department.code}: {rebalanced} files moved"
-            )
+                            logger.error(f"Rebalance failed for file {f.file_number}: {e}")
+            logger.info(f"Workload rebalance for {department.code}: {rebalanced} files moved")
             return {"success": True, "rebalanced": rebalanced}
         except Exception as e:
             logger.error(f"Workload rebalance failed: {e}")
@@ -1100,9 +1060,7 @@ class DepartmentAgent:
         errors = 0
         for mail in pending_mails:
             try:
-                correspondence = (
-                    mail.correspondence if hasattr(mail, "correspondence") else None
-                )
+                correspondence = mail.correspondence if hasattr(mail, "correspondence") else None
                 text = " ".join(
                     filter(
                         None,
@@ -1126,18 +1084,14 @@ class DepartmentAgent:
                             is_active=True,
                         )
                         .filter(
-                            Q(departments__head=department)
-                            | Q(units__department=department),
+                            Q(departments__head=department) | Q(units__department=department),
                         )
                         .exclude(id=department_head.id)
                         .first()
                     )
                     assignee = staff or department_head
                 else:
-                    assignee = (
-                        department_head
-                        or User.objects.filter(role="SYSADMIN", is_active=True).first()
-                    )
+                    assignee = department_head or User.objects.filter(role="SYSADMIN", is_active=True).first()
                 if assignee:
                     NotificationService.send_notification(
                         recipient=assignee,
@@ -1155,10 +1109,7 @@ class DepartmentAgent:
             except Exception as e:
                 logger.error(f"Failed to process mail {mail.id}: {e}")
                 errors += 1
-        logger.info(
-            f"Department {department.code} mail processing: "
-            f"{processed} processed, {errors} errors"
-        )
+        logger.info(f"Department {department.code} mail processing: " f"{processed} processed, {errors} errors")
         return {
             "success": True,
             "department": department.code,
@@ -1187,14 +1138,10 @@ class DepartmentAgent:
             movement_date__date=today,
         ).count()
         overdue_count = (
-            items["overdue_items"].count()
-            if hasattr(items["overdue_items"], "count")
-            else len(items["overdue_items"])
+            items["overdue_items"].count() if hasattr(items["overdue_items"], "count") else len(items["overdue_items"])
         )
         pending_count = (
-            items["pending_files"].count()
-            if hasattr(items["pending_files"], "count")
-            else len(items["pending_files"])
+            items["pending_files"].count() if hasattr(items["pending_files"], "count") else len(items["pending_files"])
         )
         active_staff = (
             User.objects.filter(
@@ -1241,13 +1188,9 @@ class DepartmentAgent:
                     "file_number": f.file_number,
                     "title": f.title,
                     "priority": f.priority,
-                    "current_holder": f.current_holder.get_full_name()
-                    if f.current_holder
-                    else None,
+                    "current_holder": f.current_holder.get_full_name() if f.current_holder else None,
                     "expected_completion": (
-                        f.expected_completion_date.isoformat()
-                        if f.expected_completion_date
-                        else None
+                        f.expected_completion_date.isoformat() if f.expected_completion_date else None
                     ),
                 }
                 for f in items["overdue_items"][:10]
@@ -1275,14 +1218,11 @@ class DepartmentAgent:
         for file_obj in overdue_files:
             try:
                 old_priority = file_obj.priority
-                new_priority = FileMovementService.PRIORITY_ESCALATION.get(
-                    old_priority, old_priority
-                )
+                new_priority = FileMovementService.PRIORITY_ESCALATION.get(old_priority, old_priority)
                 file_obj.priority = new_priority
                 file_obj.escalation_status = "ESCALATED"
                 file_obj.escalation_reason = (
-                    f"Auto-escalated by DepartmentAgent: "
-                    f"deadline {file_obj.expected_completion_date} passed"
+                    f"Auto-escalated by DepartmentAgent: " f"deadline {file_obj.expected_completion_date} passed"
                 )
                 file_obj.escalated_at = timezone.now()
                 file_obj.save(
@@ -1297,16 +1237,12 @@ class DepartmentAgent:
                 FileMovementService._add_timeline_entry(
                     file_obj,
                     file_obj.status,
-                    file_obj.created_by
-                    or User.objects.filter(role="SYSADMIN", is_active=True).first(),
+                    file_obj.created_by or User.objects.filter(role="SYSADMIN", is_active=True).first(),
                     "ESCALATED",
                     f"Auto-escalated by DepartmentAgent: deadline passed",
                 )
                 file_obj.save(update_fields=["status_timeline"])
-                if (
-                    file_obj.current_holder
-                    and file_obj.current_holder_id not in notified
-                ):
+                if file_obj.current_holder and file_obj.current_holder_id not in notified:
                     NotificationService.send_notification(
                         recipient=file_obj.current_holder,
                         subject=f"OVERDUE: File {file_obj.file_number}",
@@ -1346,11 +1282,7 @@ class DepartmentAgent:
             correspondence__response_deadline__lt=today,
         ).select_related("created_by")
         overdue_mails_count = overdue_mails.count()
-        if (
-            department.head
-            and overdue_mails_count > 0
-            and department.head_id not in notified
-        ):
+        if department.head and overdue_mails_count > 0 and department.head_id not in notified:
             NotificationService.send_notification(
                 recipient=department.head,
                 subject=f"OVERDUE: {overdue_mails_count} mail(s) require response",
@@ -1363,8 +1295,7 @@ class DepartmentAgent:
             )
         today = timezone.now().date()
         logger.info(
-            f"Overdue check for {department.code}: "
-            f"{escalated} files escalated, {overdue_mails_count} overdue mails"
+            f"Overdue check for {department.code}: " f"{escalated} files escalated, {overdue_mails_count} overdue mails"
         )
         return {
             "success": True,
@@ -1449,12 +1380,8 @@ class AutomationEngine:
             agent = self.get_department_agent(dept.code)
             result = agent.check_overdue_items(dept.code)
             results.append(result)
-        total_escalated = sum(
-            r.get("files_escalated", 0) for r in results if r.get("success")
-        )
-        logger.info(
-            f"Overdue check complete: {total_escalated} files escalated across {len(results)} departments"
-        )
+        total_escalated = sum(r.get("files_escalated", 0) for r in results if r.get("success"))
+        logger.info(f"Overdue check complete: {total_escalated} files escalated across {len(results)} departments")
         return {
             "departments_checked": len(results),
             "total_escalated": total_escalated,
@@ -1477,9 +1404,7 @@ class AutomationEngine:
         for dept in departments:
             result = self.file_distributor.rebalance_workload(dept)
             results.append({"department": dept.code, **result})
-        total_rebalanced = sum(
-            r.get("rebalanced", 0) for r in results if r.get("success")
-        )
+        total_rebalanced = sum(r.get("rebalanced", 0) for r in results if r.get("success"))
         logger.info(f"Workload rebalance complete: {total_rebalanced} files moved")
         return {
             "departments_checked": len(results),
