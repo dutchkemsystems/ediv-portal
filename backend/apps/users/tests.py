@@ -13,21 +13,31 @@ User = get_user_model()
 class UserModelTest(TestCase):
     def test_create_user(self):
         user = User.objects.create_user(
-            email="test@example.com", password="TestPass123!@#", first_name="Test", last_name="User", role="TCH"
+            email="test@example.com",
+            password="TestPass123!@#",
+            first_name="Test",
+            last_name="User",
+            role="TCH",
         )
         self.assertEqual(user.email, "test@example.com")
         self.assertEqual(user.role, "TCH")
         self.assertTrue(user.check_password("TestPass123!@#"))
 
     def test_create_superuser(self):
-        user = User.objects.create_superuser(email="admin@example.com", password="AdminPass123!@#")
+        user = User.objects.create_superuser(
+            email="admin@example.com", password="AdminPass123!@#"
+        )
         self.assertTrue(user.is_staff)
         self.assertTrue(user.is_superuser)
         self.assertEqual(user.role, "SYSADMIN")
 
     def test_user_str(self):
         user = User.objects.create_user(
-            email="test@example.com", password="TestPass123!@#", first_name="Test", last_name="User", role="TCH"
+            email="test@example.com",
+            password="TestPass123!@#",
+            first_name="Test",
+            last_name="User",
+            role="TCH",
         )
         self.assertEqual(str(user), "Test User (TCH)")
 
@@ -35,30 +45,47 @@ class UserModelTest(TestCase):
 class AuthViewSetTest(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
-            email="test@example.com", password="TestPass123!@#", first_name="Test", last_name="User", role="TCH"
+            email="test@example.com",
+            password="TestPass123!@#",
+            first_name="Test",
+            last_name="User",
+            role="TCH",
         )
 
     def test_login_success(self):
-        response = self.client.post("/api/users/auth/", {"email": "test@example.com", "password": "TestPass123!@#"})
+        response = self.client.post(
+            "/api/users/auth/",
+            {"email": "test@example.com", "password": "TestPass123!@#"},
+        )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("access", response.data)
         self.assertIn("refresh", response.data)
 
     def test_login_invalid_credentials(self):
-        response = self.client.post("/api/users/auth/", {"email": "test@example.com", "password": "wrongpassword"})
+        response = self.client.post(
+            "/api/users/auth/",
+            {"email": "test@example.com", "password": "wrongpassword"},
+        )
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_login_inactive_user(self):
         self.user.is_active = False
         self.user.save()
-        response = self.client.post("/api/users/auth/", {"email": "test@example.com", "password": "TestPass123!@#"})
+        response = self.client.post(
+            "/api/users/auth/",
+            {"email": "test@example.com", "password": "TestPass123!@#"},
+        )
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
 class UserViewSetTest(APITestCase):
     def setUp(self):
         self.admin = User.objects.create_user(
-            email="admin@example.com", password="AdminPass123!@#", first_name="Admin", last_name="User", role="SYSADMIN"
+            email="admin@example.com",
+            password="AdminPass123!@#",
+            first_name="Admin",
+            last_name="User",
+            role="SYSADMIN",
         )
         self.teacher = User.objects.create_user(
             email="teacher@example.com",
@@ -71,17 +98,23 @@ class UserViewSetTest(APITestCase):
         self.teacher_token = RefreshToken.for_user(self.teacher)
 
     def test_list_users_admin(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}"
+        )
         response = self.client.get("/api/users/users/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_list_users_teacher(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.teacher_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.teacher_token.access_token}"
+        )
         response = self.client.get("/api/users/users/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_create_user(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}"
+        )
         response = self.client.post(
             "/api/users/users/",
             {
@@ -97,14 +130,22 @@ class UserViewSetTest(APITestCase):
 
 
 class CreateSchoolStaffTest(APITestCase):
-    """Tests for POST /api/users/users/create-school-staff/"""
+    """Tests for POST /api/users/users/create-staff/"""
 
     def setUp(self):
         self.school = School.objects.create(
-            name="Test School", code="TST001", school_type="SENIOR", lga="APAPA", address="123 Street"
+            name="Test School",
+            code="TST001",
+            school_type="SENIOR",
+            lga="APAPA",
+            address="123 Street",
         )
         self.admin = User.objects.create_user(
-            email="admin@ediv.gov.ng", password="AdminPass123!@#", first_name="Admin", last_name="User", role="SYSADMIN"
+            email="admin@ediv.gov.ng",
+            password="AdminPass123!@#",
+            first_name="Admin",
+            last_name="User",
+            role="SYSADMIN",
         )
         self.principal = User.objects.create_user(
             email="principal@ediv.gov.ng",
@@ -131,9 +172,11 @@ class CreateSchoolStaffTest(APITestCase):
     # --- SYSADMIN can create any role ---
 
     def test_admin_creates_teacher(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}"
+        )
         response = self.client.post(
-            "/api/users/users/create-school-staff/",
+            "/api/users/users/create-staff/",
             {
                 "first_name": "New",
                 "last_name": "Teacher",
@@ -147,12 +190,16 @@ class CreateSchoolStaffTest(APITestCase):
         self.assertIn("temp_password", response.data["user"])
         self.assertEqual(response.data["user"]["role"], "TCH")
         # Verify Staff record was created
-        self.assertTrue(Staff.objects.filter(user__email="newteacher@ediv.gov.ng").exists())
+        self.assertTrue(
+            Staff.objects.filter(user__email="newteacher@ediv.gov.ng").exists()
+        )
 
     def test_admin_creates_principal(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}"
+        )
         response = self.client.post(
-            "/api/users/users/create-school-staff/",
+            "/api/users/users/create-staff/",
             {
                 "first_name": "New",
                 "last_name": "Principal",
@@ -165,9 +212,11 @@ class CreateSchoolStaffTest(APITestCase):
         self.assertEqual(response.data["user"]["role"], "PRI")
 
     def test_admin_creates_vp(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}"
+        )
         response = self.client.post(
-            "/api/users/users/create-school-staff/",
+            "/api/users/users/create-staff/",
             {
                 "first_name": "New",
                 "last_name": "VP",
@@ -180,9 +229,11 @@ class CreateSchoolStaffTest(APITestCase):
         self.assertEqual(response.data["user"]["role"], "VP")
 
     def test_admin_creates_non_teaching(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}"
+        )
         response = self.client.post(
-            "/api/users/users/create-school-staff/",
+            "/api/users/users/create-staff/",
             {
                 "first_name": "New",
                 "last_name": "Staff",
@@ -195,9 +246,11 @@ class CreateSchoolStaffTest(APITestCase):
         self.assertEqual(response.data["user"]["role"], "SA_OFF")
 
     def test_admin_without_school_id_fails(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}"
+        )
         response = self.client.post(
-            "/api/users/users/create-school-staff/",
+            "/api/users/users/create-staff/",
             {
                 "first_name": "New",
                 "last_name": "Teacher",
@@ -210,9 +263,11 @@ class CreateSchoolStaffTest(APITestCase):
     # --- Principal can only create TCH/SA_OFF for own school ---
 
     def test_principal_creates_teacher(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.principal_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.principal_token.access_token}"
+        )
         response = self.client.post(
-            "/api/users/users/create-school-staff/",
+            "/api/users/users/create-staff/",
             {
                 "first_name": "New",
                 "last_name": "Teacher",
@@ -224,9 +279,11 @@ class CreateSchoolStaffTest(APITestCase):
         self.assertEqual(response.data["user"]["role"], "TCH")
 
     def test_principal_creates_non_teaching(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.principal_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.principal_token.access_token}"
+        )
         response = self.client.post(
-            "/api/users/users/create-school-staff/",
+            "/api/users/users/create-staff/",
             {
                 "first_name": "New",
                 "last_name": "Staff",
@@ -237,9 +294,11 @@ class CreateSchoolStaffTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_principal_cannot_create_principal(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.principal_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.principal_token.access_token}"
+        )
         response = self.client.post(
-            "/api/users/users/create-school-staff/",
+            "/api/users/users/create-staff/",
             {
                 "first_name": "New",
                 "last_name": "Principal",
@@ -250,9 +309,11 @@ class CreateSchoolStaffTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_principal_cannot_create_vp(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.principal_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.principal_token.access_token}"
+        )
         response = self.client.post(
-            "/api/users/users/create-school-staff/",
+            "/api/users/users/create-staff/",
             {
                 "first_name": "New",
                 "last_name": "VP",
@@ -265,9 +326,11 @@ class CreateSchoolStaffTest(APITestCase):
     # --- Teacher cannot create staff ---
 
     def test_teacher_cannot_create_staff(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.teacher_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.teacher_token.access_token}"
+        )
         response = self.client.post(
-            "/api/users/users/create-school-staff/",
+            "/api/users/users/create-staff/",
             {
                 "first_name": "New",
                 "last_name": "Teacher",
@@ -280,9 +343,11 @@ class CreateSchoolStaffTest(APITestCase):
     # --- Duplicate email ---
 
     def test_duplicate_email_rejected(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}"
+        )
         response = self.client.post(
-            "/api/users/users/create-school-staff/",
+            "/api/users/users/create-staff/",
             {
                 "first_name": "Dup",
                 "last_name": "Teacher",
@@ -296,9 +361,11 @@ class CreateSchoolStaffTest(APITestCase):
     # --- Initial password ---
 
     def test_custom_initial_password(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}"
+        )
         response = self.client.post(
-            "/api/users/users/create-school-staff/",
+            "/api/users/users/create-staff/",
             {
                 "first_name": "Custom",
                 "last_name": "Pass",
@@ -325,10 +392,12 @@ class CreateSchoolStaffTest(APITestCase):
     def test_audit_log_created_on_create(self):
         from apps.audit.models import AuditLog
 
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}"
+        )
         before = AuditLog.objects.count()
         self.client.post(
-            "/api/users/users/create-school-staff/",
+            "/api/users/users/create-staff/",
             {
                 "first_name": "Audit",
                 "last_name": "Test",
@@ -345,10 +414,18 @@ class DeleteSchoolStaffTest(APITestCase):
 
     def setUp(self):
         self.school = School.objects.create(
-            name="Test School", code="TST001", school_type="SENIOR", lga="APAPA", address="123 Street"
+            name="Test School",
+            code="TST001",
+            school_type="SENIOR",
+            lga="APAPA",
+            address="123 Street",
         )
         self.admin = User.objects.create_user(
-            email="admin@ediv.gov.ng", password="AdminPass123!@#", first_name="Admin", last_name="User", role="SYSADMIN"
+            email="admin@ediv.gov.ng",
+            password="AdminPass123!@#",
+            first_name="Admin",
+            last_name="User",
+            role="SYSADMIN",
         )
         self.target_teacher = User.objects.create_user(
             email="teacher@ediv.gov.ng",
@@ -369,7 +446,9 @@ class DeleteSchoolStaffTest(APITestCase):
         self.principal_token = RefreshToken.for_user(self.principal)
 
     def test_admin_deactivates_teacher(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}"
+        )
         response = self.client.post(
             "/api/users/users/delete-school-staff/",
             {
@@ -381,7 +460,9 @@ class DeleteSchoolStaffTest(APITestCase):
         self.assertFalse(self.target_teacher.is_active)
 
     def test_cannot_delete_self(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}"
+        )
         response = self.client.post(
             "/api/users/users/delete-school-staff/",
             {
@@ -398,7 +479,9 @@ class DeleteSchoolStaffTest(APITestCase):
             last_name="Admin",
             role="TG_PS",
         )
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}"
+        )
         response = self.client.post(
             "/api/users/users/delete-school-staff/",
             {
@@ -408,7 +491,9 @@ class DeleteSchoolStaffTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_principal_cannot_delete(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.principal_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.principal_token.access_token}"
+        )
         response = self.client.post(
             "/api/users/users/delete-school-staff/",
             {
@@ -418,7 +503,9 @@ class DeleteSchoolStaffTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_nonexistent_user_rejected(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}"
+        )
         response = self.client.post(
             "/api/users/users/delete-school-staff/",
             {
@@ -430,7 +517,9 @@ class DeleteSchoolStaffTest(APITestCase):
     def test_audit_log_created_on_delete(self):
         from apps.audit.models import AuditLog
 
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.admin_token.access_token}"
+        )
         before = AuditLog.objects.count()
         self.client.post(
             "/api/users/users/delete-school-staff/",
@@ -446,7 +535,11 @@ class ListSchoolStaffTest(APITestCase):
 
     def setUp(self):
         self.school = School.objects.create(
-            name="Test School", code="TST001", school_type="SENIOR", lga="APAPA", address="123 Street"
+            name="Test School",
+            code="TST001",
+            school_type="SENIOR",
+            lga="APAPA",
+            address="123 Street",
         )
         self.principal = User.objects.create_user(
             email="principal@ediv.gov.ng",
@@ -491,7 +584,9 @@ class ListSchoolStaffTest(APITestCase):
         self.principal_token = RefreshToken.for_user(self.principal)
 
     def test_principal_lists_own_school_staff(self):
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.principal_token.access_token}")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {self.principal_token.access_token}"
+        )
         response = self.client.get("/api/users/users/school-staff/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["school"]["code"], "TST001")

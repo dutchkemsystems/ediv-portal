@@ -14,7 +14,12 @@ from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 
 from config.security import AccountLockout, AuditLogger, SessionManager
 
-from .mfa import generate_mfa_secret, get_mfa_provisioning_uri, get_mfa_qr_code_url, verify_mfa_code
+from .mfa import (
+    generate_mfa_secret,
+    get_mfa_provisioning_uri,
+    get_mfa_qr_code_url,
+    verify_mfa_code,
+)
 from .models import Privilege, RolePrivilege, User
 from .serializers import (
     ChangePasswordSerializer,
@@ -98,7 +103,9 @@ class UserViewSet(viewsets.ModelViewSet):
         elif user.is_department_head or user.is_head_office_staff:
             return User.objects.all().order_by("-created_at")
         elif user.is_school_staff:
-            return User.objects.filter(role__in=["PRI", "VP", "TCH", "STD"]).order_by("-created_at")
+            return User.objects.filter(role__in=["PRI", "VP", "TCH", "STD"]).order_by(
+                "-created_at"
+            )
         return User.objects.filter(id=user.id).order_by("-created_at")
 
     @action(detail=False, methods=["get"])
@@ -108,7 +115,9 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"])
     def change_password(self, request):
-        serializer = ChangePasswordSerializer(data=request.data, context={"request": request})
+        serializer = ChangePasswordSerializer(
+            data=request.data, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
         request.user.set_password(serializer.validated_data["new_password"])
         request.user.save()
@@ -125,7 +134,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
         return Response({"message": "Password changed successfully."})
 
-    @action(detail=False, methods=["post"], url_path="create-school-staff")
+    @action(detail=False, methods=["post"], url_path="create-staff")
     def create_school_staff(self, request):
         """Create a school staff sub-login (Principal, VP, Teacher, Non-Teaching).
 
@@ -133,7 +142,9 @@ class UserViewSet(viewsets.ModelViewSet):
         PRI/VP: creates TCH/SA_OFF for their own school only.
         Returns temp_password on success — caller must share it securely.
         """
-        serializer = CreateSchoolStaffSerializer(data=request.data, context={"request": request})
+        serializer = CreateSchoolStaffSerializer(
+            data=request.data, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
         result = serializer.create(serializer.validated_data)
 
@@ -181,7 +192,9 @@ class UserViewSet(viewsets.ModelViewSet):
 
         Does NOT hard-delete — sets is_active=False so the account can be restored.
         """
-        serializer = DeleteSchoolStaffSerializer(data=request.data, context={"request": request})
+        serializer = DeleteSchoolStaffSerializer(
+            data=request.data, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
         target_user = serializer.save()
 
@@ -222,7 +235,10 @@ class UserViewSet(viewsets.ModelViewSet):
             else:
                 school = None
         else:
-            school = School.objects.filter(principal=user).first() or School.objects.filter(vice_principal=user).first()
+            school = (
+                School.objects.filter(principal=user).first()
+                or School.objects.filter(vice_principal=user).first()
+            )
 
         if not school:
             return Response({"school": None, "staff": []})
@@ -275,26 +291,38 @@ class AuthViewSet(viewsets.ViewSet):
             is_locked, remaining = AccountLockout.check_lockout(user_check)
             if is_locked:
                 return Response(
-                    {"error": f"Account is locked. Try again in {int(remaining / 60)} minutes."},
+                    {
+                        "error": f"Account is locked. Try again in {int(remaining / 60)} minutes."
+                    },
                     status=status.HTTP_403_FORBIDDEN,
                 )
         except User.DoesNotExist:
             pass
 
-        user = authenticate(request=request, username=email, password=serializer.validated_data["password"])
+        user = authenticate(
+            request=request,
+            username=email,
+            password=serializer.validated_data["password"],
+        )
 
         if user is None:
             try:
                 user_check = User.objects.get(email=email)
                 AccountLockout.record_failed_attempt(user_check)
-                AuditLogger.log_login(user_check, ip_address, False, user_agent=user_agent)
+                AuditLogger.log_login(
+                    user_check, ip_address, False, user_agent=user_agent
+                )
             except User.DoesNotExist:
                 pass
-            return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response(
+                {"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED
+            )
 
         if not user.is_active:
             AuditLogger.log_login(user, ip_address, False, user_agent=user_agent)
-            return Response({"error": "Account is disabled"}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"error": "Account is disabled"}, status=status.HTTP_403_FORBIDDEN
+            )
 
         AccountLockout.reset_attempts(user)
         AuditLogger.log_login(user, ip_address, True, user_agent=user_agent)
@@ -302,7 +330,11 @@ class AuthViewSet(viewsets.ViewSet):
         from config.realtime import RealtimeBroadcaster
 
         RealtimeBroadcaster.broadcast_dashboard_update(
-            data={"event": "user_login", "user": user.get_full_name(), "role": user.role}
+            data={
+                "event": "user_login",
+                "user": user.get_full_name(),
+                "role": user.role,
+            }
         )
 
         if user.mfa_enabled:
@@ -341,7 +373,9 @@ class AuthViewSet(viewsets.ViewSet):
                 }
             )
         except Exception:
-            return Response({"error": "Invalid refresh token"}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response(
+                {"error": "Invalid refresh token"}, status=status.HTTP_401_UNAUTHORIZED
+            )
 
     @action(detail=False, methods=["post"])
     def logout(self, request):
@@ -359,7 +393,9 @@ class AuthViewSet(viewsets.ViewSet):
             refresh.blacklist()
             return Response({"message": "Logged out successfully."})
         except Exception:
-            return Response({"error": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
     @action(detail=False, methods=["post"])
     def forgot_password(self, request):
@@ -372,12 +408,20 @@ class AuthViewSet(viewsets.ViewSet):
         try:
             user = User.objects.get(email=email, is_active=True)
         except User.DoesNotExist:
-            return Response({"message": "If an account exists with this email, a reset link has been sent."})
+            return Response(
+                {
+                    "message": "If an account exists with this email, a reset link has been sent."
+                }
+            )
 
         # Generate secure token
         token = secrets.token_urlsafe(32)
         cache_key = f"ediv:password_reset:{token}"
-        cache.set(cache_key, {"user_id": user.id, "created_at": str(timezone.now())}, timeout=3600)
+        cache.set(
+            cache_key,
+            {"user_id": user.id, "created_at": str(timezone.now())},
+            timeout=3600,
+        )
 
         # Build reset URL
         frontend_url = getattr(settings, "FRONTEND_URL", "http://localhost:3000")
@@ -402,7 +446,11 @@ class AuthViewSet(viewsets.ViewSet):
         except Exception:
             pass  # Don't reveal email failure to the user
 
-        return Response({"message": "If an account exists with this email, a reset link has been sent."})
+        return Response(
+            {
+                "message": "If an account exists with this email, a reset link has been sent."
+            }
+        )
 
     @action(detail=False, methods=["post"])
     def reset_password(self, request):
@@ -416,12 +464,18 @@ class AuthViewSet(viewsets.ViewSet):
         reset_data = cache.get(cache_key)
 
         if not reset_data:
-            return Response({"error": "Invalid or expired reset token."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Invalid or expired reset token."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         try:
             user = User.objects.get(id=reset_data["user_id"], is_active=True)
         except User.DoesNotExist:
-            return Response({"error": "Invalid or expired reset token."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Invalid or expired reset token."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         # Set new password
         user.set_password(new_password)
@@ -439,9 +493,15 @@ class AuthViewSet(viewsets.ViewSet):
 
         AuditLogger.log_action(user, "PASSWORD_RESET", "user", user.id)
 
-        return Response({"message": "Password reset successfully. You can now log in with your new password."})
+        return Response(
+            {
+                "message": "Password reset successfully. You can now log in with your new password."
+            }
+        )
 
-    @action(detail=False, methods=["post"], permission_classes=[permissions.IsAuthenticated])
+    @action(
+        detail=False, methods=["post"], permission_classes=[permissions.IsAuthenticated]
+    )
     def mfa_setup(self, request):
         user = request.user
         if user.mfa_enabled:
@@ -465,7 +525,9 @@ class AuthViewSet(viewsets.ViewSet):
             }
         )
 
-    @action(detail=False, methods=["post"], permission_classes=[permissions.IsAuthenticated])
+    @action(
+        detail=False, methods=["post"], permission_classes=[permissions.IsAuthenticated]
+    )
     def mfa_enable(self, request):
         serializer = MFAEnableSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -473,31 +535,42 @@ class AuthViewSet(viewsets.ViewSet):
         user = request.user
         if not user.mfa_secret:
             return Response(
-                {"error": "MFA setup not initiated. Call mfa/setup first."}, status=status.HTTP_400_BAD_REQUEST
+                {"error": "MFA setup not initiated. Call mfa/setup first."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if user.mfa_enabled:
-            return Response({"error": "MFA is already enabled."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "MFA is already enabled."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         if not verify_mfa_code(user.mfa_secret, serializer.validated_data["code"]):
-            return Response({"error": "Invalid MFA code."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Invalid MFA code."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         user.mfa_enabled = True
         user.save(update_fields=["mfa_enabled"])
 
         return Response({"message": "MFA enabled successfully."})
 
-    @action(detail=False, methods=["post"], permission_classes=[permissions.IsAuthenticated])
+    @action(
+        detail=False, methods=["post"], permission_classes=[permissions.IsAuthenticated]
+    )
     def mfa_disable(self, request):
         serializer = MFAEnableSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         user = request.user
         if not user.mfa_enabled:
-            return Response({"error": "MFA is not enabled."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "MFA is not enabled."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         if not verify_mfa_code(user.mfa_secret, serializer.validated_data["code"]):
-            return Response({"error": "Invalid MFA code."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Invalid MFA code."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         user.mfa_enabled = False
         user.mfa_secret = ""
@@ -519,20 +592,34 @@ class AuthViewSet(viewsets.ViewSet):
             token = AccessToken(temp_token)
             user_id = token["user_id"]
             if token.get("purpose") != "mfa_verify":
-                return Response({"error": "Invalid token type."}, status=status.HTTP_401_UNAUTHORIZED)
+                return Response(
+                    {"error": "Invalid token type."},
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
         except Exception:
-            return Response({"error": "Invalid or expired temp token."}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response(
+                {"error": "Invalid or expired temp token."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
 
         try:
             user = User.objects.get(id=user_id, is_active=True)
         except User.DoesNotExist:
-            return Response({"error": "Invalid or expired temp token."}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response(
+                {"error": "Invalid or expired temp token."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
 
         if not user.mfa_enabled:
-            return Response({"error": "MFA is not enabled for this account."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "MFA is not enabled for this account."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         if not verify_mfa_code(user.mfa_secret, mfa_code):
-            return Response({"error": "Invalid MFA code."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Invalid MFA code."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         refresh = RefreshToken.for_user(user)
 
@@ -544,7 +631,9 @@ class AuthViewSet(viewsets.ViewSet):
             }
         )
 
-    @action(detail=False, methods=["post"], permission_classes=[permissions.IsAdminUser])
+    @action(
+        detail=False, methods=["post"], permission_classes=[permissions.IsAdminUser]
+    )
     def seed(self, request):
         """Seed all data - departments, schools, users. Admin + DEBUG only."""
         from django.conf import settings as django_settings
@@ -694,7 +783,9 @@ class UnlockView(generics.GenericAPIView):
             "is_staff": user.is_staff,
             "is_superuser": user.is_superuser,
             "failed_login_attempts": user.failed_login_attempts,
-            "locked_until": user.locked_until.isoformat() if user.locked_until else None,
+            "locked_until": user.locked_until.isoformat()
+            if user.locked_until
+            else None,
             "mfa_enabled": user.mfa_enabled,
             "role": user.role,
         }
@@ -724,7 +815,9 @@ class UnlockView(generics.GenericAPIView):
         results["after"] = {
             "is_active": user.is_active,
             "failed_login_attempts": user.failed_login_attempts,
-            "locked_until": user.locked_until.isoformat() if user.locked_until else None,
+            "locked_until": user.locked_until.isoformat()
+            if user.locked_until
+            else None,
             "mfa_enabled": user.mfa_enabled,
             "password_works": auth_ok is not None,
         }
@@ -737,7 +830,7 @@ class UnlockView(generics.GenericAPIView):
                 action="ADMIN_UNLOCK",
                 resource_type="User",
                 resource_id=user.id,
-                description=f'Admin unlock endpoint called from {request.META.get("REMOTE_ADDR", "unknown")}',
+                description=f"Admin unlock endpoint called from {request.META.get('REMOTE_ADDR', 'unknown')}",
                 ip_address=request.META.get("REMOTE_ADDR"),
             )
         except Exception:
