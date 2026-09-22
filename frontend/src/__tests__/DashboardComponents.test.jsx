@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import { Provider } from 'react-redux'
 import { MemoryRouter } from 'react-router-dom'
 import { configureStore } from '@reduxjs/toolkit'
+import { ThemeProvider, createTheme } from '@mui/material/styles'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import authReducer from '../store/authSlice'
 
@@ -18,6 +19,8 @@ import TeacherDashboard from '../components/dashboard/TeacherDashboard'
 import RegistryDashboard from '../components/dashboard/RegistryDashboard'
 import ParentDashboard from '../components/dashboard/ParentDashboard'
 
+const theme = createTheme()
+
 function renderWithProviders(ui, {
   preloadedState = {},
   store = configureStore({
@@ -27,7 +30,9 @@ function renderWithProviders(ui, {
 } = {}) {
   return render(
     <Provider store={store}>
-      <MemoryRouter>{ui}</MemoryRouter>
+      <ThemeProvider theme={theme}>
+        <MemoryRouter>{ui}</MemoryRouter>
+      </ThemeProvider>
     </Provider>
   )
 }

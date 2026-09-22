@@ -10,6 +10,33 @@ vi.mock('../api/client', () => ({
   default: { get: (...args) => mockGet(...args) },
 }))
 
+// Mock lazy-loaded dashboard components
+vi.mock('../components/dashboard/SysAdminDashboard', () => ({
+  default: function SysAdminDashboard() {
+    return <div><h2>System Overview</h2></div>
+  },
+}))
+vi.mock('../components/dashboard/FinanceDashboard', () => ({
+  default: function FinanceDashboard() {
+    return <div><h2>Financial Overview</h2></div>
+  },
+}))
+vi.mock('../components/dashboard/PrincipalDashboard', () => ({
+  default: function PrincipalDashboard() {
+    return <div><h2>School Operations Overview</h2></div>
+  },
+}))
+vi.mock('../components/dashboard/ParentDashboard', () => ({
+  default: function ParentDashboard() {
+    return <div><h2>Your Children's Overview</h2></div>
+  },
+}))
+vi.mock('../components/dashboard/StaffEnterpriseDashboard', () => ({
+  default: function StaffEnterpriseDashboard() {
+    return <div><h2>Staff Dashboard</h2></div>
+  },
+}))
+
 import Dashboard from '../pages/Dashboard'
 
 function renderWithProviders(ui, {
@@ -152,11 +179,11 @@ describe('Dashboard Page', () => {
       })
 
       await waitFor(() => {
-        expect(screen.getByText(/System Overview/)).toBeInTheDocument()
+        expect(screen.getByText('System Overview')).toBeInTheDocument()
       })
     })
 
-    it('routes HR to HRDashboard', async () => {
+    it('routes HR to StaffEnterpriseDashboard', async () => {
       renderWithProviders(<Dashboard />, {
         preloadedState: {
           auth: { user: { first_name: 'HR Manager', role: 'HR' }, isAuthenticated: true, loading: false, error: null },
@@ -164,7 +191,7 @@ describe('Dashboard Page', () => {
       })
 
       await waitFor(() => {
-        expect(screen.getByText(/Staff Management Overview/)).toBeInTheDocument()
+        expect(screen.getByText('Staff Dashboard')).toBeInTheDocument()
       })
     })
 
@@ -176,7 +203,7 @@ describe('Dashboard Page', () => {
       })
 
       await waitFor(() => {
-        expect(screen.getByText(/Financial Overview/)).toBeInTheDocument()
+        expect(screen.getByText('Financial Overview')).toBeInTheDocument()
       })
     })
 
@@ -188,11 +215,11 @@ describe('Dashboard Page', () => {
       })
 
       await waitFor(() => {
-        expect(screen.getByText(/School Operations Overview/)).toBeInTheDocument()
+        expect(screen.getByText('School Operations Overview')).toBeInTheDocument()
       })
     })
 
-    it('routes TCH to TeacherDashboard', async () => {
+    it('routes TCH to StaffEnterpriseDashboard', async () => {
       renderWithProviders(<Dashboard />, {
         preloadedState: {
           auth: { user: { first_name: 'Teacher', role: 'TCH' }, isAuthenticated: true, loading: false, error: null },
@@ -200,11 +227,11 @@ describe('Dashboard Page', () => {
       })
 
       await waitFor(() => {
-        expect(screen.getByText(/Today's Overview/)).toBeInTheDocument()
+        expect(screen.getByText('Staff Dashboard')).toBeInTheDocument()
       })
     })
 
-    it('routes REG to RegistryDashboard', async () => {
+    it('routes REG to StaffEnterpriseDashboard', async () => {
       renderWithProviders(<Dashboard />, {
         preloadedState: {
           auth: { user: { first_name: 'Registry', role: 'REG' }, isAuthenticated: true, loading: false, error: null },
@@ -212,7 +239,7 @@ describe('Dashboard Page', () => {
       })
 
       await waitFor(() => {
-        expect(screen.getByText(/File & Workflow Management/)).toBeInTheDocument()
+        expect(screen.getByText('Staff Dashboard')).toBeInTheDocument()
       })
     })
 
@@ -224,7 +251,7 @@ describe('Dashboard Page', () => {
       })
 
       await waitFor(() => {
-        expect(screen.getByText(/Your Children's Overview/)).toBeInTheDocument()
+        expect(screen.getByText("Your Children's Overview")).toBeInTheDocument()
       })
     })
   })

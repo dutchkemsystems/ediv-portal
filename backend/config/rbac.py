@@ -50,10 +50,58 @@ ROLE_PERMISSIONS = {
         "delete": ["SYSADMIN", "TG_PS"],
     },
     "files": {
-        "view": ["SYSADMIN", "TG_PS", "REG", "REG_OFF", "PRI", "VP", "HR", "FIN", "SA"],
+        "view": [
+            "SYSADMIN",
+            "TG_PS",
+            "REG",
+            "REG_OFF",
+            "PRI",
+            "VP",
+            "HR",
+            "FIN",
+            "SA",
+            "SA_OFF",
+        ],
         "create": ["SYSADMIN", "TG_PS", "REG", "REG_OFF", "PRI", "VP"],
-        "move": ["SYSADMIN", "TG_PS", "REG", "REG_OFF", "PRI", "VP", "HR", "FIN"],
+        "move": [
+            "SYSADMIN",
+            "TG_PS",
+            "REG",
+            "REG_OFF",
+            "PRI",
+            "VP",
+            "HR",
+            "FIN",
+            "TCH",
+        ],
+        "receive": [
+            "SYSADMIN",
+            "TG_PS",
+            "REG",
+            "REG_OFF",
+            "PRI",
+            "VP",
+            "HR",
+            "FIN",
+            "TCH",
+        ],
+        "close": ["SYSADMIN", "TG_PS", "REG", "REG_OFF", "PRI", "VP", "HR", "FIN"],
+        "log_status": [
+            "SYSADMIN",
+            "TG_PS",
+            "REG",
+            "REG_OFF",
+            "PRI",
+            "VP",
+            "HR",
+            "FIN",
+            "TCH",
+            "SA",
+        ],
+        "submit": ["SYSADMIN", "TG_PS", "REG", "REG_OFF", "PRI", "VP"],
         "approve": ["SYSADMIN", "TG_PS", "REG", "PRI"],
+        "reject": ["SYSADMIN", "TG_PS", "REG", "PRI"],
+        "escalate": ["SYSADMIN", "TG_PS", "REG", "REG_OFF", "PRI", "VP"],
         "delete": ["SYSADMIN", "TG_PS"],
     },
     "mail_workflow": {
@@ -67,14 +115,19 @@ ROLE_PERMISSIONS = {
             "HR",
             "FIN",
             "SA",
+            "SA_OFF",
         ],
         "create": ["SYSADMIN", "TG_PS", "REG", "REG_OFF", "PRI", "VP"],
+        "edit": ["SYSADMIN", "TG_PS", "REG", "REG_OFF", "PRI", "VP"],
         "process": ["SYSADMIN", "TG_PS", "REG", "REG_OFF", "PRI", "VP"],
         "approve": ["SYSADMIN", "TG_PS", "REG", "PRI"],
         "delete": ["SYSADMIN", "TG_PS"],
     },
     "analytics": {
         "view": ["SYSADMIN", "TG_PS", "HR", "FIN", "PRI", "VP"],
+        "create": ["SYSADMIN", "TG_PS", "HR", "FIN", "PRI", "VP"],
+        "edit": ["SYSADMIN", "TG_PS", "HR", "FIN"],
+        "delete": ["SYSADMIN", "TG_PS"],
     },
 }
 
@@ -113,13 +166,45 @@ _ACTION_MAP = {
     "destroy": "delete",
 }
 
+# Custom action name -> RBAC key (DRF uses method name, RBAC uses shorter key)
+_CUSTOM_ACTION_MAP = {
+    # files actions
+    "move_file": "move",
+    "receive_file": "receive",
+    "close_file": "close",
+    "log_status": "log_status",
+    "log_status_change": "log_status",
+    "submit_file": "submit",
+    "approve_file": "approve",
+    "reject_file": "reject",
+    "escalate_file": "escalate",
+    "generate_file": "create",
+    # mail_workflow actions
+    "scan_mail": "create",
+    "classify_mail": "edit",
+    "assign_mail": "process",
+    "forward_mail": "process",
+    "respond_to_mail": "process",
+    "dispatch_mail": "process",
+    "archive_mail": "edit",
+    "submit_for_approval": "create",
+    "approve_mail": "approve",
+    "reject_mail": "reject",
+    "deliver_mail": "process",
+    "submit_correspondence": "create",
+    "receive_correspondence": "process",
+    "respond_to_correspondence": "process",
+}
+
 
 def _resolve_action(view):
     """Map a DRF view action to an RBAC action key."""
     action = getattr(view, "action", None)
     if action in _ACTION_MAP:
         return _ACTION_MAP[action]
-    return action  # custom actions pass through (e.g. 'move', 'approve')
+    if action in _CUSTOM_ACTION_MAP:
+        return _CUSTOM_ACTION_MAP[action]
+    return action
 
 
 # ── Permission classes ───────────────────────────────────────────────────
