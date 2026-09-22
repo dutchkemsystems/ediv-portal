@@ -1,3 +1,4 @@
+import mimetypes
 import os
 
 from django.conf import settings
@@ -6,6 +7,29 @@ from django.contrib import admin
 from django.db import connection
 from django.http import FileResponse, JsonResponse
 from django.urls import include, path, re_path
+from django.utils.http import http_date
+
+# Cache hashed frontend assets (JS/CSS with content hashes) for 1 year
+_ASSET_CACHE_SECONDS = 365 * 24 * 3600
+_CONTENT_TYPES = {
+    ".js": "application/javascript",
+    ".mjs": "application/javascript",
+    ".css": "text/css",
+    ".json": "application/json",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".svg": "image/svg+xml",
+    ".ico": "image/x-icon",
+    ".woff": "font/woff",
+    ".woff2": "font/woff2",
+    ".ttf": "font/ttf",
+    ".webp": "image/webp",
+    ".map": "application/json",
+    ".html": "text/html",
+    ".txt": "text/plain",
+}
 
 
 def health_check(request):
@@ -44,43 +68,63 @@ def debug_files(request):
     return JsonResponse(results)
 
 
+def _get_frontend_dirs():
+    """Return possible locations for the frontend build output."""
+    return [
+        os.path.join(settings.BASE_DIR, "..", "frontend", "dist"),
+        os.path.join(settings.BASE_DIR, "frontend", "dist"),
+    ]
+
+
 def serve_frontend(request, path=""):
-    """Serve the React frontend for all non-API routes"""
-    # API routes that miss a URL pattern should return JSON 404, not HTML
+    """Serve the React frontend for all non-API routes.
+
+    - Static assets (JS/CSS/images) are served directly with long cache headers.
+    - All other routes serve index.html for client-side routing (SPA fallback).
+    """
     full_path = request.path or ""
     if full_path.startswith("/api/"):
         return JsonResponse({"error": "Not Found", "path": full_path}, status=404)
 
-    # Try multiple possible locations for the frontend build
-    possible_dirs = [
-        os.path.join(settings.BASE_DIR, "..", "frontend", "dist"),
-        os.path.join(settings.BASE_DIR, "frontend", "dist"),
-        os.path.join(settings.BASE_DIR, "staticfiles", "frontend"),
-        os.path.join(settings.BASE_DIR, "static", "frontend"),
-    ]
-
-    for frontend_dir in possible_dirs:
-        # Try to serve the specific file first
+    for frontend_dir in _get_frontend_dirs():
         if path:
             file_path = os.path.join(frontend_dir, path)
             if os.path.isfile(file_path):
-                content_type = "text/html"
-                if path.endswith(".js"):
-                    content_type = "application/javascript"
-                elif path.endswith(".css"):
-                    content_type = "text/css"
-                elif path.endswith(".json"):
-                    content_type = "application/json"
-                elif path.endswith(".png") or path.endswith(".ico"):
-                    content_type = "image/png"
-                return FileResponse(open(file_path, "rb"), content_type=content_type)
+                ext = os.path.splitext(path)[1].lower()
+                content_type = (
+                    _CONTENT_TYPES.get(ext)
+                    or mimetypes.guess_type(path)[0]
+                    or "application/octet-stream"
+                )
+                response = FileResponse(
+                    open(file_path, "rb"), content_type=content_type
+                )
+                # Long-cache hashed assets (Vite adds content hash to filenames)
+                if ext in (
+                    ".js",
+                    ".css",
+                    ".woff",
+                    ".woff2",
+                    ".ttf",
+                    ".png",
+                    ".jpg",
+                    ".svg",
+                    ".webp",
+                ):
+                    response["Cache-Control"] = (
+                        f"public, max-age={_ASSET_CACHE_SECONDS}, immutable"
+                    )
+                    response["Expires"] = http_date(_ASSET_CACHE_SECONDS)
+                return response
 
-        # For all other routes, serve index.html (SPA fallback)
+        # SPA fallback — serve index.html for all non-asset routes
         index_path = os.path.join(frontend_dir, "index.html")
         if os.path.isfile(index_path):
             return FileResponse(open(index_path, "rb"), content_type="text/html")
 
-    return JsonResponse({"error": "Frontend not built", "checked": possible_dirs}, status=404)
+    return JsonResponse(
+        {"error": "Frontend not built. Run: cd frontend && npm run build"}, status=404
+    )
 
 
 urlpatterns = [

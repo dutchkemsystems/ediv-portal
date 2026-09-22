@@ -69,7 +69,8 @@ if not _SECRET_KEY:
     import warnings
 
     warnings.warn(
-        "DJANGO_SECRET_KEY not set. Using insecure dev-only fallback. " "Set DJANGO_SECRET_KEY in production!",
+        "DJANGO_SECRET_KEY not set. Using insecure dev-only fallback. "
+        "Set DJANGO_SECRET_KEY in production!",
         stacklevel=1,
     )
     _SECRET_KEY = "django-insecure-dev-only-do-not-use-in-production"
@@ -170,7 +171,9 @@ ASGI_APPLICATION = "config.asgi.application"
 AUTH_USER_MODEL = "users.User"
 
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+    },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
         "OPTIONS": {"min_length": 12},
@@ -195,7 +198,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # REST Framework
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
@@ -217,8 +222,12 @@ REST_FRAMEWORK = {
 
 # JWT Settings
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.environ.get("JWT_ACCESS_TOKEN_LIFETIME_MINUTES", "30"))),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.environ.get("JWT_REFRESH_TOKEN_LIFETIME_DAYS", "7"))),
+    "ACCESS_TOKEN_LIFETIME": timedelta(
+        minutes=int(os.environ.get("JWT_ACCESS_TOKEN_LIFETIME_MINUTES", "30"))
+    ),
+    "REFRESH_TOKEN_LIFETIME": timedelta(
+        days=int(os.environ.get("JWT_REFRESH_TOKEN_LIFETIME_DAYS", "7"))
+    ),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
@@ -232,8 +241,11 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "https://ediv-portal.onrender.com",
-    "https://ediv-frontend-static.onrender.com",
 ]
+# Allow the frontend to be served from the same origin or from FRONTEND_URL
+_extra = os.environ.get("FRONTEND_URL", "")
+if _extra and _extra not in CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS.append(_extra)
 CORS_ALLOW_CREDENTIALS = True
 
 # Celery (optional - requires Redis/RabbitMQ)
@@ -281,7 +293,9 @@ X_FRAME_OPTIONS = "DENY"
 KORA_PAY_PUBLIC_KEY = os.environ.get("KORA_PAY_PUBLIC_KEY", "")
 KORA_PAY_SECRET_KEY = os.environ.get("KORA_PAY_SECRET_KEY", "")
 KORA_PAY_WEBHOOK_SECRET = os.environ.get("KORA_PAY_WEBHOOK_SECRET", "")
-KORA_PAY_API_URL = os.environ.get("KORA_PAY_API_URL", "https://api.korapay.com/merchant/api/v1")
+KORA_PAY_API_URL = os.environ.get(
+    "KORA_PAY_API_URL", "https://api.korapay.com/merchant/api/v1"
+)
 
 # Frontend URL
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
