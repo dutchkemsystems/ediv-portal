@@ -73,6 +73,7 @@ def _get_frontend_dirs():
     return [
         os.path.join(settings.BASE_DIR, "..", "frontend", "dist"),
         os.path.join(settings.BASE_DIR, "frontend", "dist"),
+        os.path.join(settings.STATIC_ROOT, "frontend"),
     ]
 
 
