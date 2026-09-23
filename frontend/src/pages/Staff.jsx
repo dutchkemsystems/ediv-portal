@@ -104,10 +104,6 @@ function Staff() {
     fetchDepartments()
   }, [])
 
-  useEffect(() => {
-    fetchStaff()
-  }, [fetchStaff])
-
   const fetchCurrentUser = async () => {
     try {
       const response = await api.get('/users/users/me/')
@@ -135,6 +131,10 @@ function Staff() {
       setLoading(false)
     }
   }, [filters])
+
+  useEffect(() => {
+    fetchStaff()
+  }, [fetchStaff])
 
   const fetchSchools = async () => {
     try {

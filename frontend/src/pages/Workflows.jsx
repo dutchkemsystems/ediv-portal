@@ -77,24 +77,6 @@ function Workflows() {
   const [autoLoading, setAutoLoading] = useState(false)
   const [autoAssigning, setAutoAssigning] = useState(false)
 
-  useEffect(() => {
-    fetchAll()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  useEffect(() => {
-    fetchWorkflows()
-  }, [fetchWorkflows])
-
-  const fetchAll = useCallback(async () => {
-    try {
-      setLoading(true)
-      await Promise.all([fetchWorkflows(), fetchTasks(), fetchInstances()])
-    } finally {
-      setLoading(false)
-    }
-  }, [fetchWorkflows, fetchTasks, fetchInstances])
-
   const fetchWorkflows = useCallback(async () => {
     try {
       const params = new URLSearchParams()
@@ -121,6 +103,24 @@ function Workflows() {
       setInstances(res.data.results || res.data)
     } catch (error) { /* silent */ }
   }, [])
+
+  const fetchAll = useCallback(async () => {
+    try {
+      setLoading(true)
+      await Promise.all([fetchWorkflows(), fetchTasks(), fetchInstances()])
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchWorkflows, fetchTasks, fetchInstances])
+
+  useEffect(() => {
+    fetchAll()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    fetchWorkflows()
+  }, [fetchWorkflows])
 
   const handleFilterChange = (field, value) => {
     setFilters(prev => ({ ...prev, [field]: value }))

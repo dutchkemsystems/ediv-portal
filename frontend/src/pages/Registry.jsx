@@ -71,6 +71,23 @@ function Registry() {
   const [filters, setFilters] = useState({ document_type: '', classification: '', status: '' })
   const [showFilters, setShowFilters] = useState(false)
 
+  const fetchDocuments = useCallback(async () => {
+    try {
+      setLoading(true)
+      const params = new URLSearchParams()
+      if (filters.document_type) params.append('document_type', filters.document_type)
+      if (filters.classification) params.append('classification', filters.classification)
+      if (filters.status) params.append('status', filters.status)
+      const query = params.toString()
+      const response = await api.get(`/registry/documents/${query ? `?${query}` : ''}`)
+      setDocuments(response.data.results || response.data)
+    } catch (error) {
+      notify.error('Failed to load documents')
+    } finally {
+      setLoading(false)
+    }
+  }, [filters])
+
   useEffect(() => {
     fetchDocuments()
   }, [fetchDocuments])
@@ -130,23 +147,6 @@ function Registry() {
   useEffect(() => {
     fetchDocuments()
   }, [fetchDocuments, filters])
-
-  const fetchDocuments = useCallback(async () => {
-    try {
-      setLoading(true)
-      const params = new URLSearchParams()
-      if (filters.document_type) params.append('document_type', filters.document_type)
-      if (filters.classification) params.append('classification', filters.classification)
-      if (filters.status) params.append('status', filters.status)
-      const query = params.toString()
-      const response = await api.get(`/registry/documents/${query ? `?${query}` : ''}`)
-      setDocuments(response.data.results || response.data)
-    } catch (error) {
-      notify.error('Failed to load documents')
-    } finally {
-      setLoading(false)
-    }
-  }, [filters])
 
   const handleFilterChange = (field, value) => {
     setFilters(prev => ({ ...prev, [field]: value }))

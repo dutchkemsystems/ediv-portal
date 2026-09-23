@@ -98,10 +98,6 @@ function Students() {
     fetchClasses()
   }, [])
 
-  useEffect(() => {
-    fetchStudents()
-  }, [fetchStudents])
-
   const fetchStudents = useCallback(async () => {
     try {
       const params = new URLSearchParams()
@@ -119,6 +115,10 @@ function Students() {
       setLoading(false)
     }
   }, [filters])
+
+  useEffect(() => {
+    fetchStudents()
+  }, [fetchStudents])
 
   const fetchSchools = async () => {
     try {
