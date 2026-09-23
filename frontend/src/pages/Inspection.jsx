@@ -43,11 +43,6 @@ function Inspection() {
     recommendations: '',
   })
 
-  useEffect(() => {
-    fetchInspections()
-    fetchChecklists()
-  }, [])
-
   const fetchInspections = async () => {
     try {
       const response = await api.get('/inspection/inspections/')
@@ -68,8 +63,14 @@ function Inspection() {
     }
   }
 
+  // ponytail: effect after all declarations to avoid TDZ
+  useEffect(() => {
+    fetchInspections();
+    fetchChecklists();
+  }, []);
+
   const handleAdd = () => {
-    setSelectedInspection(null)
+    setSelectedInspection(null);
     setFormData({
       school: '',
       inspector: '',

@@ -40,10 +40,6 @@ function Alumni() {
     phone: '',
   })
 
-  useEffect(() => {
-    fetchData()
-  }, [])
-
   const fetchData = async () => {
     try {
       const [membersRes, eventsRes, donationsRes] = await Promise.all([
@@ -61,8 +57,13 @@ function Alumni() {
     }
   }
 
+  // ponytail: effect after all declarations to avoid TDZ
+  useEffect(() => {
+    fetchData();
+  }, []);
+
   const handleAdd = () => {
-    setSelectedMember(null)
+    setSelectedMember(null);
     setFormData({
       name: '',
       graduation_year: '',

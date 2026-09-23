@@ -50,13 +50,6 @@ function Timetable() {
     period: '',
   })
 
-  useEffect(() => {
-    fetchPeriods()
-    fetchTimetables()
-    fetchEntries()
-    fetchStats()
-  }, [])
-
   const fetchPeriods = async () => {
     try {
       const response = await api.get('/timetable/periods/')
@@ -95,8 +88,16 @@ function Timetable() {
     }
   }
 
+  // ponytail: effect after all declarations to avoid TDZ
+  useEffect(() => {
+    fetchPeriods();
+    fetchTimetables();
+    fetchEntries();
+    fetchStats();
+  }, []);
+
   const handleAdd = () => {
-    setSelectedPeriod(null)
+    setSelectedPeriod(null);
     setFormData({
       name: '',
       start_time: '',

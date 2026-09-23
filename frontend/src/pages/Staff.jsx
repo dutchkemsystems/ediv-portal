@@ -98,12 +98,6 @@ function Staff() {
 
   const canManageStaff = ['SYSADMIN', 'TG_PS', 'PRI', 'VP'].includes(currentUser?.role)
 
-  useEffect(() => {
-    fetchCurrentUser()
-    fetchSchools()
-    fetchDepartments()
-  }, [])
-
   const fetchCurrentUser = async () => {
     try {
       const response = await api.get('/users/users/me/')
@@ -153,6 +147,13 @@ function Staff() {
       // silent
     }
   }
+
+  // ponytail: effect after all declarations to avoid TDZ
+  useEffect(() => {
+    fetchCurrentUser();
+    fetchSchools();
+    fetchDepartments();
+  }, []);
 
   const handleFilterChange = (field, value) => {
     setFilters(prev => ({ ...prev, [field]: value }))

@@ -93,11 +93,6 @@ function Students() {
   })
   const [showFilters, setShowFilters] = useState(false)
 
-  useEffect(() => {
-    fetchSchools()
-    fetchClasses()
-  }, [])
-
   const fetchStudents = useCallback(async () => {
     try {
       const params = new URLSearchParams()
@@ -143,8 +138,14 @@ function Students() {
   }
 
   const clearFilters = () => {
-    setFilters({ school: '', class_name: '', status: '', gender: '' })
+    setFilters({ school: '', class_name: '', status: '', gender: '' });
   }
+
+  // ponytail: effect after all declarations to avoid TDZ
+  useEffect(() => {
+    fetchSchools();
+    fetchClasses();
+  }, []);
 
   const hasActiveFilters = Object.values(filters).some(v => v !== '')
 

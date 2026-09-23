@@ -1,0 +1,5 @@
+﻿fix: restore effect hooks and rebuild dist after TDZ fixes
+
+Re-insert deleted mount effects in Alumni, Inspection, and Timetable;
+keep Staff/Students TDZ fixes intact. Rebuild frontend dist with new
+hashes. 89/89 tests pass, lint clean.
