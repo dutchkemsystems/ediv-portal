@@ -6,6 +6,7 @@ from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.negotiation import DefaultContentNegotiation
 from rest_framework.response import Response
 
 from config.permissions import IsAdminOrTGOrDeptHead
@@ -40,10 +41,18 @@ from .services.registry_service import (
 User = get_user_model()
 
 
+class ExportFormatNegotiation(DefaultContentNegotiation):
+    """Let export_index handle ?format= itself; don't 404 unknown formats."""
+
+    def filter_renderers(self, renderers, format):
+        return renderers
+
+
 class DocumentViewSet(viewsets.ModelViewSet):
     queryset = Document.objects.select_related("created_by", "department").all()
     from config.permissions import IsAdminOrTGOrDeptHead
 
+    content_negotiation_class = ExportFormatNegotiation
     permission_classes = [IsAdminOrTGOrDeptHead]
     filter_backends = [
         DjangoFilterBackend,

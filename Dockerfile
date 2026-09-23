@@ -4,6 +4,8 @@ WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm ci
 COPY frontend/ ./
+ARG VITE_REGISTRY_AUTO_TASK=true
+ENV VITE_REGISTRY_AUTO_TASK=$VITE_REGISTRY_AUTO_TASK
 RUN npm run build
 
 # Stage 2: Python backend
@@ -22,8 +24,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies (cached layer)
-COPY backend/requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+COPY backend/requirements/ /app/requirements/
+RUN pip install --no-cache-dir -r /app/requirements/prod.txt
 
 # Copy backend code
 COPY backend/ /app/backend/

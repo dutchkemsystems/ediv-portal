@@ -1,0 +1,10 @@
+.env.production
+.env
+*.pyc
+__pycache__/
+.git/
+frontend/node_modules/
+specs/
+*.png
+*.jpg
+*.pdf

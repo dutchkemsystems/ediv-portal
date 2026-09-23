@@ -1,1 +1,0 @@
-import{aK as o}from"./index-BpfsiWNv.js";const e={success:r=>o.success(r),error:r=>o.error(r||"An error occurred"),info:r=>o.info(r),warning:r=>o.warning(r),promise:(r,s)=>o.promise(r,s)};export{e as n};
