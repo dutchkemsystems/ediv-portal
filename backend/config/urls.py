@@ -223,8 +223,11 @@ urlpatterns = [
     path("api/iot/", include("apps.iot_dashboard.urls")),
     path("api/benchmarking/", include("apps.benchmarking.urls")),
     path("api/report-card-gen/", include("apps.report_card_gen.urls")),
-    # Catch-all for SPA routing - must be last
-    re_path(r"^(?P<path>.*)$", serve_frontend, {"path": ""}),
+    # Catch-all for SPA routing - must be last.
+    # `.*` already captures empty path for /; do NOT pass a {"path": ""} default
+    # kwarg - Django's default_kwargs.update() would clobber the captured group
+    # and make every route (incl. /assets/*.js) fall through to the SPA fallback.
+    re_path(r"^(?P<path>.*)$", serve_frontend),
 ]
 
 if settings.DEBUG:
