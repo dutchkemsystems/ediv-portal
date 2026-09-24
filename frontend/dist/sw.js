@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ediv-portal-v1';
+const CACHE_NAME = 'ediv-portal-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
