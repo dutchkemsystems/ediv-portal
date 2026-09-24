@@ -1,4 +1,3 @@
-import React from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
@@ -11,7 +10,6 @@ import {
   Typography,
   Divider,
   Avatar,
-  Collapse,
 } from '@mui/material'
 import {
   Dashboard as DashboardIcon,
@@ -21,14 +19,10 @@ import {
   Assignment as AssignmentIcon,
   AccountBalance as FinanceIcon,
   Assessment as ReportsIcon,
-  Settings as SettingsIcon,
   Logout as LogoutIcon,
   CalendarToday as CalendarIcon,
   MenuBook as LibraryIcon,
-  Sports as SportsIcon,
-  Science as ScienceIcon,
   LocalHospital as WellnessIcon,
-  TrendingUp as AnalyticsIcon,
   Work as WorkIcon,
   SwapHoriz as WorkflowIcon,
   Mail as MailIcon,
@@ -44,9 +38,6 @@ import {
   Translate as FrenchIcon,
   EmojiEvents as CoCurIcon,
   School as CPDIcon,
-  ExpandLess,
-  ExpandMore,
-  Payment as PaymentIcon,
 } from '@mui/icons-material'
 import { logout } from '../../store/authSlice'
 
