@@ -1,0 +1,48 @@
+# Feature map — verification phase artifact
+# Scope: TDZ "Cannot access before initialization" fix on Staff/Students/E-Registry/Workflows
+version: 1
+date: 2026-09-24
+
+features:
+  - id: TDZ-001
+    name: TDZ crash fix — Staff, Students, Registry, Workflows pages
+    status: verified-static
+    files:
+      - frontend/public/sw.js        # CACHE_NAME v1 -> v2 (primary suspect: stale SW-cached bundle)
+      - frontend/dist/sw.js          # rebuilt, v2 confirmed
+      - frontend/.eslintrc.cjs       # no-use-before-define scoped to 4 pages (verification-layer lint gate)
+      - frontend/dist/assets/Staff-C8q9tS1n.js
+      - frontend/dist/assets/Students-YLdcR1xW.js
+      - frontend/dist/assets/Registry-DgLuANmb.js
+      - frontend/dist/assets/Workflows-CXMb6baV.js
+    evidence:
+      - Source reads: declaration-before-reference in all 4 pages (no TDZ in source)
+      - Minified init-vs-reference: init precedes first real use in all 4 chunks (no TDZ in bundle)
+      - No circular imports; no src/index.js barrel
+      - Lint GREEN after .eslintrc.cjs rewrite (was 26 no-use-before-define warnings, --max-warnings 0)
+      - Tests GREEN: 7/7 files, 89/89 tests, 162.53s (frontend/test-run.log)
+      - Build GREEN: vite v5.4.21, 12610 modules; 4 rebuilt chunks timestamp 2026-09-24 11:40:45
+      - sw.js CACHE_NAME = ediv-portal-v2 in public/ and dist/
+    residual_risk:
+      - Runtime retest (hard reload / SW bypass on /staff /students /registry /workflows) is human-in-browser
+      - Exact throwing site unconfirmed at runtime; SW/cache-stale theory pending live confirmation
+    blocked_by: null
+
+  - id: TDZ-002
+    name: Do-not-edit boundaries respected
+    status: verified
+    notes:
+      - Other pages with no-use-before-define hits left untouched (Assets, CPD, CoCurricular, ELearning, French, Infrastructure, Library, MFASetup, Notifications, getOfflineAttendance)
+      - No new deps (eslint-plugin-import NOT added)
+      - No vite.config.js build-config change (sourcemap was CLI-only)
+      - No arch changes beyond TDZ scope
+      - specs.md kept untracked
+
+gates:
+  lint: PASS
+  unit_tests: PASS   # 7 files / 89 tests
+  build: PASS
+  runtime_retest: PENDING  # human browser step: hard reload + SW unregister/cache clear
+  code_review: PASS
+  push: PENDING
+  deploy: PENDING
